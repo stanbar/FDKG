@@ -1,6 +1,3 @@
-The project aims to solve the problem of internet voting by employing blockchain, MPC, zkSNARK, and an ad-hoc peer-to-peer network consisting of voters’ end-devices like laptops or (ideally) smartphones. Resulting in an internet voting protocol that achieves security, integrity, coercion-resistance, and privacy, without any trusted third party.
-
-
 # Overview
 The project aims to solve the problem of internet voting by employing blockchain [@baranskiPracticalIVotingStellar2020], MPC [@evansPragmaticIntroductionSecure2018], co-zkSNARK [@ozdemirExperimentingCollaborativezkSNARKs2022], and an ad-hoc peer-to-peer network consisting of voters’ smartphones and laptops. Resulting in an internet voting protocol that achieves security, integrity, coercion-resistance, and privacy, without any trusted third party.
 
