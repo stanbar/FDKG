@@ -5,4 +5,4 @@ Once the network is established nodes execute the first MPC functionality $F_1$,
 Symbolically, the functionality $F_1$ is defined as follows: $$F_1(\mathrm{SK}_1, ..., \mathrm{SK}_N) = DerivePubKey(DKG(\mathrm{SK}_1, ..., \mathrm{SK}_N)) \rightarrow PK$$
 The reconstruction of a $\textrm{SK}$ is possible only if a sufficient number of votes (predefined threshold) collude. It would require executing malicious functionality $F_m(\mathrm{SK}_1, ..., \mathrm{SK}_N)=DerivePrivKey(\mathrm{SK}_1, ..., \mathrm{SK}_N) \rightarrow \textrm{SK}$. The situation should not happen under the honest majority assumption. 
 
-![Setup phase of the proposed i-voting system.](img/setup.png){#fig:setup}
+![Setup phase of the proposed i-voting system.](setup.png){#fig:setup}
