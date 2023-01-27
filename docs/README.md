@@ -171,14 +171,13 @@ The voting process consists of three phases (rounds): 
 0.  bootstrapping p2p network phase presented in section
     [5.0.1](#bootstraping-p2p-network);
 1.  distributed encryption key generation phase presented in section
-    [5.0.2](#distributed-encryption-key-generation) and figure
-    [5](#fig:setup); 
+    [5.0.2](#setup-phase) and figure [5](#fig:setup); 
 2.  casting votes phase presented in section [5.0.3](#voting-phase) and
     figure [6](#fig:voting); 
 3.  tally phase presented in section [5.0.4](#tally-phase) and figure
     [7](#fig:tally).
 
-### 0. Bootstraping p2p network
+### Bootstraping p2p network
 
 The first step that the network of voters’ smartphones has to do is to
 form a peer-to-peer (or rather, smartphone-to-smartphone) network
@@ -224,7 +223,7 @@ required to solve many network-related problems. Namely,
 To solve those issues we piggyback on the libp2p \[28\], an open source
 library, which addresses all of the mentioned issues.
 
-### 1. Distributed Encryption Key Generation
+### Setup phase
 
 Once the network is established nodes execute the first MPC
 functionality $F_1$, which lets nodes jointly compute
