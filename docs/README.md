@@ -19,13 +19,13 @@ As described in [Vitalik Buterin's post](https://vitalik.ca/general/2021/05/25/v
 - Users participate by signing a message with their private key, encrypting the signed message to a public key published by a central server, and publishing the encrypted signed message to the blockchain. 
 - The server downloads the messages from the blockchain, decrypts them, processes them, and outputs the result along with a ZK-SNARK to ensure that they did the computation correctly.
 
-![[img/blockchain-and-ttp.png]]
+![Blockchain and TTP][img/blockchain-and-ttp.png]
 
 Some solutions are distributing the trusted third party using MPC (Civitas, Swisspost/Scytl, iVoting).
 
 We want to go even further and conduct the voting on voters’ end devices (PC, laptops, or even smartphones) using both blockchain and MPC.
 
-![[img/trust-model-stellot.png]]
+![Trust model][img/trust-model-stellot.png]
 
 
 Most people think about voting in terms of presidential elections. However, voting is used also in small, local votings like housing associations, board members, contests, and all forms of committees.
@@ -76,7 +76,7 @@ The first step that the network of voters' smartphones has to do is to form a pe
 A distributed network consisting of eligible voters runs a blockchain and MPC software. Consequently, two functionally separate networks (blockchain and MPC) are running on voters' devices. Blockchain network act as bulletin boards, where all transactions are collected and accessible to anyone. MPC network offers two functionalities: 1) jointly generating encryption key; 2) jointly decrypting and tallying votes, along with producing a zk-SNARK proof. The networks are communicating with each other for fetching votes and published results. A big-picture idea of the proposed system is presented in Figure @fig:architecture.
 
 
-![Overview of the proposed system](overview.png){#fig:architecture}
+![Overview of the proposed system](img/overview.png){#fig:architecture}
 
 The voting process consists of three phases (rounds): 
 
@@ -110,7 +110,7 @@ Symbolically, the functionality $F_1$ is defined as follows: $$F_1(\mathrm{SK}_1
 The reconstruction of a $\textrm{SK}$ is possible only if a sufficient number of votes (predefined threshold) collude. It would require executing malicious functionality $F_m(\mathrm{SK}_1, ..., \mathrm{SK}_N)=DerivePrivKey(\mathrm{SK}_1, ..., \mathrm{SK}_N) \rightarrow \textrm{SK}$. The situation should not happen under the honest majority assumption. 
 
 
-![Setup phase of the proposed i-voting system.](setup.png){#fig:setup}
+![Setup phase of the proposed i-voting system.](img/setup.png){#fig:setup}
 
 Read more [[Round 1. Setup]]
 
@@ -120,7 +120,7 @@ We use [[Homomorphic Encryption ElGamal vs Paillier|ElGamal homomorphic encrypti
 
 The voting process is illustrated in Figure @fig:voting.
 
-![Voting phase, voters casting votes to the blockchain](voting.png){width=500px #fig:voting}
+![Voting phase, voters casting votes to the blockchain](img/voting.png){width=500px #fig:voting}
 
 Let's first consider simple one candidate protocol.
 
