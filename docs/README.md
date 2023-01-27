@@ -39,36 +39,50 @@ properties.
 Some of them use blockchain for integral and transparent storage (Voatz,
 Polys, MACI).
 
-As described in [Vitalik Buterin’s
-post](https://vitalik.ca/general/2021/05/25/voting2.html#maci-coercion-resistant-blockchain-voting-in-ethereum),
-the architecture usually looks as follows: - Users participate by
-signing a message with their private key, encrypting the signed message
-to a public key published by a central server, and publishing the
-encrypted signed message to the blockchain. - The server downloads the
-messages from the blockchain, decrypts them, processes them, and outputs
-the result along with a ZK-SNARK to ensure that they did the computation
-correctly.
+As described in \[11\], the architecture usually looks as follows
+(Figure [1](#fig:bc-ttp)):
 
-\[Blockchain and TTP\]\[img/blockchain-and-ttp.png\]
+- Users participate by signing a message with their private key,
+  encrypting the signed message to a public key published by a central
+  server, and publishing the encrypted signed message to the blockchain.
+- The server downloads the messages from the blockchain, decrypts them,
+  processes them, and outputs the result along with a ZK-SNARK to ensure
+  that they did the computation correctly.
+
+<figure>
+<img src="img/blockchain-and-ttp.png" id="fig:bc-ttp"
+alt="Figure 1: Blockchain and TTP" />
+<figcaption aria-hidden="true">Figure 1: Blockchain and TTP</figcaption>
+</figure>
 
 Some solutions are distributing the trusted third party using MPC
 (Civitas, Swisspost/Scytl, iVoting).
 
 We want to go even further and conduct the voting on voters’ end devices
-(PC, laptops, or even smartphones) using both blockchain and MPC.
+(PC, laptops, or even smartphones) using both blockchain and MPC (see
+Figure [2](#fig:trust-models)).
 
-\[Trust model\]\[img/trust-model-stellot.png\]
+<figure>
+<img src="img/trust-model-stellot.png" id="fig:trust-models"
+alt="Figure 2: Trust model" />
+<figcaption aria-hidden="true">Figure 2: Trust model</figcaption>
+</figure>
 
 Most people think about voting in terms of presidential elections.
 However, voting is used also in small, local votings like housing
 associations, board members, contests, and all forms of committees.
 
-We don’t want to build - A large-scale voting system for presidential
-elections; - A voting system for crypto space only; - A perfectly
-secure, coercion-resistant, protocol. Rather, we do want to build: - A
-voting protocol for small to medium size voting like 100 voters; - A
-voting protocol for people, without the crypto background; - A
-decentralised and secure enough protocol that works.
+We don’t want to build:
+
+- A large-scale voting system for presidential elections;
+- A voting system for crypto space only;
+- A perfectly secure, coercion-resistant, protocol.
+
+Rather, we do want to build:
+
+- A voting protocol for small to medium size voting like 100 voters;
+- A voting protocol for people, without the crypto background;
+- A decentralised and secure enough protocol that works.
 
 “Blockchain voting is overrated among uninformed people but underrated
 among informed people,” says Vitalik Buterin, the co-founder of
@@ -122,17 +136,17 @@ current one \[12\]:
 
 Voters form a peer-to-peer network using their smartphones. Let’s assume
 a voter consists of a smartphone and a key pair (see Figure
-[1](#fig:notation)). 
+[3](#fig:notation)). 
 
 <figure>
 <img src="img/notation.png" id="fig:notation" width="200"
-alt="Figure 1: Notation." />
-<figcaption aria-hidden="true">Figure 1: Notation.</figcaption>
+alt="Figure 3: Notation." />
+<figcaption aria-hidden="true">Figure 3: Notation.</figcaption>
 </figure>
 
 The first step that the network of voters’ smartphones has to do is to
 form a peer-to-peer (or rather, smartphone-to-smartphone) network
-\[17\], \[18\] ^86890b
+\[17\], \[18\].
 
 A distributed network consisting of eligible voters runs a blockchain
 and MPC software. Consequently, two functionally separate networks
@@ -143,12 +157,12 @@ generating encryption key; 2) jointly decrypting and tallying votes,
 along with producing a zk-SNARK proof. The networks are communicating
 with each other for fetching votes and published results. A big-picture
 idea of the proposed system is presented in Figure
-[2](#fig:architecture).
+[4](#fig:architecture).
 
 <figure>
 <img src="img/overview.png" id="fig:architecture"
-alt="Figure 2: Overview of the proposed system" />
-<figcaption aria-hidden="true">Figure 2: Overview of the proposed
+alt="Figure 4: Overview of the proposed system" />
+<figcaption aria-hidden="true">Figure 4: Overview of the proposed
 system</figcaption>
 </figure>
 
@@ -158,11 +172,11 @@ The voting process consists of three phases (rounds): 
     [5.0.1](#bootstraping-p2p-network);
 1.  distributed encryption key generation phase presented in section
     [5.0.2](#distributed-encryption-key-generation) and figure
-    [3](#fig:setup); 
+    [5](#fig:setup); 
 2.  casting votes phase presented in section [5.0.3](#voting-phase) and
-    figure [4](#fig:voting); 
+    figure [6](#fig:voting); 
 3.  tally phase presented in section [5.0.4](#tally-phase) and figure
-    [5](#fig:tally).
+    [7](#fig:tally).
 
 ### 0. Bootstraping p2p network
 
@@ -229,8 +243,8 @@ The situation should not happen under the honest majority assumption. 
 
 <figure>
 <img src="img/setup.png" id="fig:setup"
-alt="Figure 3: Setup phase of the proposed i-voting system." />
-<figcaption aria-hidden="true">Figure 3: Setup phase of the proposed
+alt="Figure 5: Setup phase of the proposed i-voting system." />
+<figcaption aria-hidden="true">Figure 5: Setup phase of the proposed
 i-voting system.</figcaption>
 </figure>
 
@@ -243,12 +257,12 @@ homomorphic encryption\]\] + \[\[Lookup Table\]\] of trapdoors to
 decrypt the results. It’s the same encryption scheme used in
 \[\[Comparision to Polys\|Polys\]\].
 
-The voting process is illustrated in Figure [4](#fig:voting).
+The voting process is illustrated in Figure [6](#fig:voting).
 
 <figure>
 <img src="img/voting.png" id="fig:voting" width="500"
-alt="Figure 4: Voting phase, voters casting votes to the blockchain" />
-<figcaption aria-hidden="true">Figure 4: Voting phase, voters casting
+alt="Figure 6: Voting phase, voters casting votes to the blockchain" />
+<figcaption aria-hidden="true">Figure 6: Voting phase, voters casting
 votes to the blockchain</figcaption>
 </figure>
 
@@ -332,12 +346,12 @@ decryption key can not be reconstructed, that is, the malicious
 functionality $F_m$ can not be performed.
 
 The results and certificate are published on the Blockchain (bulletin
-board). See Figure [5](#fig:tally). 
+board). See Figure [7](#fig:tally). 
 
 <figure>
 <img src="img/tally.png" id="fig:tally"
-alt="Figure 5: Tally phase of the proposed i-voting system." />
-<figcaption aria-hidden="true">Figure 5: Tally phase of the proposed
+alt="Figure 7: Tally phase of the proposed i-voting system." />
+<figcaption aria-hidden="true">Figure 7: Tally phase of the proposed
 i-voting system.</figcaption>
 </figure>
 
