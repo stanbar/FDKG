@@ -1,4 +1,4 @@
-We use [[Homomorphic Encryption ElGamal vs Paillier|ElGamal homomorphic encryption]] + Lookup Table of trapdors to decrypt the results. It's the same encryption scheme used in [[Comparision to Polys|Polys]]. 
+We use [[Homomorphic Encryption ElGamal vs Paillier|ElGamal homomorphic encryption]] + Lookup Table of trapdoors to decrypt the results. It's the same encryption scheme used in [[Comparision to Polys|Polys]]. 
 
 Let's first consider simple one candidate protocol.
 
