@@ -34,8 +34,9 @@
 	2. (Lev?) Write a procedure for generating [[PoB - Proof of Ballot]] (Groth16 BN-254)
 		- Use [circom](https://docs.circom.io)
 		- Reuse some circuits from [MACI](https://github.com/privacy-scaling-explorations/maci/tree/master/circuits/circom)
-	4. (easy) Write a procedure for submitting the vote to the blockchain. Blockchain dependent.
-3. [[Round 3. Tally]]
+	4. (easy) Write a procedure for submitting the vote to the blockchain.
+		- (easy) Blockchain dependent.
+1. [[Round 3. Tally]]
 	1. (Lev?) Write a procedure for nodes agreeing on a certain state of the votes on the blockchain.
 		- It could be executed on-chain using SC.
 	2. (Lev?) Write a procedure for nodes to download all encrypted votes from the blockchain.
@@ -47,5 +48,5 @@
 	5. (Lev?) Write a procedure in which nodes jointly (in MPC) decrypt the votes. Steps 3 and 4 from Round 3. Tally
 	6. (Lev?) Write a procedure to compute a discrete log using a pre-computed lookup table of trapdoors. Steps 5 and 6 from [[Round 3. Tally]]
 	7. (Lev?, optional) Write a procedure for producing a [[PoD - Proof of Decryption]], or threshold signature (using the shared private key) on the computed result. Steps 5 and 6 from [[Round 3. Tally]]
-	8. (Lev?) Publish the result along with proof, back to the blockchain.
-		- (easy) Submission to Blockchain
+	8. (easy) Publish the result along with proof, back to the blockchain.
+		- (easy) Blockchain dependent.
