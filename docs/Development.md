@@ -1,7 +1,8 @@
-- Write down a formal description of the [[Protocol]].
+- Decide on what part of the computation can be done off-chain and what needs to be done on-chain?
 - Decide on which blockchain to use:
 	- Stellar (trust-based consensus, experience, wasm in beta)
 	- Ethereum (experience, a lot of zkp tooling, easy to develop, evm)
+- Write down a formal description of the [[Protocol]].
 - Development roadmap:
 1. [[Round 1. Setup]]
 	1. (hard) Bootstrapping voting:
@@ -19,9 +20,11 @@
 			2. TURN, https://github.com/pion/turn
 			3. STUN, https://github.com/pion/stun
 			4. ICE, https://github.com/pion/ice
-	3. (medium) Run Distributed Key Generation for elGamal on the babyJubJub curve
+	3. (medium) Run Distributed Key Generation ([[DKG]]) for elGamal on the babyJubJub curve
 		1. Find some ready-to-use implementation, or
 		2. (Lev?) Write our own implementation, inspire by
+			- https://asecuritysite.com/kryptology/dkg
+			- https://github.com/taurusgroup/multi-party-sig
 			- https://github.com/taurusgroup/frost-ed25519
 			- https://github.com/TNO-MPC/protocols.distributed_keygen
 	4. (medium) Write a procedure for calculating the lookup table of discrete log trapdoors
