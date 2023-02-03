@@ -16,8 +16,8 @@ To decrypt the results we need to calculate the $\mathrm{batchDecryptor} = p \cd
 3. $[\mathrm{batchDecryptor}] = [p] \cdot \mathrm{accKeys}$;
 4. $\mathrm{batchDecryptor} = \mathrm{open}([\mathrm{batchDecryptor}])$
 5. $\mathrm{result} * G = S - \mathrm{batchDecryptor}$.
-6. create [[PoD - Proof of Decryption]] $\pi$.
-7. To extract the $\mathrm{result}$ (calculate "discrete logarithm") efficiently we search over precomputed lookup table. Since the result is guaranteed to be small, between $0 \leq result \leq n$.
+6. To extract the $\mathrm{result}$ (calculate "discrete logarithm") efficiently we search over precomputed lookup table. Since the result is guaranteed to be small, between $0 \leq result \leq n$.
+7. create [[PoD - Proof of Decryption]] $\pi$.
 8. As a result we publish (set of transactions, $batchDecryptor$, $result$, $\pi$)
 
 
