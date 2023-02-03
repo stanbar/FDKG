@@ -1,14 +1,17 @@
-- Write down a formal description of the protocol.
-- Decide on which blockchain to use
+- Write down a formal description of the [[Protocol]].
+- Decide on which blockchain to use:
 	- Stellar (trust-based consensus, experience, wasm in beta)
 	- Ethereum (experience, a lot of zkp tooling, easy to develop, evm)
 - Development roadmap:
-1. Setup: 
-	1. (medium) Bootstrapping voting:
-		1. Write a procedure for bootstrapping voting.
-			1. Host of the voting deploys a list of participants (public keys) and a list of candidates.
-			2. Host encodes all required information into a QR code and broadcasts it among all eligible voters. 
-			3. Each of the members scans the QR code and "agrees and registers" by submitting a signature using its private key.  
+1. [[Round 1. Setup]]
+	1. (hard) Bootstrapping voting:
+		1. (hard) Write a procedure allowing the host of the voting to deploy a list of participants (public keys) and a list of candidates on [[Why blockchain|blockchain]].
+			  - All PKI-related issues.
+			  - Who is the host, and how to authenticate the host? 
+			  - Encoding issues.
+		2. (medium) Write a procedure allowing the host to encode all required information into a QR code and broadcast it among all eligible voters. 
+			  - What needs to be encoded? Just an address of the smart contract? Merkle tree root of the list of participants? Candidates list? Passphrase?
+		3. (easy) Write a procedure allowing each of the members to scan the QR code, and "agree and register" by submitting a signature using its private key.  
 	2. (hard) Connect peers into a closed p2p network (voters get the list of registered members from the blockchain):
 		- VPN, bad user experience
 		- ICE (TURN, STUN, ICE):
@@ -22,14 +25,14 @@
 			- https://github.com/taurusgroup/frost-ed25519
 			- https://github.com/TNO-MPC/protocols.distributed_keygen
 	4. (medium) Write a procedure for calculating the lookup table of discrete log trapdoors
-2. Voting:
+2. [[Round 2. Voting]]
 	1. (Lev?) Write a procedure for generating an encrypted vote (ElGamal on babyJubJub)
 		- (Lev?) Do you know some ready-to-use solutions?
 	2. (Lev?) Write a procedure for generating [[PoB - Proof of Ballot]] (Groth16 BN-254)
 		- Use [circom](https://docs.circom.io)
 		- Reuse some circuits from [MACI](https://github.com/privacy-scaling-explorations/maci/tree/master/circuits/circom)
 	4. (easy) Write a procedure for submitting the vote to the blockchain. Blockchain dependent.
-3. Tally:
+3. [[Round 3. Tally]]
 	1. (Lev?) Write a procedure for nodes agreeing on a certain state of the votes on the blockchain.
 		- It could be executed on-chain using SC.
 	2. (Lev?) Write a procedure for nodes to download all encrypted votes from the blockchain.
