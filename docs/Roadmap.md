@@ -4,32 +4,31 @@
 	- Ethereum (experience, a lot of zkp tooling, easy to develop, evm)
 - Development roadmap:
 1. Setup: 
-	1. (hard) Bootstrapping voting:
+	1. (medium) Bootstrapping voting:
 		1. Write a procedure for bootstrapping voting.
-			1. Host of the voting creates a list of public keys and candidates.
-			2. The list of candidates and members (come smart encoding) is encoded as a QR code.
-			3. The QR code is broadcasted (for example on a presentation's slide, on a website, or via emails)
-			4. Members can scan the QR code, validate the voting, and join
-	3. (hard) Connect peers into a p2p network:
+			1. Host of the voting deploys a list of participants (public keys) and a list of candidates.
+			2. Host encodes all required information into a QR code and broadcasts it among all eligible voters. 
+			3. Each of the members scans the QR code and "agrees and registers" by submitting a signature using its private key.  
+	2. (hard) Connect peers into a closed p2p network (voters get the list of registered members from the blockchain):
 		- VPN, bad user experience
-		- (hard) ICE (TURN, STUN, ICE):
+		- ICE (TURN, STUN, ICE):
 			1. libp2p, http://libp2p.io, may have not implemented all features
 			2. TURN, https://github.com/pion/turn
 			3. STUN, https://github.com/pion/stun
 			4. ICE, https://github.com/pion/ice
-	4. (Lev?) Run Distributed Key Generation for elGamal on the babyJubJub curve
+	3. (medium) Run Distributed Key Generation for elGamal on the babyJubJub curve
 		1. Find some ready-to-use implementation, or
 		2. (Lev?) Write our own implementation, inspire by
 			- https://github.com/taurusgroup/frost-ed25519
 			- https://github.com/TNO-MPC/protocols.distributed_keygen
-	1. (Lev?) Write a procedure for calculating the lookup table of discrete log trapdoors
+	4. (medium) Write a procedure for calculating the lookup table of discrete log trapdoors
 2. Voting:
 	1. (Lev?) Write a procedure for generating an encrypted vote (ElGamal on babyJubJub)
-		- (Lev?) Do you know some ready-to-use solution?
-	2. (Lev?) Write a procedure for generating proof of ballot (Groth16 BN-254)
-		- [MACI](https://github.com/privacy-scaling-explorations/maci/tree/master/circuits/circom)
-	3. (easy) Write a procedure for submitting the vote to the blockchain:
-		- (easy) Submission to blockchain
+		- (Lev?) Do you know some ready-to-use solutions?
+	2. (Lev?) Write a procedure for generating [[PoB - Proof of Ballot]] (Groth16 BN-254)
+		- Use [circom](https://docs.circom.io)
+		- Reuse some circuits from [MACI](https://github.com/privacy-scaling-explorations/maci/tree/master/circuits/circom)
+	4. (easy) Write a procedure for submitting the vote to the blockchain. Blockchain dependent.
 3. Tally:
 	1. (Lev?) Write a procedure for nodes agreeing on a certain state of the votes on the blockchain.
 		- It could be executed on-chain using SC.
