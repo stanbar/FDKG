@@ -1,8 +1,3 @@
----
-bibliography: bibliography.bib
-csl: ieee-with-url.csl
----
-
 # Problem statement
 
 Voting is one of the most popular mechanisms for collective decision-making; yet, it’s still something we can not do securely online.
