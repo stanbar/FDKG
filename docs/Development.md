@@ -17,9 +17,10 @@
 		- VPN, bad user experience
 		- ICE (TURN, STUN, ICE):
 			1. libp2p, http://libp2p.io, may have not implemented all features
-			2. TURN, https://github.com/pion/turn
-			3. STUN, https://github.com/pion/stun
-			4. ICE, https://github.com/pion/ice
+			2. IronFish, in-browser p2p crypto, https://ironfish.network/docs/whitepaper/2_networking
+			3. TURN, https://github.com/pion/turn
+			4. STUN, https://github.com/pion/stun
+			5. ICE, https://github.com/pion/ice
 	3. (medium) Run Distributed Key Generation ([[DKG]]) for elGamal on the babyJubJub curve
 		1. Find some ready-to-use implementation, or
 		2. (Lev?) Write our own implementation, inspire by
