@@ -198,12 +198,9 @@ After the results and the corresponding certificate has been published on the bl
 - How to design a protocol resilient to nodes' unavailability?
 - How much RAM and disk space does the proposed protocol use?
 - How long does it take to execute both functionalities on a mid-range smartphone?
-- How to prevent DDoS attacks?
-- How many votes per second can handle the proposed protocol?
-- Which MPC framework to use?
+- How to prevent DoS attacks?
 - Which circuit compiler to use (e.g. [libsnark](https://github.com/scipr-lab/libsnark), [bellman](https://github.com/zkcrypto/bellman), [ZoKrates](https://github.com/JacobEberhardt/ZoKrates), [Snarky](https://github.com/o1-labs/snarky), [Circom](https://github.com/iden3/circom), or [others](https://zkp.science/))
 - Which proving system to use ([libsnark](https://github.com/scipr-lab/libsnark), [bellman](https://github.com/zkcrypto/bellman), [dalek bulletproofs](https://github.com/dalek-cryptography/bulletproofs), [snarkjs](https://github.com/iden3/snarkjs), or [others](https://zkp.science/))
 - What are the trust assumptions implied by each setup?
-- Can we reuse the already established trusted setup? (e.g. from Ethereum, ZCash)
 
 [^soroban]: https://soroban.stellar.org
