@@ -28,22 +28,22 @@
 			- https://github.com/taurusgroup/multi-party-sig
 			- https://github.com/taurusgroup/frost-ed25519
 			- https://github.com/TNO-MPC/protocols.distributed_keygen
-	4. (medium) Write a procedure for calculating the lookup table of discrete log trapdoors.
+	4. (easy) Write a procedure for calculating the lookup table of discrete log trapdoors.
 		1. https://www.npmjs.com/package/babyjubjub
 		2. https://github.com/iden3/circomlib/blob/feature/babypbk/src/babyjub.js
 1. [[Round 2. Voting]]
 	1. (easy) Write a procedure for generating an encrypted vote (ElGamal on babyJubJub)
 		- https://github.com/iden3/ffjavascript
 		- https://github.com/arkworks-rs
-	2. (easy) Write a procedure for generating [[PoB - Proof of Ballot]] (Groth16 BN-254)
-		- Use [circom](https://docs.circom.io) (less that 100 lines of circuit)
+	2. (medium) Write a procedure for generating [[PoB - Proof of Ballot]] (Groth16 BN-254)
+		- Use [circom](https://docs.circom.io) (less than 100 lines of a circuit)
 		- Reuse some circuits from [MACI](https://github.com/privacy-scaling-explorations/maci/tree/master/circuits/circom)
 	3. (easy) Write a procedure for submitting the vote to the blockchain.
 2. [[Round 3. Tally]]
-	1. (Lev?) Write a procedure for nodes agreeing on a certain state of the votes on the blockchain.
-	2. (Lev?) Write a procedure for nodes to download all encrypted votes from the blockchain.
-	3. (Lev?) Write a procedure for nodes to validate the [[PoB - Proof of Ballot|proofs of ballots]]
-	4. (easy) Write a procedure for nodes to calculate the sum of cyphertexts. Steps 1 and 2 from [[Round 3. Tally]]
-	5. (easy) Write a procedure in which nodes jointly (in MPC) decrypt the votes and produce [[PoD - Proof of Decryption]]. Steps 3 and 4 from [[Round 3. Tally]]
-	6. (easy) Write a procedure to extract the result solving discrete log using a pre-computed lookup table of trapdoors. Steps 5 and 6 from [[Round 3. Tally]]
-	7. (easy) Publish the result along with proof, back to the blockchain.
+	1. (easy) Write a procedure for nodes to download all encrypted votes from the blockchain.
+	2. (easy) Write a procedure for nodes to validate the [[PoB - Proof of Ballot|proofs of ballots]]
+		 - https://github.com/iden3/snarkjs
+	1. (easy) Write a procedure for nodes to calculate the sum of cyphertexts. Steps 1 and 2 from [[Round 3. Tally]]
+	2. (medium) Write a procedure in which nodes jointly (in MPC) decrypt the votes and produce [[PoD - Proof of Decryption]]. Steps 3 and 4 from [[Round 3. Tally]]
+	3. (easy) Write a procedure to extract the result solving discrete log using a pre-computed lookup table of trapdoors. Steps 5 and 6 from [[Round 3. Tally]]
+	4. (easy) Publish the result along with proof, back to the blockchain.
