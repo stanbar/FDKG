@@ -27,6 +27,7 @@
 			- https://asecuritysite.com/kryptology/dkg
 			- https://github.com/taurusgroup/multi-party-sig
 			- https://github.com/taurusgroup/frost-ed25519
+			   - https://github.com/ZcashFoundation/frost
 			- https://github.com/TNO-MPC/protocols.distributed_keygen
 	4. (easy) Write a procedure for calculating the lookup table of discrete log trapdoors.
 		1. https://www.npmjs.com/package/babyjubjub
