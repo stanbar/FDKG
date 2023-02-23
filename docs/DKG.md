@@ -37,3 +37,15 @@ The DKG protocol consist of the following steps:
 Let C = $(A = kG; B = M + k \cdot PK)$  be an ElGamal ciphertext for public key $PK$. 
 - Each party $P_i$ takes A and its share $sk_i$ to produce $d_i=A^{sk_i}$ along with a $\Sigma$-proof showing that $log_{g}PK_{i}=log_{A}(d_i)$ holds.
 - Let Q be a set of $t+1$ parties who produced valid $d_i$ values. Then the plaintext M can be recovered by first evaluating $A^{sk}=\prod_{i=1}^{t+1} d_i^{\prod_{j=1}^{t} \frac{j}{j-i}}$, $i\neq j$ , and then computing $M=B/A^{x}$. 
+
+### Dynamic Threshold ElGamal
+
+Dynamic version of Distributed Key Generation allows for unknown number of participants. Namely, the number of parties that participate in DKG is bounded, but unknown. The list of public keys of each party is known, but we don’t know who will participate and who won't. So the number can be in the range 1…N (where N is the total number of parties). We want the DKG protocol to be asynchronous and one round only. A party send one message and leave. Everyone who participated ends up with a share of the secret key. A subset (some threshold) of the participants is then able to decrypt the messages using Threshold Decryption Protocol.
+
+To achieve it we can send 
+
+The goal of DKG protocol is to let parties $P_1, P_2,...,P_m$ jointly generate the random polynomial $f(X)$. It is done by having each party pick a random polynomial $g_{i}(X)\in Z_q[X]$, and then defining the $f(X)=\sum_{i=1}^{m}g_i(X)$. 
+The DKG protocol consist of the following steps:
+- Each party $P_i$, samples generate random polynomial $g_{i}(X)\in Z_q[X]$
+- Each party $P_i$ broadcast its public key $g^{sk_i}$, where $sk_i=g_i(0)$, the join public key becomes $PK=\Pi_{i=1}^{m} g^{sk_i}=g^{\sum_{i=1}^{m} sk_i}$ 
+- Each party $P_i$ broadcast share of secret key $sk_{ij}=g_i(j)$ for each other party $P_j$, where $1 \leq i,j \leq n$. 
