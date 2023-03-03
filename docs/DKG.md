@@ -35,7 +35,7 @@ The DKG protocol consist of the following steps:
 ### Threshold ElGamal Decryption
 
 Let C = $(A = kG; B = M + k \cdot PK)$  be an ElGamal ciphertext for public key $PK$. 
-- Each party $P_i$ takes A and its share $sk_i$ to produce $d_i=A^{sk_i}$ along with a $\Sigma$-proof showing that $log_{g}PK_{i}=log_{A}(d_i)$ holds.
+- Each party $P_i$ takes $A$ and its share $SK_i$ to produce $d_i=A^{SK_i}$ along with a $\Sigma$-proof showing that $log_{g}PK_{i}=log_{A}(d_i)$ holds.
 - Let Q be a set of $t+1$ parties who produced valid $d_i$ values. Then the plaintext M can be recovered by first evaluating $A^{sk}=\prod_{i=1}^{t+1} d_i^{\prod_{j=1}^{t} \frac{j}{j-i}}$, $i\neq j$ , and then computing $M=B/A^{x}$. 
 
 ### Dynamic Threshold ElGamal
