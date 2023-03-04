@@ -1,3 +1,5 @@
+Paper http://homepages.cs.ncl.ac.uk/feng.hao/files/OpenVote_IET.pdf
+
 # OVN
 
 OVN is 2-round voting protocol with self-tallying:
