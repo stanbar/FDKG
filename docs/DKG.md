@@ -12,6 +12,8 @@ The reconstruction of a $\textrm{SK}$ is possible only if a sufficient number of
 
 The following schemes are from [Lecture Notes Cryptographic Protocols page 75](https://www.win.tue.nl/~berry/2WC13/LectureNotes.pdf)
 
+Example implementation is https://github.com/tompetersen/threshold-crypto
+
 ### ElGamal Threshold Cryptosystem
 
 ElGamal Threshold Cryptosystem (t,n) over an Elliptic Curve $E_p$, $p$ being a large prime, with the following parameters:
