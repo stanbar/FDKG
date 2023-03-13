@@ -5,10 +5,9 @@ Assumptions:
 - Each party $P_i$ consists of key pair $(s_i, P_i)$, where $s_{i} \in_{R} \mathbb{Z}_q$ is a randomly selected secret key, and $P_{i} = s_i \times G$ is the corresponding public-key. We use the same notation for party and public key, $P_i$, as parties are identified by their public keys only.
 - We use [[Elliptic Curve Cryptography]], specifically [babyJubJub curve](https://z.cash/technology/jubjub/).
 - Participation in the protocol is equivalent to agreeing to:
-	- Elliptic Cuve $E(Z_q)$; 
-	- Base (generator) point on curve $G$;
+	- Elliptic Cuve $E(\mathbb{Z}_q)$, with the base (generator) point on curve $G$;
 	- set of voters (participants) $\vec{P} = P_i,\dots,P_n$, where $n$ is the number of all voters;
-	- candidate options $C_1, \dots, C_c$, where $c$ is the number of all candidates.
+	- candidate options $C_1, \dots, C_l$, where $l$ is the number of all candidates.
 - Public-key encryption is realised using [[ElGamal]]cryptosystem. $EG_{P}(\cdot)$ is the ecnryption algorithm for public key $P$, and $EG_{s}(\cdot)$ is the decryption algorithm using corresponding secret key $s$.
 
 
@@ -50,7 +49,7 @@ Every party can (but does not have to) participate in the voting phase. The actu
 
 The voting phase involves each party $P_{i}\dots,P_k$:
 - Select a vote $v_{i} \in \{0,1\} \simeq \{\textrm{"no", "yes"}\}$.
-- Create an encrypted ballot $B_i$ using [[ElGamal]] encryption. $B_i =(k_i \times G, v_{i} \times H + k_i \cdot \mathbf{E})$, where $k_{i} \in_{R} \mathbb{Z}_q$ is a blinding factor for user $i$, and $G$ and $H$ are public parameters. 
+- Create an encrypted ballot $B_i$ using [[ElGamal]] encryption. $B_i =(k_i \times G,k_i \cdot \mathbf{E} + v_{i} \times H)$, where $k_{i} \in_{R} \mathbb{Z}_q$ is a blinding factor for user $i$, and $G$ and $H$ are public parameters. 
 - Compute a $\Sigma$-proof $\sigma_i$ that $B_i$ is correctly formed, namely, $v_{i} \in \{0,1\}$. ==TODO==.
 - Broadcast $(B_i,\sigma_i)$.
 
@@ -86,25 +85,28 @@ The tallying phase involves any subset $t \leq m$ of $P_{i} \dots, P_t$:
 
 Everyone can then calculate:
 - Compute $Z=\sum_{i=1}^k \mathbf{A_i} \times \Pi_{j=1}^t \frac{j}{j-i}, i\neq j$. 
-- Sum of the second part $B=\sum_{i=1}^k r_{i} \times \mathbf{E} + xv \times C$.
-- The decryption of the partial result is calculated as follows $$\begin{aligned} M&=B-Z \\\
-&= \sum_{i=1}^k r_{i} \times \mathbf{E} + xv \times C - Z\\\
+- Sum of the second part $B=\sum_{i=1}^k (r_{i} \times \mathbf{E} + v_i \times C)$.
+- The decryption of the partial result is $M=B-Z=C \times \sum_{i=1}^k v_i$, because: $$\begin{aligned} M&=B-Z \\\
+&= \sum_{i=1}^k ( r_{i} \times \mathbf{E} + v_i \times C) - Z\\\
 
-&= \sum_{i=1}^k r_{i} \times \mathbf{E} + xv \times C - \sum_{i=1}^k \mathbf{A_i} \times \Pi_{j=1}^t \frac{j}{j-i}\\\
+&= \sum_{i=1}^k ( r_{i} \times \mathbf{E} + v_i \times C) - \sum_{i=1}^k \mathbf{A_i} \times \Pi_{j=1}^t \frac{j}{j-i}\\\
 
-&= \sum_{i=1}^k r_{i} \times \mathbf{E} + xv \times C - \sum_{i=1}^k \mathbf{d}_i \times G \times \sum_{i=1}^k r_{i} \times \Pi_{j=1}^t \frac{j}{j-i}\\\
+&= \sum_{i=1}^k ( r_{i} \times \mathbf{E} + v_i \times C) - \sum_{i=1}^k \mathbf{d}_i \times G \times \sum_{i=1}^k r_{i} \times \Pi_{j=1}^t \frac{j}{j-i}\\\
 
-&= \sum_{i=1}^k r_{i} \times \mathbf{E} + xv \times C - G \times \sum_{i=1}^k r_{i} \times \sum_{i=1}^k \mathbf{d}_i \times \Pi_{j=1}^t \frac{j}{j-i}\\\
+&= \sum_{i=1}^k ( r_{i} \times \mathbf{E} + v_i \times C) - G \times \sum_{i=1}^k r_{i} \times \sum_{i=1}^k \mathbf{d}_i \times \Pi_{j=1}^t \frac{j}{j-i}\\\
 
-&= \sum_{i=1}^k r_{i} \times \mathbf{E} + xv \times C - G \times \sum_{i=1}^k r_{i} \times \mathbf{d}\\\
+&= \sum_{i=1}^k ( r_{i} \times \mathbf{E} + v_i \times C)  - G \times \sum_{i=1}^k r_{i} \times \mathbf{d}\\\
 
-&= \sum_{i=1}^k r_{i} \times \mathbf{E} + xv \times C - \sum_{i=1}^k r_{i} \times \mathbf{E}\\\
+&= \sum_{i=1}^k ( r_{i} \times \mathbf{E} + v_i \times C) - \sum_{i=1}^k r_{i} \times \mathbf{E}\\\
+
+&= \sum_{i=1}^k (v_i \times C) + \sum_{i=1}^k (r_{i} \times \mathbf{E})  - \sum_{i=1}^k r_{i} \times \mathbf{E}\\\
 
 
-&=xv \times C
-\end{aligned}$$.
-- The total number of $\textrm{"yes"}$ votes is $x$. To extract the number we use lookup table.
-- ==TODO: lookup table==
+&=\sum_{i=1}^k (v_i \times C)\\\
+&=C \times \sum_{i=1}^k v_i
+\end{aligned}$$
+- The total number of $\textrm{"yes"}$ votes is $x=\sum_{i=1}^kv_i$. 
+- To extract $x$ from $M=x \times C$ we have to solve Elliptic-Curve Discrete Logarithm Problem. Fortunatelly, since the value of $x$ is small, i.e., in range $[0,k]$, we use brute force search (lookup table). For each $i\in [0,k]$ we test the predicate $i\times C = M$, the first $i$ that returns true is the value $x$.
 
 #### Multiple-candidates tally
 - ==TODO: write multi-candidate==
