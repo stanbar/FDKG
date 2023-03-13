@@ -1,5 +1,9 @@
+Our protocol is a combination of [[@schoenmakersLectureNotesCryptographic2018]] and [[@haoAnonymousVotingTworound2010]]. 
+For the threshold 3-round voting scheme we use the technique described in [[@schoenmakersLectureNotesCryptographic2018]] section 7.1 Electronic Voting; however, we use elliptic-curves, zkSNARK proofs, and multi-candidates settings.
+For multi-candidates, we use the technique described in [[@haoAnonymousVotingTworound2010]]. 
+
 Assumptions:
-- All communication is done over public [[Terminology#Message board|message board (blockchain)]].
+- All communication is done over a public [[Terminology#Message board|message board (blockchain)]].
 - Authenticated public channels are available for every participant, achieved by a public message board and digital signatures.
 - The set of all $n$ participants $P_i,\dots,P_n$ is publicly known. 
 - Each party $P_i$ consists of key pair $(s_i, P_i)$, where $s_{i} \in_{R} \mathbb{Z}_q$ is a randomly selected secret key, and $P_{i} = s_i \times G$ is the corresponding public-key. We use the same notation for party and public key, $P_i$, as parties are identified by their public keys only.
@@ -73,43 +77,38 @@ After the voting phase has completed (once it reached $n$ messages or after a pr
 
 # Round 3. Tally
 
-The decryption and tally is achieved via $(t,m)$ Threshold ElGamal Decryption. 
+The decryption and tally is achieved via $(t,m)$ Threshold ElGamal Decryption. The tallying phase involves any subset $t \leq m$ of $P_{i} \dots, P_t$:
+
+- The sum of the first part of the ballots (aka. shared keys)  $A = \sum_{i=1}^k r_{i} \times G$.
+- Multiply it with the share of the decryption key $A_i=\mathbf{d}_i \times A = \mathbf{d}_i \times G \times \sum_{i=1}^k r_{i}$.
+- Broadcast $A_i$ to message board.
+
+#### State after Round 3.
+After the voting phase has completed—once it reached $t \leq m$ messages. The message board state is appended with:
+- $\{A_i : 1 \leq i \leq t\}$, set of blinded shares of decryption keys.
+
+# Tallying
 
 #### One-candidate tally
 
-The tallying phase involves any subset $t \leq m$ of $P_{i} \dots, P_t$:
+Everyone can then calculate:
+- Compute $Z=\sum_{i=1}^k \mathbf{A_i} \times \Pi_{j=1}^t \frac{j}{j-i}, i\neq j$. 
+- Sum of the second part $B=\sum_{i=1}^k (r_{i} \times \mathbf{E} + v_{i1} C_1 + \dots + v_{il} C_l)$.
+- The decryption of the partial result is $M=B-Z=C_1 \times \sum_{i=1}^k v_{i1} + \dots + C_l \times \sum_{i=1}^k v_{il}$, because: $$\begin{aligned} M&=B-Z \\\
+&= \sum_{i=1}^k ( r_{i} \times \mathbf{E}) + C_1 \times \sum_{i=1}^k v_{i1} + \dots + C_l \times \sum_{i=1}^k v_{il} - Z\\\
 
-- The sum of the first part of the ballots (aka. shared keys)  $A = \sum_{i=1}^k r_{i} \times G$.
-- Multiply it with the share of the decryption key $\mathbf{A}_i=\mathbf{d}_i \times A = \mathbf{d}_i \times G \times \sum_{i=1}^k r_{i}$.
-- Broadcast $\mathbf{A}_i$.
+&= \sum_{i=1}^k ( r_{i} \times \mathbf{E}) + C_1 \times \sum_{i=1}^k v_{i1} + \dots + C_l \times \sum_{i=1}^k v_{il} - \sum_{i=1}^k r_{i} \times \mathbf{E}\\\
+
+&= C_1 \times \sum_{i=1}^k v_{i1} + \dots + C_l \times \sum_{i=1}^k v_{il}
+\end{aligned}$$
+- The total number of $\textrm{"yes"}$ votes for cadidate $c$ is $x_c=\sum_{i=1}^kv_{ci}$. 
+- To extract $x_c$ from $M=x_1 \times C_1 + \dots + x_l \times C_l$ we have to solve Elliptic-Curve Discrete Logarithm Problem. Fortunatelly, since the value of $x$ is small, i.e., in range $[0,k]$, we use brute force search (lookup table). For each $i\in [0,k]$ we test the predicate $i\times C = M$, the first $i$ that returns true is the value $x$.
+
+#### Multiple-candidates tally
+- ==TODO: write multi-candidate==
 
 Everyone can then calculate:
 - Compute $Z=\sum_{i=1}^k \mathbf{A_i} \times \Pi_{j=1}^t \frac{j}{j-i}, i\neq j$. 
 - Sum of the second part $B=\sum_{i=1}^k (r_{i} \times \mathbf{E} + v_i \times C)$.
 - The decryption of the partial result is $M=B-Z=C \times \sum_{i=1}^k v_i$, because: $$\begin{aligned} M&=B-Z \\\
-&= \sum_{i=1}^k ( r_{i} \times \mathbf{E} + v_i \times C) - Z\\\
-
-&= \sum_{i=1}^k ( r_{i} \times \mathbf{E} + v_i \times C) - \sum_{i=1}^k \mathbf{A_i} \times \Pi_{j=1}^t \frac{j}{j-i}\\\
-
-&= \sum_{i=1}^k ( r_{i} \times \mathbf{E} + v_i \times C) - \sum_{i=1}^k \mathbf{d}_i \times G \times \sum_{i=1}^k r_{i} \times \Pi_{j=1}^t \frac{j}{j-i}\\\
-
-&= \sum_{i=1}^k ( r_{i} \times \mathbf{E} + v_i \times C) - G \times \sum_{i=1}^k r_{i} \times \sum_{i=1}^k \mathbf{d}_i \times \Pi_{j=1}^t \frac{j}{j-i}\\\
-
-&= \sum_{i=1}^k ( r_{i} \times \mathbf{E} + v_i \times C)  - G \times \sum_{i=1}^k r_{i} \times \mathbf{d}\\\
-
-&= \sum_{i=1}^k ( r_{i} \times \mathbf{E} + v_i \times C) - \sum_{i=1}^k r_{i} \times \mathbf{E}\\\
-
-&= \sum_{i=1}^k (v_i \times C) + \sum_{i=1}^k (r_{i} \times \mathbf{E})  - \sum_{i=1}^k r_{i} \times \mathbf{E}\\\
-
-
-&=\sum_{i=1}^k (v_i \times C)\\\
-&=C \times \sum_{i=1}^k v_i
-\end{aligned}$$
-- The total number of $\textrm{"yes"}$ votes is $x=\sum_{i=1}^kv_i$. 
-- To extract $x$ from $M=x \times C$ we have to solve Elliptic-Curve Discrete Logarithm Problem. Fortunatelly, since the value of $x$ is small, i.e., in range $[0,k]$, we use brute force search (lookup table). For each $i\in [0,k]$ we test the predicate $i\times C = M$, the first $i$ that returns true is the value $x$.
-
-#### Multiple-candidates tally
-- ==TODO: write multi-candidate==
-
-#### State after Round 3.
 
