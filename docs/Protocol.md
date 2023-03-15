@@ -75,7 +75,7 @@ The voting phase involves each party $P_{i}\dots,P_k$:
 After the voting phase has completed (once it reached $n$ messages or after a predefined period). The message board state is appended by:
 - $\{(B_{i}, \sigma_i) : 1 \leq i \leq k\}$, set of encrypted votes casted by $k$ voters, along with ZKPs showing that $v_{ij}$ is one of $\{0,1\}$.
 
-# Round 3. Tally
+# Round 3. Online Tallying
 
 The decryption and tally is achieved via $(t,m)$ Threshold ElGamal Decryption. The tallying phase involves any subset $t \leq m$ of $P_{i} \dots, P_t$:
 
@@ -87,12 +87,38 @@ The decryption and tally is achieved via $(t,m)$ Threshold ElGamal Decryption. T
 After the voting phase has completed—once it reached $t \leq m$ messages. The message board state is appended with:
 - $\{A_i : 1 \leq i \leq t\}$, set of blinded shares of decryption keys.
 
-# Tallying
+# Offline Tallying
 
-#### One-candidate tally
+#### Single-candidate tally
+Everyone can calculate:
+- Compute $Z=\sum_{i=1}^k A_i \times \Pi_{j=1}^t \frac{j}{j-i}, i\neq j$. 
+- Sum of the second part $B=\sum_{i=1}^k (r_{i} \times \mathbf{E} + v_i \times C)$.
+- The decryption of the partial result is $M=B-Z=C \times \sum_{i=1}^k v_i$, because: $$\begin{aligned} M&=B-Z \\\
+&= \sum_{i=1}^k ( r_{i} \times \mathbf{E} + v_i \times C) - Z\\\
 
-Everyone can then calculate:
-- Compute $Z=\sum_{i=1}^k \mathbf{A_i} \times \Pi_{j=1}^t \frac{j}{j-i}, i\neq j$. 
+&= \sum_{i=1}^k ( r_{i} \times \mathbf{E} + v_i \times C) - \sum_{i=1}^k \mathbf{A_i} \times \Pi_{j=1}^t \frac{j}{j-i}\\\
+
+&= \sum_{i=1}^k ( r_{i} \times \mathbf{E} + v_i \times C) - \sum_{i=1}^k \mathbf{d}_i \times G \times \sum_{i=1}^k r_{i} \times \Pi_{j=1}^t \frac{j}{j-i}\\\
+
+&= \sum_{i=1}^k ( r_{i} \times \mathbf{E} + v_i \times C) - G \times \sum_{i=1}^k r_{i} \times \sum_{i=1}^k \mathbf{d}_i \times \Pi_{j=1}^t \frac{j}{j-i}\\\
+
+&= \sum_{i=1}^k ( r_{i} \times \mathbf{E} + v_i \times C)  - G \times \sum_{i=1}^k r_{i} \times \mathbf{d}\\\
+
+&= \sum_{i=1}^k ( r_{i} \times \mathbf{E} + v_i \times C) - \sum_{i=1}^k r_{i} \times \mathbf{E}\\\
+
+&= \sum_{i=1}^k (v_i \times C) + \sum_{i=1}^k (r_{i} \times \mathbf{E})  - \sum_{i=1}^k r_{i} \times \mathbf{E}\\\
+
+
+&=\sum_{i=1}^k (v_i \times C)\\\
+&=C \times \sum_{i=1}^k v_i
+\end{aligned}$$
+- The total number of $\textrm{"yes"}$ votes is $x=\sum_{i=1}^kv_i$.
+- To extract $x$ from $M=x \times C$ we have to solve Elliptic-Curve Discrete Logarithm Problem. Fortunatelly, since the value of $x$ is small, i.e., in range $[0,k]$, we use brute force search (lookup table). For each $i\in [0,k]$ we test the predicate $i\times C = M$, the first $i$ that returns true is the value $x$.
+
+#### Multi-candidate tally
+
+Everyone can calculate:
+- Compute $Z=\sum_{i=1}^k A_i \times \Pi_{j=1}^t \frac{j}{j-i}, i\neq j$. 
 - Sum of the second part $B=\sum_{i=1}^k (r_{i} \times \mathbf{E} + v_{i1} C_1 + \dots + v_{il} C_l)$.
 - The decryption of the partial result is $M=B-Z=C_1 \times \sum_{i=1}^k v_{i1} + \dots + C_l \times \sum_{i=1}^k v_{il}$, because: $$\begin{aligned} M&=B-Z \\\
 &= \sum_{i=1}^k ( r_{i} \times \mathbf{E}) + C_1 \times \sum_{i=1}^k v_{i1} + \dots + C_l \times \sum_{i=1}^k v_{il} - Z\\\
@@ -103,12 +129,3 @@ Everyone can then calculate:
 \end{aligned}$$
 - The total number of $\textrm{"yes"}$ votes for cadidate $c$ is $x_c=\sum_{i=1}^kv_{ci}$. 
 - To extract $x_c$ from $M=x_1 \times C_1 + \dots + x_l \times C_l$ we have to solve Elliptic-Curve Discrete Logarithm Problem. Fortunatelly, since the value of $x$ is small, i.e., in range $[0,k]$, we use brute force search (lookup table). For each $i\in [0,k]$ we test the predicate $i\times C = M$, the first $i$ that returns true is the value $x$.
-
-#### Multiple-candidates tally
-- ==TODO: write multi-candidate==
-
-Everyone can then calculate:
-- Compute $Z=\sum_{i=1}^k \mathbf{A_i} \times \Pi_{j=1}^t \frac{j}{j-i}, i\neq j$. 
-- Sum of the second part $B=\sum_{i=1}^k (r_{i} \times \mathbf{E} + v_i \times C)$.
-- The decryption of the partial result is $M=B-Z=C \times \sum_{i=1}^k v_i$, because: $$\begin{aligned} M&=B-Z \\\
-
