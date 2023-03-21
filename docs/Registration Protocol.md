@@ -1,6 +1,7 @@
-Our protocol is a combination of [[@schoenmakersLectureNotesCryptographic2018]] and [[@haoAnonymousVotingTworound2010]]. 
-For the threshold 3-round voting scheme we use the technique described in [[@schoenmakersLectureNotesCryptographic2018]] section 7.1 Electronic Voting; however, we use elliptic-curves, zkSNARK proofs, and multi-candidates settings.
-For multi-candidates, we use the technique described in [[@haoAnonymousVotingTworound2010]]. 
+Our protocol is a combination of [[@schoenmakersLectureNotesCryptographic2018]] and [[@haoAnonymousVotingTworound2010]](). 
+For the threshold 4-round voting scheme we use the technique described in [[@schoenmakersLectureNotesCryptographic2018]] ([link, section 7.1 Electronic Voting, page 78](https://www.win.tue.nl/~berry/CryptographicProtocols/LectureNotes.pdf)); however, we use elliptic-curves, zkSNARK proofs, multi-candidates settings, and introduce one more round for registration of participants.
+For multi-candidates, we use the technique described in [[@haoAnonymousVotingTworound2010]] ([link](http://homepages.cs.ncl.ac.uk/feng.hao/files/OpenVote_IET.pdf)). 
+
 
 Assumptions:
 - All communication is done over a public [[Terminology#Message board|message board (blockchain)]].
@@ -14,8 +15,19 @@ Assumptions:
 	- candidate options $C_1, \dots, C_l$, where $l$ is the number of all candidates.
 - Public-key encryption is realised using [[ElGamal]]cryptosystem. $EG_{P}(\cdot)$ is the ecnryption algorithm for public key $P$, and $EG_{s}(\cdot)$ is the decryption algorithm using corresponding secret key $s$.
 
+# Round 1. Registration
 
-# Round 1. Distributed Key Generation
+We need to know the set of participants that want to participate in the next phase. 
+
+Each party $P_{i}\dots,P_m$, $1 \leq i \leq m\leq n$:
+- Sends a bit $b_i=1$, signaling its willingness to participate in the DKG. Its public key $P_i$ and zkp of secret key $s_i$ is included in the transaction as part of the authenticated channel.
+
+##### State after Round 1.
+
+After the registration phase is completed (once it reached $n$ messages or after some predefined period). The message board state looks as follows:
+- $\{b_{i}=1 : 1 \leq i \leq m\}$, signaling bits of registered parties.
+
+# Round 2. Distributed Key Generation
 
 #### Secret Sharing
 The goal of DKG protocol is to jointly generate key-pair without any party learning the secret key. Each party $P_1,\dots,P_n$ learns only its share of the secret key, while public key is publicly known.
@@ -30,22 +42,22 @@ The DKG protocol involves each party $P_{i}\dots,P_m$:
 - Sample random polynomial $f_{i}(X) \in_R \mathbb{Z}_q[X]$.
 - Compute decryption (secret) key $d_{i}= f_i(0)$ and encryption (public) key $E_{i} = d_i \times G$.
 - Compute zero-knowledge proof (ZKP) of exponent $D_{i} = d_i \times G$ using Schnorr’s signature. Namely, the proof is $\sigma_i = (r \times G, k=r-d_{i} \times c)$, where $r \in_{R} \mathbb{Z}_q$ and $c=H(G, i, r \times G, d_i \times G)$.
-- Compute shares of decryption key $\vec d_i := \{ f_{i}(j) : j \in \{1\dots n\}/\{i\}\}$, and encrypt each share to each corresponding party $\vec{EG_{\vec{P}}(\vec{d_i})} := \{EG_{P_{j}}(\vec{d}_{i}[j]) : j \in \{1\dots n\}/\{i\}\}$.
+- Compute shares of decryption key $\vec d_i := \{ f_{i}(j) : j \in \{1\dots n\}\}$, and encrypt each share to each corresponding party $\vec{EG_{\vec{P}}(\vec{d_i})} := \{EG_{P_{j}}(\vec{d}_{i}[j]) : j \in \{1\dots n\}\}$.
 - Compute zero-knowledge proof of elGamal encryption as described in [verifable secret sharing (PVSS)]( https://www.win.tue.nl/~berry/papers/crypto99.pdf). Namely, ==TODO==.
 - Broadcast tuple of public key, zkp, and all encrypted shares $(E_{i}, \sigma_i, \vec{EG_{\vec{P}}(\vec{d_i})})$ to message board.
 
-##### State after Round 1.
+##### State after Round 2.
 
 After the DKG has completed (once it reached $n$ messages or after some predefined period). The message board state looks as follows:
 - $\{E_{i} : 1 \leq i \leq m\}$, shares of voting public key.
 - $\{\sigma_{i} : 1 \leq i \leq m\}$, proofs of exponents.
-- $\{\{EG_{P_{j}}(\vec{d}_{i}[j]) : j \in \{1\dots n\}/\{i\}\} : 1 \leq i \leq m \}$, encrypted shares of shares of voting secret key.
+- $\{\{EG_{P_{j}}(\vec{d}_{i}[j]) : j \in \{1\dots n\}\} : 1 \leq i \leq m \}$, encrypted shares of shares of voting secret key.
 
 The voting encryption key $\textbf{E}$ can be reconstructed by everyone by computing $\mathbf{E}=\sum_{i=1}^{n} E_{i}$.
 
 The share of voting decryption key $\mathbf{D_i}$ can be reconstructed by party $P_i$ by computing $\mathbf{D}_{i}=\sum_{j=1}^{m} EG_{s_{i}}(d_{ji})$.
 
-# Round 2. Voting
+# Round 3. Voting
 
 Every party can (but does not have to) participate in the voting phase. The actual number of parties that participated is denoted by $k$ where the maximum number is $n$.
 
@@ -70,12 +82,12 @@ The voting phase involves each party $P_{i}\dots,P_k$:
 - Compute a $\Sigma$-proof that $B_i$ is correctly formed. Namely that each $v_{ij} \in \{0,1\}$ and that $\sum_{j=1}^{l}v_{ij}=1$. ==TODO==.
 - Broadcast $(B_i,\sigma_i)$.
 
-##### State after Round 2.
+##### State after Round 3.
 
 After the voting phase has completed (once it reached $n$ messages or after a predefined period). The message board state is appended by:
 - $\{(B_{i}, \sigma_i) : 1 \leq i \leq k\}$, set of encrypted votes casted by $k$ voters, along with ZKPs showing that $v_{ij}$ is one of $\{0,1\}$.
 
-# Round 3. Online Tallying
+# Round 4. Decryption
 
 The decryption and tally is achieved via $(t,m)$ Threshold ElGamal Decryption. The tallying phase involves any subset $t \leq m$ of $P_{i} \dots, P_t$:
 
@@ -83,7 +95,7 @@ The decryption and tally is achieved via $(t,m)$ Threshold ElGamal Decryption. T
 - Multiply it with the share of the decryption key $A_i=\mathbf{d}_i \times A = \mathbf{d}_i \times G \times \sum_{i=1}^k r_{i}$.
 - Broadcast $A_i$ to message board.
 
-#### State after Round 3.
+#### State after Round 4. Decryption
 After the voting phase has completed—once it reached $t \leq m$ messages. The message board state is appended with:
 - $\{A_i : 1 \leq i \leq t\}$, set of blinded shares of decryption keys.
 
@@ -128,4 +140,4 @@ Everyone can calculate:
 &= C_1 \times \sum_{i=1}^k v_{i1} + \dots + C_l \times \sum_{i=1}^k v_{il}
 \end{aligned}$$
 - The total number of $\textrm{"yes"}$ votes for cadidate $c$ is $x_c=\sum_{i=1}^kv_{ci}$. 
-- To extract $x_c$ from $M=x_1 \times C_1 + \dots + x_l \times C_l$ we have to solve Elliptic-Curve Discrete Logarithm Problem. Fortunatelly, since the value of $x$ is small, i.e., in range $[0,k]$, we use brute force search (lookup table). For each $i\in [0,k]$ we test the predicate $i\times C = M$, the first $i$ that returns true is the value $x$.
+- To extract $x_c$ from $M=x_1 \times C_1 + \dots + x_l \times C_l$ we have to solve Elliptic-Curve Discrete Logarithm Problem. To extract each $x_i$ we use the technique described in [[@haoAnonymousVotingTworound2010]].
