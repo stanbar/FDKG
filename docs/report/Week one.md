@@ -17,7 +17,6 @@ In our solution, we use k-of-n (where k < n, where k=xn, x ~= 0.9) threshold sch
 
 Our protocol is 3-round, elGamal, Groth16 proofs.
 
-
 We were discussing whether we want to generate proofs using Groth16 zkSNARK or write our own zkp, but decided to use Groth16 and reuse existing circuits from [MACI](https://github.com/privacy-scaling-explorations/maci/tree/master/circuits/circom) and potentially support more complex schemes like Quadratic Voting.
 
 # Challenges and open questions

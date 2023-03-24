@@ -2,7 +2,7 @@
 	- Stellar (trust-based consensus, experience, wasm in beta)
 	- Ethereum (experience, a lot of zkp tooling, easy to develop, evm)
 	- Custom blockchain using Tendermint ([Cosmos SDK](https://v1.cosmos.network/sdk), https://www.npmjs.com/package/tendermint) or [Substrate](http://substrate.io).
-- Write down a formal description of the [[Protocol]].
+- Write down a formal description of the [[Federated Protocol]].
 	- [ ] How to achieve dynamic DKG
 	- [ ] Which blockchain to use
 - Development roadmap:

@@ -54,3 +54,4 @@ FRAME is a tool for runtime developers. It encompasses a significant number of m
 
 
 
+**Aura** consensus uses authority round with a round robin rotating set of authorities.
