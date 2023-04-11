@@ -1,5 +1,5 @@
 Our protocol is a combination of [[@schoenmakersLectureNotesCryptographic2018]] and [[@haoAnonymousVotingTworound2010]]. 
-For the threshold 3-round voting scheme we use the technique described in [[@schoenmakersLectureNotesCryptographic2018]] ([link, section 7.1 Electronic Voting, page 78](https://www.win.tue.nl/~berry/CryptographicProtocols/LectureNotes.pdf)); however, we use elliptic-curves, zkSNARK proofs, and multi-candidates settings.
+For the threshold 3-round voting scheme we use the technique described in [[@schoenmakersLectureNotesCryptographic2018]] ([link, section 6.3.1 Threshold ElGamal Cryptosystem, page 75](https://www.win.tue.nl/~berry/CryptographicProtocols/LectureNotes.pdf)); however, we use elliptic-curves, zkSNARK proofs, and multi-candidates settings.
 For multi-candidates, we use the technique described in [[@haoAnonymousVotingTworound2010]] ([link](http://homepages.cs.ncl.ac.uk/feng.hao/files/OpenVote_IET.pdf)). 
 
 Assumptions:
@@ -24,23 +24,23 @@ Sharing a secret can be done using Shamir Secret Sharing (SSS), which allows a d
 #### Distributed Key Generation
 Since we don't want any party to become a dealer (and learn the secret key), we have to distribute the generation of polynomial $\mathbf{f}(X) \in_R \mathbb{Z}_q[X]$ across parties. It is done by having each party pick a random polynomial $f_{i}(X) \in \mathbb{Z}_q[X]$, and then define the final polynomial $\mathbf{f}(X)=\sum_{i=1}^{n}f_i(X)$; hence the voting decryption (secret) key $\mathbf{d}=\mathbf{f}(0)$, and voting encryption (public) key $\mathbf{E}=\mathbf{d}\times G$. Additionally, to prevent misbehavior of parties (sending arbitrary values) we use more sophisticated version of SS called Publicly Verifable Secret Sharing ([PVSS](https://www.win.tue.nl/~berry/papers/crypto99.pdf)) which involves zero-knowledge proofs attesting that the correct relation between values holds.
 
-Every party can (but does not have to) participate in the DKG phase. The actual number of parties that participate is denoted by $m$ where the maximum number is $n$. Since we focus on small scale votings where participants know each other, we make a social assumption, that each participant trusts $k$ other parties.
+Every party can (but does not have to) participate in the DKG phase. The actual number of parties that participate is denoted by $m$ where the maximum number is $n$. Since we focus on small scale votings where participants know each other, we make a social assumption, that each participant trusts $k$ other parties. Then we chose a threshold $t$ of parties, which allows for key reconstruction. Numbers $k$ and $t$ are public parameters agreed by each party.
 
 The DKG protocol involves each party $P_{i}\dots,P_m$, $i \leq m\leq n$:
-- Chose a set of $k$ trusted parties.
-- Sample random polynomial $f_{i}(X) \in_R \mathbb{Z}_q[X]$ of degree $t-1$, where $t \approx 0.6k$.
+- Chose a set of $k$ trusted parties, $T=\{P_1,\dots,P_k\}\subset \vec{P}$.
+- Sample random polynomial $f_{i}(X) \in_R \mathbb{Z}_q[X]$ of degree $t-1$.
 - Compute decryption (secret) key $d_{i}= f_i(0)$ and encryption (public) key $E_{i} = d_i \times G$.
 - Compute zero-knowledge proof (ZKP) of exponent $D_{i} = d_i \times G$ using Schnorr’s signature. Namely, the proof is $\sigma_i = (r \times G, k=r-d_{i} \times c)$, where $r \in_{R} \mathbb{Z}_q$ and $c=H(G, i, r \times G, d_i \times G)$.
-- Compute shares of decryption key $\vec d_i := \{ f_{i}(j) : j \in \{1\dots k\}\}$, and encrypt each share to each corresponding trusted party $\vec{EG_{\vec{P}}(\vec{d_i})} = \{EG_{P_{j}}(\vec{d}_{i}[j]) : j \in \{1\dots n\}\}$.
+- Compute shares of decryption key $\vec d_i := \{ f_{i}(j) : j \in \{1\dots k\}\}$, and encrypt each share to each corresponding trusted party $\vec{EG_{\vec{P}}(\vec{d_i})} = \{EG_{P_{j}}(\vec{d}_{i}[j]) : j \in \{1\dots k\}\}$. ==TODO: k is the index of a prty, but it does not hold for $P_k$, how to solve that?==
 - Compute zero-knowledge proof of elGamal encryption showing that $EG()$ encrypts a share $\vec d_i[j]$ as described in [verifable secret sharing (PVSS)]( https://www.win.tue.nl/~berry/papers/crypto99.pdf). Namely, ==TODO==. 
 - Broadcast tuple of public key, zkp, and all encrypted shares $(E_{i}, \sigma_i, \vec{EG_{\vec{P}}(\vec{d_i})})$ to message board.
 
 ##### State after Round 1.
 
-After the DKG has completed (once it reached $n$ messages or after some predefined period). The message board state looks as follows:
+After the DKG has been completed (once it reached $n$ messages or after some predefined period). The message board state looks as follows:
 - $\{E_{i} : 1 \leq i \leq m\}$, shares of voting public key.
 - $\{\sigma_{i} : 1 \leq i \leq m\}$, proofs of exponents.
-- $\{\{EG_{P_{j}}(\vec{d}_{i}[j]) : j \in \{1\dots n\}\} : 1 \leq i \leq m \}$, encrypted shares of shares of voting secret key.
+- $\{\{EG_{P_{j}}(\vec{d}_{i}[j]) : j \in \{1\dots k\}\} : 1 \leq i \leq m \}$, encrypted shares of shares of voting secret key.
 
 The voting encryption key $\textbf{E}$ can be reconstructed by everyone by computing $\mathbf{E}=\sum_{i=1}^{n} E_{i}$.
 
