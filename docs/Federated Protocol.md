@@ -1,28 +1,43 @@
-Our protocol is a combination of [[@schoenmakersLectureNotesCryptographic2018]] and [[@haoAnonymousVotingTworound2010]]. 
+Our protocol is a combination of [[@schoenmakersLectureNotesCryptographic2018]] and [[@haoAnonymousVotingTworound2010]], and Federated DKG that we propose in this paper. 
+
 For the threshold 3-round voting scheme we use the technique described in [[@schoenmakersLectureNotesCryptographic2018]] ([link, section 6.3.1 Threshold ElGamal Cryptosystem, page 75](https://www.win.tue.nl/~berry/CryptographicProtocols/LectureNotes.pdf)); however, we use elliptic-curves, zkSNARK proofs, and multi-candidates settings.
 For multi-candidates, we use the technique described in [[@haoAnonymousVotingTworound2010]] ([link](http://homepages.cs.ncl.ac.uk/feng.hao/files/OpenVote_IET.pdf)). 
 
 Assumptions:
 - All communication is done over a public [[Terminology#Message board|message board (blockchain)]].
 - Authenticated public channels are available for every participant, achieved by a public message board and digital signatures.
-- The set of all $n$ participants $\vec{P} = P_i,\dots,P_n$ is publicly known. 
-- Each party $P_i$ consists of key pair $(s_i, P_i)$, where $s_{i} \in_{R} \mathbb{Z}_q$ is a randomly selected secret key, and $P_{i} = s_i \times G$ is the corresponding public-key. We use the same notation for party and public key, $P_i$, as parties are identified by their public keys only.
+- Private channels are available for every participant, achieved by a public message board, and ElGamal public key encryption.
+- The set of all $n$ participants $\vec{P} = \{P_1,\dots,P_n\}$ is publicly known. 
+- Each participant $P_i$ consists of key pair $(s_i, P_i)$, where $s_{i} \in_{R} \mathbb{Z}_q$ is a randomly selected secret key, and $P_{i} = s_i \times G$ is the corresponding public-key. We use the same notation for a party and its public key, $P_i$, as parties are identified by their public keys only.
 - We use [[Elliptic Curve Cryptography]], specifically [babyJubJub curve](https://z.cash/technology/jubjub/).
 - Participation in the protocol is equivalent to agreeing to:
 	- Elliptic Cuve $E(\mathbb{Z}_q)$, with the base (generator) point on curve $G$;
-	- set of eligable voters (participants) $\vec{P} = P_i,\dots,P_n$, where $n$ is the number of all voters;
-	- candidate options $C_1, \dots, C_l$, where $l$ is the number of all candidates.
-- Public-key encryption is realised using [[ElGamal]] cryptosystem. $EG_{P}(\cdot)$ is the ecnryption algorithm for public key $P$, and $EG_{s}(\cdot)$ is the decryption algorithm using corresponding secret key $s$.
+	- set of eligable voters (participants) $\vec{P}$, where $n$ is the number of all voters;
+	- candidate options $\vec{C}=\{C_1, \dots, C_l\}$, where $l$ is the number of all candidates.
+- Public-key encryption is realised using [[ElGamal]] cryptosystem. $EG_{P}(\cdot)$ is the encryption algorithm for public key $P$, and $EG_{s}(\cdot)$ is the decryption algorithm using corresponding secret key $s$. ==TODO what is the notation used in literature?==
 
 
 # Round 1. Distributed Key Generation
 
+The goal of DKG protocol is to jointly generate the voting key-pair without any party learning the secret (decryption) key. Each party $P_1,\dots,P_n$ learns only its share of the secret (decryption) key, while public (encryption) key is publicly known. Moreover we want the threshold property, meaning that, not every party that participated in the key generation needs to participate in the tally phase.
+
 #### Secret Sharing
-The goal of DKG protocol is to jointly generate key-pair without any party learning the secret key. Each party $P_1,\dots,P_n$ learns only its share of the secret key, while public key is publicly known.
-Sharing a secret can be done using Shamir Secret Sharing (SSS), which allows a dealer to encode secret key $s$ into a random polynomial $f(X) = a_0 + a_1X + a_2X^2 + \dots + a_{t-1}X^{t-1}$, where $a_0,a_1,\dots,a_{t-1} \in_R \mathbb{F}_q$; the secret key $s=a_0$ and $t-1$ is the degree of polynomial. Following a Lagrage Theorem, $t$ number of points on the polynomial $f(X)$ allows for reconstructing the polynomial and hence extract secret key by computing $s = f(0)$. The shares are distributed to parties $P_i, 1 \leq i \leq n$, by evaluating function at a corresponding point $f(i)$. The polynomial of degree $t$ can be reconstructed with $t+1$ points using Lagrange Interpolation.
+Threshold secret sharing can be done using Shamir Secret Sharing (SSS), which allows a dealer to encode secret key $s$ into a random polynomial $f(X) = a_0 + a_1X + a_2X^2 + \dots + a_{t-1}X^{t-1}$, where $a_0,a_1,\dots,a_{t-1} \in_R \mathbb{F}_q$; the secret key $s=a_0=f(0)$ and $t-1$ is the degree of polynomial. Following a Lagrage Theorem, $t$ number of points on the polynomial $f(X)$ allows for reconstructing the polynomial and hence extract secret key by computing $s = a_0 = f(0)$. The shares are distributed to parties $P_i, 1 \leq i \leq n$, by evaluating function at a corresponding point $(x=i,y=f(i))$. The polynomial of degree $t$ can be reconstructed with $t+1$ points using Lagrange Interpolation.
 
 #### Distributed Key Generation
-Since we don't want any party to become a dealer (and learn the secret key), we have to distribute the generation of polynomial $\mathbf{f}(X) \in_R \mathbb{Z}_q[X]$ across parties. It is done by having each party pick a random polynomial $f_{i}(X) \in \mathbb{Z}_q[X]$, and then define the final polynomial $\mathbf{f}(X)=\sum_{i=1}^{n}f_i(X)$; hence the voting decryption (secret) key $\mathbf{d}=\mathbf{f}(0)$, and voting encryption (public) key $\mathbf{E}=\mathbf{d}\times G$. Additionally, to prevent misbehavior of parties (sending arbitrary values) we use more sophisticated version of SS called Publicly Verifable Secret Sharing ([PVSS](https://www.win.tue.nl/~berry/papers/crypto99.pdf)) which involves zero-knowledge proofs attesting that the correct relation between values holds.
+Since we don't want any party to become a dealer (and learn the secret \[decryption\] key), we have to distribute the generation of polynomial $\mathbf{f}(X) \in_R \mathbb{Z}_q[X]$ across parties. It is done by having each party pick a random polynomial $f_{i}(X) \in \mathbb{Z}_q[X]$, and then define the final polynomial $\mathbf{f}(X)=\sum_{i=1}^{n}f_i(X)$; hence the voting secret (decryption) key $\mathbf{d}=\mathbf{f}(0)$, and voting public (encryption) key $\mathbf{E}=\mathbf{d}\times G$. Additionally, to prevent misbehavior of parties (sending arbitrary values) we use more sophisticated version of SS called Publicly Verifable Secret Sharing ([PVSS](https://www.win.tue.nl/~berry/papers/crypto99.pdf)) which involves zero-knowledge proofs attesting that the correct relation between values holds.
+
+#### Dynamic Distributed Key Generation
+Distributed Key Generation in its original form requires known and fixed number of participants. It's because, underneath, it relies on SSS which uses polynomials of known degree $t$. The degree is fixed at the beginning of the protocol and can not be changed.
+
+We want the DKG phase to be optional, so the total number of participants is unknown, and so the $t$ is also unknown. As a result, we need a scheme that allows for dynamic updating the number of participants and the threshold.
+
+To our best knowledge, the scheme which allows for dynamic DKG [[@delerableeDynamicThresholdPublickey2008]] requires all parties to be online for the duration of the DKG (possible a few hours). It's done by reconstructing the key by current participants and resharing it again with the new participant.
+
+We believe it is an unpractical assumption. We want the protocol to be non-interactive, meaning that the party sends only one message and then can leave.
+
+#### Federated Distributed Key Generation
+We propose a novel technique for dynamic DKG that works similarly to [Stellar Consensus Protocol](https://developers.stellar.org/docs/fundamentals-and-concepts/stellar-consensus-protocol) [[@mazieresStellarConsensusProtocol2015]].
 
 Every party can (but does not have to) participate in the DKG phase. The actual number of parties that participate is denoted by $m$ where the maximum number is $n$. Since we focus on small scale votings where participants know each other, we make a social assumption, that each participant trusts $k$ other parties. Then we chose a threshold $t$ of parties, which allows for key reconstruction. Numbers $k$ and $t$ are public parameters agreed by each party.
 

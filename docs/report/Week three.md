@@ -38,4 +38,3 @@ So it looks like the niche where we can do the best is small informal organizati
 
 
 Is it reasonable, compelling, usefull enough? How can we improve?
-

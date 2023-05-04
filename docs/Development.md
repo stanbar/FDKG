@@ -1,3 +1,20 @@
+1. Implement everything in go
+	1. There is number of ready to use ThresholdCrypto libraries that are written in go, so we can make use of them.
+		1. There are probably different libraries written in different languages as well.
+	2. Wesh is written in Go
+		1. It uses protobuf so any library will work
+	3. I already know go
+		1. I can learn Rust
+1. Implement [[Federated Protocol]] and see if it work at bigger scale.
+	- Implement DKG
+		- Using only [PVSS](https://github.com/torusresearch/pvss/blob/master/pvss/pvss.go) library, rest of it I can do myself.
+		  - https://github.com/AlexiaChen/mpvss-rs/blob/master/examples/mpvss_all.rs
+	- Implement Voting with single-candidate
+	- Implement Voting with multi-candidate
+	- Implement on-line tallying
+	- Implement off-line tallying
+2. Implement [[@mazieresStellarConsensusProtocol2015]] and add it to simulation.
+
 - Decide on which blockchain to use:
 	- Stellar (trust-based consensus, experience, wasm in beta)
 	- Ethereum (experience, a lot of zkp tooling, easy to develop, evm)
@@ -6,7 +23,7 @@
 	- [ ] How to achieve dynamic DKG
 	- [ ] Which blockchain to use
 - Development roadmap:
-1. [[Round 1. Setup]]
+3. [[Round 1. Setup]]
 	1. (hard) Bootstrapping voting:
 		1. (hard) Write a procedure allowing the host of the voting to deploy a list of participants (public keys) and a list of candidates on [[Why blockchain|blockchain]].
 			  - All PKI-related issues.
@@ -34,7 +51,7 @@
 	4. (easy) Write a procedure for calculating the lookup table of discrete log trapdoors.
 		1. https://www.npmjs.com/package/babyjubjub
 		2. https://github.com/iden3/circomlib/blob/feature/babypbk/src/babyjub.js
-1. [[Round 2. Voting]]
+4. [[Round 2. Voting]]
 	1. (easy) Write a procedure for generating an encrypted vote (ElGamal on babyJubJub)
 		- https://github.com/iden3/ffjavascript
 		- https://github.com/arkworks-rs
@@ -42,7 +59,7 @@
 		- Use [circom](https://docs.circom.io) (less than 100 lines of a circuit)
 		- Reuse some circuits from [MACI](https://github.com/privacy-scaling-explorations/maci/tree/master/circuits/circom)
 	3. (easy) Write a procedure for submitting the vote to the blockchain.
-2. [[Round 3. Tally]]
+5. [[Round 3. Tally]]
 	1. (easy) Write a procedure for nodes to download all encrypted votes from the blockchain.
 	2. (easy) Write a procedure for nodes to validate the [[PoB - Proof of Ballot|proofs of ballots]]
 		 - https://github.com/iden3/snarkjs
