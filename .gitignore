@@ -2,3 +2,10 @@ pulldocs.sh
 Notes from meetings.md
 bibliography.bib
 ieee-with-url.csl
+
+# Go lang stuff
+go.mod
+go.sum
+
+# Wesh stuff
+data*/
