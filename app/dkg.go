@@ -39,6 +39,15 @@ func (sc *SmartContract) AddShare(senderPubKey PublicKey, shares []*common.Signc
 	sc.PublicKeyVotingShares = append(sc.PublicKeyVotingShares, publicKeyVotingShare)
 }
 
+func (sc *SmartContract) VotingPublicKey() common.Point {
+	sum := sc.PublicKeyVotingShares[0]
+	for _, pubKey := range sc.PublicKeyVotingShares[1:] {
+		X, Y := secp256k1.Curve.Add(&sum.X, &sum.Y, &pubKey.X, &pubKey.Y)
+		sum.X, sum.Y = *X, *Y
+	}
+	return common.BigIntToPoint(&sum.X, &sum.Y)
+}
+
 func newSmartContract() SmartContract {
 	return SmartContract{
 		Shares:                make(map[PublicKey][]*common.SigncryptedOutput),
@@ -104,6 +113,7 @@ func dkg(sc *SmartContract, nodesDkg []Node, nodeList *nodeList, n_trusted int, 
 }
 
 func voting(sc *SmartContract, nodesDkg []Node) {
+	encryptionKey := sc.VotingPublicKey()
 }
 
 func tally(sc *SmartContract, nodesDkg []Node) {
