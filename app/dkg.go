@@ -28,6 +28,13 @@ type PublicKey *common.Point
 type SmartContract struct {
 	Shares                map[PublicKey][]*common.SigncryptedOutput
 	PublicKeyVotingShares []common.Point
+	Votes                 []EncryptedBallot
+}
+
+type EncryptedBallot struct {
+	voter PublicKey
+	a     common.Point
+	b     common.Point
 }
 
 func (sc *SmartContract) AddShare(senderPubKey PublicKey, shares []*common.SigncryptedOutput, publicKeyVotingShare common.Point, proofOfExponent []byte) {
@@ -46,6 +53,17 @@ func (sc *SmartContract) VotingPublicKey() common.Point {
 		sum.X, sum.Y = *X, *Y
 	}
 	return common.BigIntToPoint(&sum.X, &sum.Y)
+}
+
+func (sc *SmartContract) AddVote(encryptedVoteOption EncryptedBallot) {
+	sc.Votes = append(sc.Votes, encryptedVoteOption)
+}
+
+func (sc *SmartContract) OnlineTally(encryptedVoteOption common.Point) {
+}
+
+func (sc *SmartContract) GetPartyVotingPrivKeyShares(partyPubKey PublicKey) []*common.SigncryptedOutput {
+	return sc.Shares[partyPubKey]
 }
 
 func newSmartContract() SmartContract {
@@ -114,10 +132,15 @@ func dkg(sc *SmartContract, nodesDkg []Node, nodeList *nodeList, n_trusted int, 
 
 func voting(sc *SmartContract, nodesDkg []Node) {
 	encryptionKey := sc.VotingPublicKey()
+	for index, node := range nodesDkg {
+		yesOrNo := index%2 == 0
+		encryptedBallot := EncryptBoolean(yesOrNo, &encryptionKey, &node.Node.PubKey)
+		sc.AddVote(encryptedBallot)
+	}
 }
 
 func tally(sc *SmartContract, nodesDkg []Node) {
-	for i, tx := range blockchain.Transactions {
+	for i, tx := range sc.Transactions {
 		_, err := pvss.UnsigncryptShare(signcryptedShares[i].SigncryptedShare, privateKeys[i], pubKeySender)
 		if err != nil {
 			fmt.Println(err)
