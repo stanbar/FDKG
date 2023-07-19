@@ -9,7 +9,7 @@ import (
 // TODO: make it deterministic and independent of the base point
 var H = common.BigIntToPoint(secp256k1.Curve.ScalarBaseMult(pvss.RandomBigInt().Bytes()))
 
-func EncryptBoolean(yesOrNo bool, votingPublicKey *common.Point, voter PublicKey) EncryptedBallot {
+func EncryptBoolean(yesOrNo bool, votingPublicKey *common.Point, voter common.Point) EncryptedBallot {
 	blindingFactor := pvss.RandomBigInt()
 	comm := common.BigIntToPoint(secp256k1.Curve.ScalarBaseMult(blindingFactor.Bytes()))
 
@@ -17,8 +17,8 @@ func EncryptBoolean(yesOrNo bool, votingPublicKey *common.Point, voter PublicKey
 	X, Y := secp256k1.Curve.ScalarMult(&votingPublicKey.X, &votingPublicKey.Y, blindingFactor.Bytes())
 
 	if yesOrNo {
-		return EncryptedBallot{voter: voter, a: comm, b: common.BigIntToPoint(secp256k1.Curve.Add(X, Y, &H.X, &H.Y))}
+		return EncryptedBallot{voterPubKey: voter, a: comm, b: common.BigIntToPoint(secp256k1.Curve.Add(X, Y, &H.X, &H.Y))}
 	} else {
-		return EncryptedBallot{voter: voter, a: comm, b: common.BigIntToPoint(X, Y)}
+		return EncryptedBallot{voterPubKey: voter, a: comm, b: common.BigIntToPoint(X, Y)}
 	}
 }
