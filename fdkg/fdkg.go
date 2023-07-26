@@ -32,7 +32,10 @@ type DkgParty struct {
 	TrustedParties []PublicParty
 }
 
-func newLocalParty(index int, prime *big.Int, degree int) LocalParty {
+func NewLocalParty(index int, prime *big.Int, degree int) LocalParty {
+	if index < 1 {
+		panic("index must be greater than 0")
+	}
 	polynomial := polynomial.RandomPolynomial(prime, degree)
 	privateKey := polynomial.Evaluate(0)
 	publicKey := common.BigIntToPoint(secp256k1.Curve.ScalarBaseMult(privateKey.Bytes()))
@@ -53,6 +56,7 @@ func newLocalParty(index int, prime *big.Int, degree int) LocalParty {
 }
 
 func (p LocalParty) EncryptedBallot(encryptionKey common.Point) elgamal.EncryptedBallot {
+	fmt.Printf("Party_%d voting %v\n", p.Index, p.vote)
 	return elgamal.EncryptBoolean(p.vote, &encryptionKey, p.PublicKey)
 }
 
@@ -95,21 +99,31 @@ func randomTrustedParties(p LocalParty, publicNodes []PublicParty, threshold int
 	return trustedParties
 }
 
+func createRandomNodes(count int, prime *big.Int, degree int) []LocalParty {
+	if degree >= count {
+		panic("degree must be less than count otherwise it's impossible to reconstruct the secret.")
+	}
+	nodes := make([]LocalParty, count)
+	for i := range nodes {
+		newNode := NewLocalParty(i+1, prime, degree)
+		nodes[i] = newNode
+		fmt.Printf("Party_%d has private key %v voted %v of polynomial %v\n", newNode.Index, newNode.PrivateKey, newNode.vote, newNode.Polynomial.String())
+	}
+	return nodes
+}
+
 func main() {
 	// Prime field modulus (choose a suitable prime based on the problem)
 	prime := big.NewInt(17)
 	n := 6
-	n_vote := 5
 	n_dkg := 3
+	n_vote := 5
 	n_tally := 3
+
 	degree := 3
 	threshold := 2
 
-	localNodes := make([]LocalParty, n)
-	for i := range localNodes {
-		localNodes[i] = newLocalParty(i+1, prime, degree)
-		fmt.Printf("Party %v: private key %v, public key %v, voting public key %v, polynomial %v\n", i, localNodes[i].PrivateKey, localNodes[i].PublicKey, localNodes[i].VotingPublicKey, localNodes[i].Polynomial.String())
-	}
+	localNodes := createRandomNodes(n, prime, degree)
 
 	publicNodes := make([]PublicParty, n)
 	for i := range localNodes {
