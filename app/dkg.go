@@ -84,13 +84,55 @@ func (sc *SmartContract) OnlineTally(publicKey common.Point, privateKey big.Int)
 	sc.partialDecryptions[&publicKey] = partialDecryption
 }
 
-func (sc *SmartContract) OfflineTally() {
+func (sc *SmartContract) OfflineTally(n_threshold int) {
+	// TODO: Implement lagrange interpolation
+
+	t := n_threshold
+	// shares must be allocated to the appropriate xs for a particular party
+	// so that t here is always constant (e.g 3) whereas the indices of the shares are normalised
+	// to the number of shares for a particular party.
+
+	for pk, partialDecryption := range sc.partialDecryptions {
+
+		// t is a number of points needed to interpolate the polynomial
+		// t-1 is a degree of the polynomial
+		// lagrange coefficients
+		// l[i] = \prod_{j=1, j \neq i}^t \frac{j}{j-i}
+
+		var est float64
+
+		for i := 0; i < t; i++ {
+			prod := lg.Y[i]
+			for j := 0; j < len(lg.X); j++ {
+				if i != j {
+					prod = prod * (val - lg.X[j]) / (lg.X[i] - lg.X[j])
+				}
+			}
+			est += prod
+		}
+		// I need to know the index of the node in the list of nodes
+	}
 	// Everyone can calculate:
 	// - Compute $Z=\sum_{i=1}^k A_i \times \Pi_{j=1}^t \frac{j}{j-i}, i\neq j$.
 	// - Sum of the second part $B=\sum_{i=1}^k (r_{i} \times \mathbf{E} + v_i \times C)$.
 	// - The decryption of the partial result is $M=B-Z=C \times \sum_{i=1}^k v_i$, because:
 	// - The total number of $\textrm{"yes"}$ votes is $x=\sum_{i=1}^kv_i$.
 	// - To extract $x$ from $M=x \times C$ we have to solve Elliptic-Curve Discrete Logarithm Problem. Fortunatelly, since the value of $x$ is small, i.e., in range $[0,k]$, we can use exhaustive search or Shanks’ baby-step giant-step algorithm.
+}
+func Interpolate(val float64) float64 {
+	var est float64
+
+	for i := 0; i < len(lg.X); i++ {
+		prod := lg.Y[i]
+		for j := 0; j < len(lg.X); j++ {
+			if i != j {
+				prod = prod * (val - lg.X[j]) / (lg.X[i] - lg.X[j])
+			}
+		}
+		est += prod
+	}
+
+	return est
 }
 
 func newSmartContract() SmartContract {
@@ -137,7 +179,7 @@ func TestDKG(test *testing.T) {
 	// Proof of exponentiation, that G^decryptionShare = encryptionShare
 	dkg(&sc, nodesDkg, nodeList, n_trusted, n_threshold, test)
 	voting(&sc, nodesVoting)
-	tally(&sc, nodesTally)
+	tally(&sc, nodesTally, n_threshold)
 }
 
 func dkg(sc *SmartContract, nodesDkg []Node, nodeList *nodeList, n_trusted int, n_threshold int, test *testing.T) {
@@ -166,12 +208,12 @@ func voting(sc *SmartContract, nodesDkg []Node) {
 	}
 }
 
-func tally(sc *SmartContract, nodesTally []Node) {
+func tally(sc *SmartContract, nodesTally []Node, n_threshold int) {
 	for _, tx := range nodesTally {
 		sc.OnlineTally(tx.Node.PubKey, tx.PrivKey)
 	}
 
-	// result := sc.OfflineTally()
+	result := sc.OfflineTally(n_threshold)
 }
 
 func proofOfExponent(privKeyVotingShare *big.Int, pubKeyVotingShare common.Point) []byte {
