@@ -3,19 +3,47 @@ package polynomial
 import (
 	"fmt"
 	"math/big"
-	"math/rand"
-	"time"
+
+	"github.com/torusresearch/pvss/pvss"
 )
+
+type Polynomial struct {
+	coefficients []*big.Int
+	prime        *big.Int
+}
+
+func (p Polynomial) Degree() int {
+	return len(p.coefficients) - 1
+}
+
+func (p *Polynomial) Evaluate(target int) *big.Int {
+	return evaluatePolynomial(p.coefficients, target, p.prime)
+}
+func (p Polynomial) String() string {
+	// print the polynomial in the form:
+	// f(x) = a_0 + a_1*x + a_2*x^2 + ... + a_t*x^t
+	var result string
+	for i, coeff := range p.coefficients {
+		result += fmt.Sprintf("%v*x^%v + ", coeff, i)
+	}
+	return result[:len(result)-3]
+}
+
+func RandomPolynomial(prime *big.Int, degree int) Polynomial {
+	return Polynomial{
+		coefficients: generateRandomPolynomial(degree, prime),
+		prime:        prime,
+	}
+}
 
 // GenerateRandomPolynomialOverPrimeNaturalField generates a random polynomial
 // of degree t over the prime field of natural numbers.
 func generateRandomPolynomial(t int, prime *big.Int) []*big.Int {
-	rand.Seed(time.Now().UnixNano())
-
 	coefficients := make([]*big.Int, t+1)
 	for i := 0; i <= t; i++ {
 		// Generate a random integer in the range [1, prime - 1].
-		coeff := big.NewInt(int64(rand.Intn(int(prime.Int64()-1)) + 1))
+		coeff := pvss.RandomBigInt()
+
 		coefficients[i] = coeff
 	}
 
@@ -39,29 +67,4 @@ func evaluatePolynomial(coefficients []*big.Int, target int, prime *big.Int) *bi
 	}
 
 	return result
-}
-
-type Polynomial struct {
-	coefficients []*big.Int
-	prime        *big.Int
-}
-
-func (p *Polynomial) Evaluate(target int) *big.Int {
-	return evaluatePolynomial(p.coefficients, target, p.prime)
-}
-func (p Polynomial) String() string {
-	// print the polynomial in the form:
-	// f(x) = a_0 + a_1*x + a_2*x^2 + ... + a_t*x^t
-	var result string
-	for i, coeff := range p.coefficients {
-		result += fmt.Sprintf("%v*x^%v + ", coeff, i)
-	}
-	return result[:len(result)-3]
-}
-
-func RandomPolynomial(prime *big.Int, degree int) Polynomial {
-	return Polynomial{
-		coefficients: generateRandomPolynomial(degree, prime),
-		prime:        prime,
-	}
 }
