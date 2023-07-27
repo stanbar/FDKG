@@ -1,9 +1,12 @@
 package sss
 
 import (
+	"fmt"
 	"math/big"
 
 	"github.com/delendum-xyz/private-voting/fdkg/polynomial"
+	"github.com/delendum-xyz/private-voting/fdkg/utils"
+	"github.com/torusresearch/pvss/common"
 )
 
 type Share struct {
@@ -12,10 +15,20 @@ type Share struct {
 	Value *big.Int
 }
 
+func (s Share) ToPrimaryShare() common.PrimaryShare {
+	return common.PrimaryShare{
+		Index: s.To,
+		Value: *s.Value,
+	}
+}
+
 func GenerateShares(p polynomial.Polynomial, from int, indices []int) []Share {
+	if len(indices) <= (p.Degree()) {
+		panic("not enough trusted parties (and so shares) to reconstruct the secret")
+	}
 	shares := make([]Share, len(indices))
 	for i, index := range indices {
-		if i == 0 {
+		if index == 0 {
 			panic("index must not be 0 because f(0) is the secret")
 		}
 		shares[i] = Share{
@@ -27,81 +40,91 @@ func GenerateShares(p polynomial.Polynomial, from int, indices []int) []Share {
 	return shares
 }
 
-func ReconstructSecret(shares []Share, prime *big.Int) *big.Int {
-	secret := big.NewInt(0)
-	for i, share := range shares {
-		// Compute the Lagrange coefficient for this share
-		lc := big.NewInt(1)
-		for j, otherShare := range shares {
-			if i == j {
-				continue
+func LagrangeCoefficients(y_i *big.Int, i int, val int, X []int, prime *big.Int) *big.Int {
+	prod := y_i
+	for j := 0; j < len(X); j++ {
+		if i != j {
+			// prod = prod * (val - X[j]) / (X[i] - X[j])
+			// 1. (val - X[j])
+			nominator := big.NewInt(int64(val - X[j]))
+			// 2. (X[i] - X[j])
+			denom := (X[i] - X[j])
+			// 3. 1 / (X[i] - X[j])
+			denominator := big.NewInt(0).ModInverse(big.NewInt(int64(denom)), prime)
+			if denominator == nil {
+				panic(fmt.Sprintf("could not find inverse of %v", denom))
 			}
-			// Compute the numerator
-			num := share.From - otherShare.From
-			// Compute the denominator
-			denom := otherShare.To - otherShare.From
-			// Compute the inverse of the denominator
-			denomInverse := big.NewInt(0).ModInverse(big.NewInt(int64(denom)), prime)
-			// Compute the product of the numerator and denominator inverse
-			numDenomInverse := big.NewInt(0).Mul(big.NewInt(int64(num)), denomInverse)
-			// Multiply the Lagrange coefficient by the product
-			lc.Mul(lc, numDenomInverse)
-			// Make sure the Lagrange coefficient is positive
-			lc.Mod(lc, prime)
+			// 4. (X[i] - X[j]) * (1 / (X[i] - X[j])) = (val - X[j]) / (X[i] - X[j])
+			numDenomInverse := nominator.Mul(nominator, denominator)
+			numDenomInverse.Mod(numDenomInverse, prime)
+			// 5. prod = prod * (val - X[j]) / (X[i] - X[j])
+			prod = prod.Mul(prod, numDenomInverse)
 		}
-		// Multiply the secret by the Lagrange coefficient
-		secret.Add(secret, big.NewInt(0).Mul(share.Value, lc))
-		// Make sure the secret is positive
-		secret.Mod(secret, prime)
 	}
-	return secret
+	return prod.Mod(prod, prime)
 }
 
-func LagrangeBasisPolynomial(index int, shares []Share, prime *big.Int) *big.Int {
-	numerator := big.NewInt(1) // either 1 or first index from shares.Index
-	denominator := big.NewInt(1)
+func LagrangeCoefficientsStartFromOne(i int, val int, X []int, prime *big.Int) *big.Int {
+	prod := big.NewInt(1)
+	for j := 0; j < len(X); j++ {
+		if i != j {
+			// prod = prod * (val - X[j]) / (X[i] - X[j])
+			// 1. (val - X[j])
 
-	for j, _ := range shares {
-		if j == index {
-			continue
+			nominator := big.NewInt(int64(val - X[j]))
+			// 2. (X[i] - X[j])
+			denom := (X[j] - X[i])
+			// 3. 1 / (X[i] - X[j])
+			denominator := big.NewInt(0).ModInverse(big.NewInt(int64(denom)), prime)
+			if denominator == nil {
+				panic(fmt.Sprintf("could not find inverse of %v", denom))
+			}
+			// 4. (X[i] - X[j]) * (1 / (X[i] - X[j])) = (val - X[j]) / (X[i] - X[j])
+			numDenomInverse := nominator.Mul(nominator, denominator)
+			numDenomInverse.Mod(numDenomInverse, prime)
+			// 5. prod = prod * (val - X[j]) / (X[i] - X[j])
+			prod = prod.Mul(prod, numDenomInverse)
 		}
-		num := big.NewInt(int64(j))
-		denom := big.NewInt(int64(j - index))
-
-		numerator = numerator.Mul(numerator, num)
-		denominator = denominator.Mul(denominator, denom)
-
-		denominator.Mod(denominator, prime)
 	}
-	// Compute the denominator inverse
-	denominatorInverse := big.NewInt(0).ModInverse(denominator, prime)
-	// Compute the product of the numerator and denominator inverse
-	numDenomInverse := numerator.Mul(numerator, denominatorInverse)
-	// Make sure the product is positive
-	numDenomInverse.Mod(numDenomInverse, prime)
-	return numDenomInverse
+	return prod.Mod(prod, prime)
 }
 
-// CalculateBasisPolynomial calculates the basis polynomial corresponding to a given share.
-// The share's x-coordinate and the x-coordinates of other shares are required for the calculation.
-func CalculateBasisPolynomial(x int, shares []Share, prime *big.Int) *big.Int {
-	basisPoly := big.NewInt(1)
+func Interpolate(val int, shares []common.PrimaryShare, prime *big.Int) *big.Int {
+	est := big.NewInt(0)
+	X := utils.Map(shares, func(share common.PrimaryShare) int { return share.Index })
+	Y := utils.Map(shares, func(share common.PrimaryShare) big.Int { return share.Value })
 
-	for _, share := range shares {
-		if x-share.To != 0 {
-			numerator := x - share.To
-			denominator := share.To - x
+	for i := 0; i < len(X); i++ {
+		prod := &Y[i]
+		for j := 0; j < len(X); j++ {
+			if i != j {
+				// prod = prod * (val - X[j]) / (X[i] - X[j])
+				// 1. (val - X[j])
+				nominator := big.NewInt(int64(val - X[j]))
+				denom := (X[i] - X[j])
+				denominator := big.NewInt(0).ModInverse(big.NewInt(int64(denom)), prime)
+				numDenomInverse := nominator.Mul(nominator, denominator)
+				numDenomInverse.Mod(numDenomInverse, prime)
+				prod = prod.Mul(prod, numDenomInverse)
 
-			// Calculate the Lagrange coefficient for this share's basis polynomial
-			inv := big.NewInt(0).ModInverse(big.NewInt(int64(denominator)), prime)
-			coeff := big.NewInt(0).Mul(big.NewInt(int64(numerator)), inv)
-			coeff.Mod(coeff, prime)
-
-			// Multiply the current basis polynomial with the Lagrange coefficient
-			basisPoly.Mul(basisPoly, coeff)
-			basisPoly.Mod(basisPoly, prime)
+			}
 		}
+		est.Add(est, prod)
 	}
 
-	return basisPoly
+	return est.Mod(est, prime)
+}
+
+func InterpolateWithSeparateCoefficients(val int, shares []common.PrimaryShare, prime *big.Int) *big.Int {
+	est := big.NewInt(0)
+	X := utils.Map(shares, func(share common.PrimaryShare) int { return share.Index })
+	Y := utils.Map(shares, func(share common.PrimaryShare) big.Int { return share.Value })
+
+	for i := 0; i < len(X); i++ {
+		shareValue := &Y[i]
+		prod := LagrangeCoefficients(shareValue, i, val, X, prime)
+		est.Add(est, prod)
+	}
+
+	return est.Mod(est, prime)
 }
