@@ -106,6 +106,73 @@ func TestShamirSecretSharing(t *testing.T) {
 		t.Errorf("Expected secret %v, got %v", node.VotingPrivKeyShare, secret)
 	}
 }
+func TestPartialDecryptionOfOneDkgNodeAndTwoGuardians(t *testing.T) {
+	//TODO write the simplified version of TestPartialDecryptionOfTwoDkgNodesAndThreeGuardia
+	// i.e. when we have only one dkg node and two guardians
+	// only alice is dkg node
+	// alice shares are generated
+	// bob and carol are guardians
+
+	prime := secp256k1.FieldOrder
+	alice := NewLocalParty(1, prime, 1)
+	bob := NewLocalParty(11, prime, 1).PublicParty
+	carol := NewLocalParty(22, prime, 1).PublicParty
+	///TODO: ...
+
+}
+
+func TestPartialDecryptionOfTwoDkgNodesAndThreeGuardian(t *testing.T) {
+	prime := secp256k1.FieldOrder
+	alice := NewLocalParty(1, prime, 1)
+	bob := NewLocalParty(2, prime, 1)
+	carol := NewLocalParty(11, prime, 1).PublicParty
+	dave := NewLocalParty(22, prime, 1).PublicParty
+	eve := NewLocalParty(33, prime, 1).PublicParty
+	aliceDkg := alice.toDkgParty([]PublicParty{carol, dave, eve})
+	bobDkg := bob.toDkgParty([]PublicParty{carol, dave, eve})
+
+	aliceShares := aliceDkg.GenerateShares()
+	bobShares := bobDkg.GenerateShares()
+	alicePrimeShares := utils.Map(aliceShares, func(s sss.Share) common.PrimaryShare { return s.ToPrimaryShare() })
+	bobPrimeShares := utils.Map(bobShares, func(s sss.Share) common.PrimaryShare { return s.ToPrimaryShare() })
+	fmt.Printf("Alice shares %v\n", utils.Map(alicePrimeShares, func(share common.PrimaryShare) int { return share.Index }))
+	fmt.Printf("Bob shares %v\n", utils.Map(bobPrimeShares, func(share common.PrimaryShare) int { return share.Index }))
+
+	carolShares := []common.PrimaryShare{alicePrimeShares[0], bobPrimeShares[0]}
+	daveShares := []common.PrimaryShare{alicePrimeShares[1], bobPrimeShares[1]}
+	eveShares := []common.PrimaryShare{alicePrimeShares[2], bobPrimeShares[2]}
+	fmt.Printf("Carol shares %v\n", utils.Map(carolShares, func(share common.PrimaryShare) int { return share.Index }))
+	fmt.Printf("Dave shares %v\n", utils.Map(daveShares, func(share common.PrimaryShare) int { return share.Index }))
+	fmt.Printf("Eve shares %v\n", utils.Map(eveShares, func(share common.PrimaryShare) int { return share.Index }))
+
+	d_carol := carolShares[0].Value.Add(&carolShares[0].Value, &carolShares[1].Value)
+	d_dave := daveShares[0].Value.Add(&daveShares[0].Value, &daveShares[1].Value)
+	d_eve := eveShares[0].Value.Add(&eveShares[0].Value, &eveShares[1].Value)
+
+	//TODO: continue when TestPartialDecryptionOfOneDkgNodeAndTwoGuardians works
+
+	// ended here
+	A_carol := A * d_carol
+
+	X := utils.Map(alicePrimeShares, func(share common.PrimaryShare) int { return share.Index })
+	Y := utils.Map(alicePrimeShares, func(share common.PrimaryShare) big.Int { return share.Value })
+
+	est := big.NewInt(0)
+	for i := 0; i < len(X); i++ {
+		shareValue := &Y[i]
+		prod := sss.LagrangeCoefficientsStartFromOne(i, 0, X, prime)
+
+		prod.Mul(prod, shareValue)
+		prod.Mod(prod, prime)
+		est.Add(est, prod)
+	}
+
+	est.Mod(est, prime)
+
+	if est.Cmp(alice.VotingPrivKeyShare) != 0 {
+		t.Errorf("Expected secret %v, got %v", alice.VotingPrivKeyShare, est)
+	}
+}
 
 func TestPointAtInfinity(t *testing.T) {
 	Gx := secp256k1.Curve.Gx
@@ -145,11 +212,18 @@ func TestVotingKeysSharing(t *testing.T) {
 func TestVoting(t *testing.T) {
 	prime := secp256k1.FieldOrder
 	n := 6
-	n_dkg := 6
+	n_dkg := 1
 	degree := 1
 	n_trustedParties := 3
 	localNodes, dkgNodes := GenerateSetOfNodes(n, n_dkg, n_trustedParties, degree, prime)
 	encryptionKey := VotingPublicKey(dkgNodes)
+
+	if len(dkgNodes) != n_dkg {
+		t.Errorf("Expected %d nodes, got %d", n_dkg, len(dkgNodes))
+	}
+	if dkgNodes[0].VotingPublicKey.X.Cmp(&encryptionKey.X) != 0 || encryptionKey.Y.Cmp(&dkgNodes[0].VotingPublicKey.Y) != 0 {
+		t.Errorf("Expected encryption key to be equal to voting public key share, got %v", encryptionKey)
+	}
 
 	votes := voting(localNodes, encryptionKey, prime)
 
@@ -174,11 +248,6 @@ func TestVoting(t *testing.T) {
 		panic("B is not on curve")
 	}
 
-	// implement the decryption of aggregated votes
-	// TODO: calculate partial decryptions A_i for each party i
-	// TODO: Calculate Z
-	// TODO: Calculate M = B-Z
-
 	receiverToShares := make(map[int][]sss.Share)
 	for _, node := range dkgNodes {
 		shares := node.GenerateShares()
@@ -186,7 +255,11 @@ func TestVoting(t *testing.T) {
 			receiverToShares[share.To] = append(receiverToShares[share.To], share)
 		}
 	}
+	if len(receiverToShares) != n_dkg*n_trustedParties {
+		t.Errorf("Expected %d receivers, got %d", n_dkg*n_trustedParties, len(receiverToShares))
+	}
 
+	// IDEA: reconstruct each DKG key separatelly and provide partial decryption for each of it
 	partialDecryptions := make([]PartialDecryption, 0, len(receiverToShares))
 	// for each party reconstruct secret
 	for partyIndex, shares := range receiverToShares {
@@ -208,7 +281,7 @@ func TestVoting(t *testing.T) {
 		pAX, pAY := secp256k1.Curve.ScalarMult(&A.X, &A.Y, shareOfDecryptionKey.Bytes())
 
 		if !secp256k1.Curve.IsOnCurve(pAX, pAY) {
-			panic("d_i * A is not on curve")
+			t.Error("d_i * A is not on curve")
 		}
 		partialDecryptions = append(partialDecryptions, PartialDecryption{
 			Index: partyIndex,
@@ -224,17 +297,18 @@ func TestVoting(t *testing.T) {
 	A_is := utils.Map(partialDecryptions, func(share PartialDecryption) common.Point { return share.Value })
 
 	for i := 0; i < len(X); i++ {
+		A_x, A_y := &A_is[i].X, &A_is[i].Y
 		lagrangeBasis := sss.LagrangeCoefficientsStartFromOne(i, 0, X, prime)
 
 		// lagrangeBasis * A_i
-		X, Y := secp256k1.Curve.ScalarMult(&A_is[i].X, &A_is[i].Y, lagrangeBasis.Bytes())
+		X, Y := secp256k1.Curve.ScalarMult(A_x, A_y, lagrangeBasis.Bytes())
 
 		// Z += lagrangeBasis * A_i
 		Z_X, Z_Y = secp256k1.Curve.Add(Z_X, Z_Y, X, Y)
-
 	}
+
 	if !secp256k1.Curve.IsOnCurve(Z_X, Z_Y) {
-		panic("Z is not on curve")
+		t.Error("Z is not on curve")
 	}
 
 	fmt.Printf("Z = (%v,%v)\n", Z_X, Z_Y)
@@ -242,13 +316,12 @@ func TestVoting(t *testing.T) {
 	// M = B-Z
 	ZNegY := new(big.Int).Neg(Z_Y)
 	ZNegY.Mod(ZNegY, prime)
-	M_X, M_Y := secp256k1.Curve.Add(&B.X, &B.Y, Z_X, ZNegY)
-
-	if !secp256k1.Curve.IsOnCurve(M_X, M_Y) {
+	mHX, mHY := secp256k1.Curve.Add(&B.X, &B.Y, Z_X, ZNegY)
+	if !secp256k1.Curve.IsOnCurve(mHX, mHY) {
 		panic("M=B-Z is not on curve")
 	}
 
-	M_X_test, M_Y_test := secp256k1.Curve.Add(M_X, M_Y, Z_X, Z_Y)
+	M_X_test, M_Y_test := secp256k1.Curve.Add(mHX, mHY, Z_X, Z_Y)
 	if !secp256k1.Curve.IsOnCurve(M_X_test, M_Y_test) {
 		panic("B=M+Z is not on curve")
 	}
@@ -256,18 +329,19 @@ func TestVoting(t *testing.T) {
 	if M_X_test.Cmp(&B.X) != 0 || M_Y_test.Cmp(&B.Y) != 0 {
 		panic("M != B-Z")
 	}
-	fmt.Printf("Z = (%v,%v)\n", Z_X, Z_Y)
+	fmt.Printf("M = (%v,%v)\n", mHX, mHY)
 
-	// search for x such that x*G = M
+	// search for x such that x*H = M
 	x := 0
 	H := elgamal.H
-	for x <= n {
+	for x <= 100 {
 		X, Y := secp256k1.Curve.ScalarMult(&H.X, &H.Y, big.NewInt(int64(x)).Bytes())
-		if X.Cmp(M_X) == 0 && Y.Cmp(M_Y) == 0 {
+		if X.Cmp(mHX) == 0 && Y.Cmp(mHY) == 0 {
 			break
 		}
+
 		x += 1
-		if x > n {
+		if x > 100 {
 			panic("x not found")
 		}
 	}
