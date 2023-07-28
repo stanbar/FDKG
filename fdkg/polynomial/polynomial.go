@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/torusresearch/pvss/pvss"
+	"github.com/delendum-xyz/private-voting/fdkg/utils"
 )
 
 type Polynomial struct {
@@ -42,7 +42,7 @@ func generateRandomPolynomial(t int, prime *big.Int) []*big.Int {
 	coefficients := make([]*big.Int, t+1)
 	for i := 0; i <= t; i++ {
 		// Generate a random integer in the range [1, prime - 1].
-		coeff := pvss.RandomBigInt()
+		coeff := utils.RandomBigInt(prime)
 
 		coefficients[i] = coeff
 	}

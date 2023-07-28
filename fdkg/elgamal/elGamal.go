@@ -3,9 +3,10 @@ package elgamal
 import (
 	"math/big"
 
-	"github.com/torusresearch/pvss/common"
-	"github.com/torusresearch/pvss/pvss"
 	"github.com/torusresearch/pvss/secp256k1"
+
+	"github.com/delendum-xyz/private-voting/fdkg/common"
+	"github.com/delendum-xyz/private-voting/fdkg/utils"
 )
 
 type EncryptedBallot struct {
@@ -17,8 +18,8 @@ type EncryptedBallot struct {
 // TODO: make it deterministic and independent of the base point
 var H = secp256k1.H
 
-func EncryptBoolean(yesOrNo bool, votingPublicKey common.Point, voter common.Point) EncryptedBallot {
-	blindingFactor := pvss.RandomBigInt()
+func EncryptBoolean(yesOrNo bool, votingPublicKey common.Point, voter common.Point, prime *big.Int) EncryptedBallot {
+	blindingFactor := utils.RandomBigInt(prime)
 	comm := common.BigIntToPoint(secp256k1.Curve.ScalarBaseMult(blindingFactor.Bytes()))
 
 	// k_i * E
@@ -34,7 +35,7 @@ func EncryptBoolean(yesOrNo bool, votingPublicKey common.Point, voter common.Poi
 	return EncryptedBallot{VoterPubKey: voter, A: comm, B: common.BigIntToPoint(secp256k1.Curve.Add(X, Y, mHX, mHY))}
 }
 
-func (b *EncryptedBallot) DecryptBoolean(votingPrivateKey *big.Int) bool {
+func (b *EncryptedBallot) DecryptBoolean(votingPrivateKey *big.Int, prime *big.Int) bool {
 
 	// (A,B) = (k_i * G, k_i * E + m * H)
 	// TODO: implement the decryption of single ballot for testing purposes
@@ -45,7 +46,7 @@ func (b *EncryptedBallot) DecryptBoolean(votingPrivateKey *big.Int) bool {
 	// (B - (priv * A))
 	// pA inverse
 	pAYNeg := new(big.Int).Neg(pAY)
-	pAYNeg.Mod(pAYNeg, secp256k1.FieldOrder)
+	pAYNeg.Mod(pAYNeg, prime)
 	mHX, mHY := secp256k1.Curve.Add(&b.B.X, &b.B.Y, pAX, pAYNeg)
 	m := big.NewInt(0)
 	if mHX.Cmp(&H.X) == 0 && mHY.Cmp(&H.Y) == 0 {
@@ -61,8 +62,8 @@ func (b *EncryptedBallot) DecryptBoolean(votingPrivateKey *big.Int) bool {
 	}
 }
 
-func EncryptNumber(m int, votingPublicKey common.Point, voter common.Point) EncryptedBallot {
-	blindingFactor := pvss.RandomBigInt()
+func EncryptNumber(m int, votingPublicKey common.Point, voter common.Point, prime *big.Int) EncryptedBallot {
+	blindingFactor := utils.RandomBigInt(prime)
 	comm := common.BigIntToPoint(secp256k1.Curve.ScalarBaseMult(blindingFactor.Bytes()))
 
 	// k_i * E
@@ -73,18 +74,16 @@ func EncryptNumber(m int, votingPublicKey common.Point, voter common.Point) Encr
 	return EncryptedBallot{VoterPubKey: voter, A: comm, B: common.BigIntToPoint(secp256k1.Curve.Add(X, Y, mHX, mHY))}
 }
 
-func (b *EncryptedBallot) DecryptNumber(votingPrivateKey *big.Int, max int) int {
+func (b *EncryptedBallot) DecryptNumber(votingPrivateKey *big.Int, max int, prime *big.Int) int {
 
 	// (A,B) = (k_i * G, k_i * E + m * H)
-	// TODO: implement the decryption of single ballot for testing purposes
-
 	// m*H = B - (k_i * E) = B - (k_i * priv * G) = B - (priv * A)
 	// (priv * A)
 	pAX, pAY := secp256k1.Curve.ScalarMult(&b.A.X, &b.A.Y, votingPrivateKey.Bytes())
 	// (B - (priv * A))
 	// pA inverse
 	pAYNeg := new(big.Int).Neg(pAY)
-	pAYNeg.Mod(pAYNeg, secp256k1.FieldOrder)
+	pAYNeg.Mod(pAYNeg, prime)
 	mHX, mHY := secp256k1.Curve.Add(&b.B.X, &b.B.Y, pAX, pAYNeg)
 
 	// search for x such that x*G = M

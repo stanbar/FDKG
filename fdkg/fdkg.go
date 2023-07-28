@@ -5,12 +5,11 @@ import (
 	"math/big"
 	"math/rand"
 
+	"github.com/delendum-xyz/private-voting/fdkg/common"
 	"github.com/delendum-xyz/private-voting/fdkg/elgamal"
 	"github.com/delendum-xyz/private-voting/fdkg/polynomial"
 	"github.com/delendum-xyz/private-voting/fdkg/sss"
 	"github.com/delendum-xyz/private-voting/fdkg/utils"
-	"github.com/torusresearch/pvss/common"
-	"github.com/torusresearch/pvss/pvss"
 	"github.com/torusresearch/pvss/secp256k1"
 )
 
@@ -37,7 +36,7 @@ func NewLocalParty(index int, prime *big.Int, degree int) LocalParty {
 	if index < 1 {
 		panic("index must be greater than 0")
 	}
-	privateKey := pvss.RandomBigInt()
+	privateKey := utils.RandomBigInt(prime)
 	publicKey := common.BigIntToPoint(secp256k1.Curve.ScalarBaseMult(privateKey.Bytes()))
 
 	polynomial := polynomial.RandomPolynomial(prime, degree)
@@ -57,9 +56,9 @@ func NewLocalParty(index int, prime *big.Int, degree int) LocalParty {
 	}
 }
 
-func (p LocalParty) EncryptedBallot(encryptionKey common.Point) elgamal.EncryptedBallot {
+func (p LocalParty) EncryptedBallot(encryptionKey common.Point, prime *big.Int) elgamal.EncryptedBallot {
 	fmt.Printf("Party_%d voting %v\n", p.Index, p.vote)
-	return elgamal.EncryptBoolean(p.vote, encryptionKey, p.PublicKey)
+	return elgamal.EncryptBoolean(p.vote, encryptionKey, p.PublicKey, prime)
 }
 
 func (p DkgParty) GenerateShares() []sss.Share {
@@ -134,7 +133,7 @@ func GenerateSetOfNodes(n int, n_dkg int, n_trustedParties int, degree int, prim
 
 func main() {
 	// Prime field modulus (choose a suitable prime based on the problem)
-	prime := secp256k1.GeneratorOrder
+	prime := secp256k1.FieldOrder
 	n := 6
 	n_dkg := 6
 	n_vote := 6
@@ -155,7 +154,7 @@ func main() {
 	encryptionKey := VotingPublicKey(dkgNodes)
 
 	votingNodes := sampleRandom(localNodes, n_vote)
-	votes := voting(votingNodes, encryptionKey)
+	votes := voting(votingNodes, encryptionKey, prime)
 
 	onlineTally(votes, dkgNodes, partyIndexToShares, prime, n_vote)
 }
@@ -178,10 +177,10 @@ func VotingPublicKey(dkgNodes []DkgParty) common.Point {
 	return common.BigIntToPoint(&sum.X, &sum.Y)
 }
 
-func voting(nodes []LocalParty, encryptionKey common.Point) []elgamal.EncryptedBallot {
+func voting(nodes []LocalParty, encryptionKey common.Point, prime *big.Int) []elgamal.EncryptedBallot {
 	votes := make([]elgamal.EncryptedBallot, len(nodes))
 	for index, node := range nodes {
-		encryptedBallot := node.EncryptedBallot(encryptionKey)
+		encryptedBallot := node.EncryptedBallot(encryptionKey, prime)
 		votes[index] = encryptedBallot
 	}
 	return votes
@@ -264,7 +263,7 @@ func onlineTally(votes []elgamal.EncryptedBallot, tallyingParties []DkgParty, pa
 
 	// M = B-Z
 	ZNegY := new(big.Int).Neg(Z_Y)
-	ZNegY.Mod(ZNegY, secp256k1.FieldOrder)
+	ZNegY.Mod(ZNegY, prime)
 	M_X, M_Y := secp256k1.Curve.Add(&B.X, &B.Y, Z_X, ZNegY)
 
 	if !secp256k1.Curve.IsOnCurve(M_X, M_Y) {

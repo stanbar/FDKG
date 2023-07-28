@@ -6,15 +6,14 @@ import (
 
 	"fmt"
 
+	"github.com/delendum-xyz/private-voting/fdkg/common"
 	"github.com/delendum-xyz/private-voting/fdkg/utils"
 
-	"github.com/torusresearch/pvss/common"
-	"github.com/torusresearch/pvss/pvss"
 	"github.com/torusresearch/pvss/secp256k1"
 )
 
 func TestShamirSecretSharing(t *testing.T) {
-	prime := secp256k1.GeneratorOrder
+	prime := secp256k1.FieldOrder
 	// Example shares with x-coordinates and corresponding y-values
 	// y = x^2 + 2x + 1
 	// x-0, y=1
@@ -32,7 +31,7 @@ func TestShamirSecretSharing(t *testing.T) {
 	targetX := 0
 
 	// reference implementation
-	interpolated := pvss.LagrangeScalar(shares, targetX)
+	interpolated := LagrangeScalar(shares, targetX, prime)
 	fmt.Printf("LagrangeScalar at f(%v)=%v\n", targetX, interpolated)
 	if interpolated.Cmp(big.NewInt(1)) != 0 {
 		t.Errorf("Expected interpolated %v, got %v", 1, interpolated)
@@ -52,7 +51,7 @@ func TestShamirSecretSharing(t *testing.T) {
 
 	targetX = 4
 
-	interpolated = pvss.LagrangeScalar(shares, targetX)
+	interpolated = LagrangeScalar(shares, targetX, prime)
 	fmt.Printf("LagrangeScalar at f(%v)=%v\n", targetX, interpolated)
 	if interpolated.Cmp(big.NewInt(25)) != 0 {
 		t.Errorf("Expected interpolated %v, got %v", 25, interpolated)
@@ -72,7 +71,7 @@ func TestShamirSecretSharing(t *testing.T) {
 }
 
 func TestLagrangeCoefficients(t *testing.T) {
-	prime := secp256k1.GeneratorOrder
+	prime := secp256k1.FieldOrder
 	// Example shares with x-coordinates and corresponding y-values
 	// y = x^2 + 2x + 1
 	// x-0, y=1

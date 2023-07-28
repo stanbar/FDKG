@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"math/big"
 
+	"github.com/delendum-xyz/private-voting/fdkg/common"
 	"github.com/delendum-xyz/private-voting/fdkg/polynomial"
 	"github.com/delendum-xyz/private-voting/fdkg/utils"
-	"github.com/torusresearch/pvss/common"
 )
 
 type Share struct {
@@ -127,4 +127,42 @@ func InterpolateWithSeparateCoefficients(val int, shares []common.PrimaryShare, 
 	}
 
 	return est.Mod(est, prime)
+}
+
+// refernce implementation of https://github.com/torusresearch/pvss/blob/master/pvss/pvss.go#L288
+func LagrangeScalar(shares []common.PrimaryShare, target int, prime *big.Int) *big.Int {
+	secret := new(big.Int)
+	for _, share := range shares {
+		//when x =0
+		delta := new(big.Int).SetInt64(int64(1))
+		upper := new(big.Int).SetInt64(int64(1))
+		lower := new(big.Int).SetInt64(int64(1))
+		for j := range shares {
+			if shares[j].Index != share.Index {
+				tempUpper := big.NewInt(int64(target))
+				tempUpper.Sub(tempUpper, big.NewInt(int64(shares[j].Index)))
+				upper.Mul(upper, tempUpper)
+				upper.Mod(upper, prime)
+
+				tempLower := big.NewInt(int64(share.Index))
+				tempLower.Sub(tempLower, big.NewInt(int64(shares[j].Index)))
+				tempLower.Mod(tempLower, prime)
+
+				lower.Mul(lower, tempLower)
+				lower.Mod(lower, prime)
+			}
+		}
+		//elliptic devision
+		inv := new(big.Int)
+		inv.ModInverse(lower, prime)
+		delta.Mul(upper, inv)
+		delta.Mod(delta, prime)
+
+		delta.Mul(&share.Value, delta)
+		delta.Mod(delta, prime)
+
+		secret.Add(secret, delta)
+	}
+	secret.Mod(secret, prime)
+	return secret
 }

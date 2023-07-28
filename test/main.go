@@ -107,7 +107,6 @@ func LagrangeScalar(shares []common.PrimaryShare, target int, prime *big.Int) *b
 		secret.Add(secret, delta)
 	}
 	secret.Mod(secret, prime)
-	// secret.Mod(secret, secp256k1.GeneratorOrder)
 	return secret
 }
 
