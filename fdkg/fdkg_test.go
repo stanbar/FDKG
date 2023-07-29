@@ -126,7 +126,7 @@ func TestTransitivity(t *testing.T) {
 	}
 }
 
-func TestPartialDecryptionOfOneDkgNodeAndTwoGuardians(t *testing.T) {
+func TestPartialDecryptionOfOneDkgNodeAndTwoGuardiansOneVote(t *testing.T) {
 	prime := secp256k1.FieldOrder
 	alice := NewLocalParty(1, prime, 1)
 	bob := NewLocalParty(11, prime, 1).PublicParty
@@ -138,14 +138,11 @@ func TestPartialDecryptionOfOneDkgNodeAndTwoGuardians(t *testing.T) {
 	fmt.Printf("Alice shares %v\n", utils.Map(alicePrimeShares, func(share common.PrimaryShare) int { return share.Index }))
 
 	votingPubKey := VotingPublicKey([]DkgParty{aliceDkg})
-	// votingPrivateKey := alice.VotingPrivKeyShare
 
 	share_bob := alicePrimeShares[0].Value
 	share_carol := alicePrimeShares[1].Value
 
-	vote_alice := elgamal.EncryptBoolean(false, votingPubKey, alice.PublicKey, prime)
-	// vote_bob := elgamal.EncryptBoolean(true, votingPubKey, bob.PublicKey, prime)
-	// vote_carol := elgamal.EncryptBoolean(true, votingPubKey, carol.PublicKey, prime)
+	vote_alice := elgamal.EncryptBoolean(true, votingPubKey, alice.PublicKey, prime)
 
 	bob_lagrange := sss.LagrangeCoefficientsStartFromOne(0, 0, []int{11, 22}, prime)
 	bob_v := bob_lagrange.Mul(bob_lagrange, &share_bob)
@@ -155,26 +152,11 @@ func TestPartialDecryptionOfOneDkgNodeAndTwoGuardians(t *testing.T) {
 	carol_v := carol_lagrange.Mul(carol_lagrange, &share_carol)
 	carol_v = carol_lagrange.Mod(carol_v, prime)
 
-	// supposedVotingPrivKey := bob_v.Add(bob_v, carol_v)
-	// supposedVotingPrivKey.Mod(supposedVotingPrivKey, prime)
-	// if supposedVotingPrivKey.Cmp(votingPrivateKey) != 0 {
-	// 	t.Errorf("Expected voting private key to be %v, got %v", votingPrivateKey, supposedVotingPrivKey)
-	// }
-	// supposedEncryption := vote_alice.DecryptBoolean(supposedVotingPrivKey, prime)
-	// if supposedEncryption != true {
-	// 	t.Errorf("Expected decryption to be true, got %v", supposedEncryption)
-	// }
-
 	C1 := vote_alice.C1
 	bob_Z_X, bob_Z_Y := secp256k1.Curve.ScalarMult(&C1.X, &C1.Y, bob_v.Bytes())
 	carol_Z_X, carol_Z_Y := secp256k1.Curve.ScalarMult(&C1.X, &C1.Y, carol_v.Bytes())
 
 	Z_X, Z_Y := secp256k1.Curve.Add(bob_Z_X, bob_Z_Y, carol_Z_X, carol_Z_Y)
-
-	// result := vote_alice.DecryptNumberWithSharedKey(common.BigIntToPoint(Z_X, Z_Y), 100, prime)
-	// if result != 1 {
-	// 	t.Errorf("Expected decryption to be 1, got %v", result)
-	// }
 
 	if !secp256k1.Curve.IsOnCurve(Z_X, Z_Y) {
 		panic("Z is not on curve")
@@ -200,6 +182,93 @@ func TestPartialDecryptionOfOneDkgNodeAndTwoGuardians(t *testing.T) {
 		panic("m*H != B - (k_i * E)")
 	} else {
 		fmt.Printf("m is %v\n", m)
+	}
+}
+
+func TestPartialDecryptionOfOneDkgNodeAndTwoGuardiansAndManyVotes(t *testing.T) {
+	prime := secp256k1.FieldOrder
+	alice := NewLocalParty(1, prime, 1)
+	bob := NewLocalParty(11, prime, 1).PublicParty
+	carol := NewLocalParty(22, prime, 1).PublicParty
+
+	aliceDkg := alice.toDkgParty([]PublicParty{bob, carol})
+	aliceShares := aliceDkg.GenerateShares()
+	alicePrimeShares := utils.Map(aliceShares, func(s sss.Share) common.PrimaryShare { return s.ToPrimaryShare() })
+	fmt.Printf("Alice shares %v\n", utils.Map(alicePrimeShares, func(share common.PrimaryShare) int { return share.Index }))
+
+	votingPubKey := VotingPublicKey([]DkgParty{aliceDkg})
+	// votingPrivateKey := alice.VotingPrivKeyShare
+
+	share_bob := alicePrimeShares[0].Value
+	share_carol := alicePrimeShares[1].Value
+
+	vote_alice := elgamal.EncryptBoolean(true, votingPubKey, alice.PublicKey, prime)
+	vote_bob := elgamal.EncryptBoolean(true, votingPubKey, bob.PublicKey, prime)
+	vote_carol := elgamal.EncryptBoolean(true, votingPubKey, carol.PublicKey, prime)
+
+	bob_lagrange := sss.LagrangeCoefficientsStartFromOne(0, 0, []int{11, 22}, prime)
+	bob_v := bob_lagrange.Mul(bob_lagrange, &share_bob)
+	bob_v = bob_lagrange.Mod(bob_v, prime)
+
+	carol_lagrange := sss.LagrangeCoefficientsStartFromOne(1, 0, []int{11, 22}, prime)
+	carol_v := carol_lagrange.Mul(carol_lagrange, &share_carol)
+	carol_v = carol_lagrange.Mod(carol_v, prime)
+
+	// supposedVotingPrivKey := bob_v.Add(bob_v, carol_v)
+	// supposedVotingPrivKey.Mod(supposedVotingPrivKey, prime)
+	// if supposedVotingPrivKey.Cmp(votingPrivateKey) != 0 {
+	// 	t.Errorf("Expected voting private key to be %v, got %v", votingPrivateKey, supposedVotingPrivKey)
+	// }
+	// supposedEncryption := vote_alice.DecryptBoolean(supposedVotingPrivKey, prime)
+	// if supposedEncryption != true {
+	// 	t.Errorf("Expected decryption to be true, got %v", supposedEncryption)
+	// }
+
+	C1_X, C1_Y := secp256k1.Curve.Add(&vote_alice.C1.X, &vote_alice.C1.Y, &vote_bob.C1.X, &vote_bob.C1.Y)
+	C1_X, C1_Y = secp256k1.Curve.Add(C1_X, C1_Y, &vote_carol.C1.X, &vote_carol.C1.Y)
+
+	bob_Z_X, bob_Z_Y := secp256k1.Curve.ScalarMult(C1_X, C1_Y, bob_v.Bytes())
+	carol_Z_X, carol_Z_Y := secp256k1.Curve.ScalarMult(C1_X, C1_Y, carol_v.Bytes())
+
+	Z_X, Z_Y := secp256k1.Curve.Add(bob_Z_X, bob_Z_Y, carol_Z_X, carol_Z_Y)
+
+	// result := vote_alice.DecryptNumberWithSharedKey(common.BigIntToPoint(Z_X, Z_Y), 100, prime)
+	// if result != 1 {
+	// 	t.Errorf("Expected decryption to be 1, got %v", result)
+	// }
+
+	if !secp256k1.Curve.IsOnCurve(Z_X, Z_Y) {
+		panic("Z is not on curve")
+	}
+
+	expectedZ_X, expectedZ_Y := secp256k1.Curve.ScalarMult(C1_X, C1_Y, bob_v.Add(bob_v, carol_v).Bytes())
+	if expectedZ_X.Cmp(Z_X) != 0 || expectedZ_Y.Cmp(Z_Y) != 0 {
+		t.Errorf("Expected (%v,%v) got (%v,%v)", expectedZ_X, expectedZ_Y, Z_X, Z_Y)
+	}
+
+	C2_X, C2_Y := secp256k1.Curve.Add(&vote_alice.C2.X, &vote_alice.C2.Y, &vote_bob.C2.X, &vote_bob.C2.Y)
+	C2_X, C2_Y = secp256k1.Curve.Add(C2_X, C2_Y, &vote_carol.C2.X, &vote_carol.C2.Y)
+
+	pAYNeg := new(big.Int).Neg(Z_Y)
+	pAYNeg.Mod(pAYNeg, prime)
+	mHX, mHY := secp256k1.Curve.Add(C2_X, C2_Y, Z_X, pAYNeg)
+	x := 0
+	for x <= 10 {
+		X, Y := secp256k1.Curve.ScalarMult(&elgamal.H.X, &elgamal.H.Y, big.NewInt(int64(x)).Bytes())
+		if X.Cmp(mHX) == 0 && Y.Cmp(mHY) == 0 {
+			break
+		}
+		x += 1
+		if x > 10 {
+			panic("x not found")
+		}
+	}
+
+	testMHX, testMHY := secp256k1.Curve.ScalarMult(&elgamal.H.X, &elgamal.H.Y, big.NewInt(int64(x)).Bytes())
+	if testMHX.Cmp(mHX) != 0 || testMHY.Cmp(mHY) != 0 {
+		panic("m*H != B - (k_i * E)")
+	} else {
+		fmt.Printf("m is %v\n", x)
 	}
 }
 
