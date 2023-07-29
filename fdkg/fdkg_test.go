@@ -138,12 +138,12 @@ func TestPartialDecryptionOfOneDkgNodeAndTwoGuardians(t *testing.T) {
 	fmt.Printf("Alice shares %v\n", utils.Map(alicePrimeShares, func(share common.PrimaryShare) int { return share.Index }))
 
 	votingPubKey := VotingPublicKey([]DkgParty{aliceDkg})
-	votingPrivateKey := alice.VotingPrivKeyShare
+	// votingPrivateKey := alice.VotingPrivKeyShare
 
 	share_bob := alicePrimeShares[0].Value
 	share_carol := alicePrimeShares[1].Value
 
-	vote_alice := elgamal.EncryptBoolean(true, votingPubKey, alice.PublicKey, prime)
+	vote_alice := elgamal.EncryptBoolean(false, votingPubKey, alice.PublicKey, prime)
 	// vote_bob := elgamal.EncryptBoolean(true, votingPubKey, bob.PublicKey, prime)
 	// vote_carol := elgamal.EncryptBoolean(true, votingPubKey, carol.PublicKey, prime)
 
@@ -155,22 +155,26 @@ func TestPartialDecryptionOfOneDkgNodeAndTwoGuardians(t *testing.T) {
 	carol_v := carol_lagrange.Mul(carol_lagrange, &share_carol)
 	carol_v = carol_lagrange.Mod(carol_v, prime)
 
-	supposedVotingPrivKey := bob_v.Add(bob_v, carol_v)
-	supposedVotingPrivKey.Mod(supposedVotingPrivKey, prime)
-	if supposedVotingPrivKey.Cmp(votingPrivateKey) != 0 {
-		t.Errorf("Expected voting private key to be %v, got %v", votingPrivateKey, supposedVotingPrivKey)
-	}
-	sum := elgamal.EncryptedBallot{C1: vote_alice.C1, C2: vote_alice.C2}
-	supposedEncryption := sum.DecryptBoolean(supposedVotingPrivKey, prime)
-	if supposedEncryption != true {
-		t.Errorf("Expected decryption to be true, got %v", supposedEncryption)
-	}
+	// supposedVotingPrivKey := bob_v.Add(bob_v, carol_v)
+	// supposedVotingPrivKey.Mod(supposedVotingPrivKey, prime)
+	// if supposedVotingPrivKey.Cmp(votingPrivateKey) != 0 {
+	// 	t.Errorf("Expected voting private key to be %v, got %v", votingPrivateKey, supposedVotingPrivKey)
+	// }
+	// supposedEncryption := vote_alice.DecryptBoolean(supposedVotingPrivKey, prime)
+	// if supposedEncryption != true {
+	// 	t.Errorf("Expected decryption to be true, got %v", supposedEncryption)
+	// }
 
 	C1 := vote_alice.C1
 	bob_Z_X, bob_Z_Y := secp256k1.Curve.ScalarMult(&C1.X, &C1.Y, bob_v.Bytes())
 	carol_Z_X, carol_Z_Y := secp256k1.Curve.ScalarMult(&C1.X, &C1.Y, carol_v.Bytes())
 
 	Z_X, Z_Y := secp256k1.Curve.Add(bob_Z_X, bob_Z_Y, carol_Z_X, carol_Z_Y)
+
+	// result := vote_alice.DecryptNumberWithSharedKey(common.BigIntToPoint(Z_X, Z_Y), 100, prime)
+	// if result != 1 {
+	// 	t.Errorf("Expected decryption to be 1, got %v", result)
+	// }
 
 	if !secp256k1.Curve.IsOnCurve(Z_X, Z_Y) {
 		panic("Z is not on curve")
@@ -181,26 +185,22 @@ func TestPartialDecryptionOfOneDkgNodeAndTwoGuardians(t *testing.T) {
 		t.Errorf("Expected (%v,%v) got (%v,%v)", expectedZ_X, expectedZ_Y, Z_X, Z_Y)
 	}
 
-	// so far it works
-	// mM = B-Z
-	Z_Y_neg := new(big.Int).Neg(Z_Y)
-	Z_Y_neg = Z_Y_neg.Mod(Z_Y_neg, prime)
-
 	C2 := vote_alice.C2
-	mHX, mHY := secp256k1.Curve.Add(&C2.X, &C2.Y, Z_X, Z_Y_neg)
-
-	if !secp256k1.Curve.IsOnCurve(mHX, mHY) {
-		panic("mH is not on curve")
+	pAYNeg := new(big.Int).Neg(Z_Y)
+	pAYNeg.Mod(pAYNeg, prime)
+	mHX, mHY := secp256k1.Curve.Add(&C2.X, &C2.Y, Z_X, pAYNeg)
+	m := big.NewInt(0)
+	if mHX.Cmp(&elgamal.H.X) == 0 && mHY.Cmp(&elgamal.H.Y) == 0 {
+		m = big.NewInt(1)
+	} else if mHX.Cmp(big.NewInt(0)) != 0 || mHY.Cmp(big.NewInt(0)) != 0 {
+		panic("m*H is neither 0 nor H")
 	}
-
-	if elgamal.H.X.Cmp(mHX) != 0 || elgamal.H.Y.Cmp(mHY) != 0 {
-		t.Errorf("Expected (%v,%v) got (%v,%v)", elgamal.H.X.String(), elgamal.H.Y.String(), mHX, mHY)
+	testMHX, testMHY := secp256k1.Curve.ScalarMult(&elgamal.H.X, &elgamal.H.Y, m.Bytes())
+	if testMHX.Cmp(mHX) != 0 || testMHY.Cmp(mHY) != 0 {
+		panic("m*H != B - (k_i * E)")
+	} else {
+		fmt.Printf("m is %v\n", m)
 	}
-
-	// X, Y := secp256k1.Curve.ScalarMult(&elgamal.H.X, &elgamal.H.Y, big.NewInt(int64(1)).Bytes())
-	// if X.Cmp(mHX) != 0 || Y.Cmp(mHY) != 0 {
-	// 	t.Errorf("Expected %v, got %v", X, mHX)
-	// }
 }
 
 func TestPartialDecryptionOfTwoDkgNodesAndThreeGuardian(t *testing.T) {

@@ -75,16 +75,21 @@ func EncryptNumber(m int, votingPublicKey common.Point, voter common.Point, prim
 }
 
 func (b *EncryptedBallot) DecryptNumber(votingPrivateKey *big.Int, max int, prime *big.Int) int {
+	pAX, pAY := secp256k1.Curve.ScalarMult(&b.C1.X, &b.C1.Y, votingPrivateKey.Bytes())
+	return b.DecryptNumberWithSharedKey(common.BigIntToPoint(pAX, pAY), max, prime)
+}
+
+func (b *EncryptedBallot) DecryptNumberWithSharedKey(sharedKey common.Point, max int, prime *big.Int) int {
 
 	// (A,B) = (k_i * G, k_i * E + m * H)
 	// m*H = B - (k_i * E) = B - (k_i * priv * G) = B - (priv * A)
 	// (priv * A)
-	pAX, pAY := secp256k1.Curve.ScalarMult(&b.C1.X, &b.C1.Y, votingPrivateKey.Bytes())
+	pAX, pAY := sharedKey.X, sharedKey.Y
 	// (B - (priv * A))
 	// pA inverse
-	pAYNeg := new(big.Int).Neg(pAY)
+	pAYNeg := new(big.Int).Neg(&pAY)
 	pAYNeg.Mod(pAYNeg, prime)
-	mHX, mHY := secp256k1.Curve.Add(&b.C2.X, &b.C2.Y, pAX, pAYNeg)
+	mHX, mHY := secp256k1.Curve.Add(&b.C2.X, &b.C2.Y, &pAX, pAYNeg)
 
 	// search for x such that x*G = M
 
