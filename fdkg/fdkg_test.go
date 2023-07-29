@@ -107,6 +107,25 @@ func TestShamirSecretSharing(t *testing.T) {
 	}
 }
 
+func TestTransitivity(t *testing.T) {
+	a := big.NewInt(123)
+	b := big.NewInt(321)
+	G := secp256k1.G
+	aGX, aGY := secp256k1.Curve.ScalarMult(&G.X, &G.Y, a.Bytes())
+	bGX, bGY := secp256k1.Curve.ScalarMult(&G.X, &G.Y, b.Bytes())
+
+	Z_X, Z_Y := secp256k1.Curve.Add(aGX, aGY, bGX, bGY)
+
+	if !secp256k1.Curve.IsOnCurve(Z_X, Z_Y) {
+		panic("Z is not on curve")
+	}
+
+	expectedZ_X, expectedZ_Y := secp256k1.Curve.ScalarMult(&G.X, &G.Y, a.Add(a, b).Bytes())
+	if expectedZ_X.Cmp(Z_X) != 0 || expectedZ_Y.Cmp(Z_Y) != 0 {
+		t.Errorf("Expected (%v,%v) got (%v,%v)", expectedZ_X, expectedZ_Y, Z_X, Z_Y)
+	}
+}
+
 func TestPartialDecryptionOfOneDkgNodeAndTwoGuardians(t *testing.T) {
 	prime := secp256k1.FieldOrder
 	alice := NewLocalParty(1, prime, 1)
@@ -119,6 +138,7 @@ func TestPartialDecryptionOfOneDkgNodeAndTwoGuardians(t *testing.T) {
 	fmt.Printf("Alice shares %v\n", utils.Map(alicePrimeShares, func(share common.PrimaryShare) int { return share.Index }))
 
 	votingPubKey := VotingPublicKey([]DkgParty{aliceDkg})
+	votingPrivateKey := alice.VotingPrivKeyShare
 
 	share_bob := alicePrimeShares[0].Value
 	share_carol := alicePrimeShares[1].Value
@@ -127,18 +147,41 @@ func TestPartialDecryptionOfOneDkgNodeAndTwoGuardians(t *testing.T) {
 	// vote_bob := elgamal.EncryptBoolean(true, votingPubKey, bob.PublicKey, prime)
 	// vote_carol := elgamal.EncryptBoolean(true, votingPubKey, carol.PublicKey, prime)
 
+	bob_lagrange := sss.LagrangeCoefficientsStartFromOne(0, 0, []int{11, 22}, prime)
+	bob_v := bob_lagrange.Mul(bob_lagrange, &share_bob)
+	bob_v = bob_lagrange.Mod(bob_v, prime)
+
+	carol_lagrange := sss.LagrangeCoefficientsStartFromOne(1, 0, []int{11, 22}, prime)
+	carol_v := carol_lagrange.Mul(carol_lagrange, &share_carol)
+	carol_v = carol_lagrange.Mod(carol_v, prime)
+
+	supposedVotingPrivKey := bob_v.Add(bob_v, carol_v)
+	supposedVotingPrivKey.Mod(supposedVotingPrivKey, prime)
+	if supposedVotingPrivKey.Cmp(votingPrivateKey) != 0 {
+		t.Errorf("Expected voting private key to be %v, got %v", votingPrivateKey, supposedVotingPrivKey)
+	}
+	sum := elgamal.EncryptedBallot{C1: vote_alice.C1, C2: vote_alice.C2}
+	supposedEncryption := sum.DecryptBoolean(supposedVotingPrivKey, prime)
+	if supposedEncryption != true {
+		t.Errorf("Expected decryption to be true, got %v", supposedEncryption)
+	}
+
 	C1 := vote_alice.C1
+	bob_Z_X, bob_Z_Y := secp256k1.Curve.ScalarMult(&C1.X, &C1.Y, bob_v.Bytes())
+	carol_Z_X, carol_Z_Y := secp256k1.Curve.ScalarMult(&C1.X, &C1.Y, carol_v.Bytes())
 
-	A_bob_X, A_bob_Y := secp256k1.Curve.ScalarMult(&C1.X, &C1.Y, share_bob.Bytes())
-	bob_lagrange := sss.LagrangeCoefficientsStartFromOneAbs(0, []int{11, 22}, prime)
-	Z_bob_X, Z_bob_Y := secp256k1.Curve.ScalarMult(A_bob_X, A_bob_Y, bob_lagrange.Bytes())
+	Z_X, Z_Y := secp256k1.Curve.Add(bob_Z_X, bob_Z_Y, carol_Z_X, carol_Z_Y)
 
-	A_carol_X, A_carol_Y := secp256k1.Curve.ScalarMult(&C1.X, &C1.Y, share_carol.Bytes())
-	carol_lagrange := sss.LagrangeCoefficientsStartFromOneAbs(1, []int{11, 22}, prime)
-	Z_carol_X, Z_carol_Y := secp256k1.Curve.ScalarMult(A_carol_X, A_carol_Y, carol_lagrange.Bytes())
+	if !secp256k1.Curve.IsOnCurve(Z_X, Z_Y) {
+		panic("Z is not on curve")
+	}
 
-	Z_X, Z_Y := secp256k1.Curve.Add(Z_bob_X, Z_bob_Y, Z_carol_X, Z_carol_Y)
+	expectedZ_X, expectedZ_Y := secp256k1.Curve.ScalarMult(&C1.X, &C1.Y, bob_v.Add(bob_v, carol_v).Bytes())
+	if expectedZ_X.Cmp(Z_X) != 0 || expectedZ_Y.Cmp(Z_Y) != 0 {
+		t.Errorf("Expected (%v,%v) got (%v,%v)", expectedZ_X, expectedZ_Y, Z_X, Z_Y)
+	}
 
+	// so far it works
 	// mM = B-Z
 	Z_Y_neg := new(big.Int).Neg(Z_Y)
 	Z_Y_neg = Z_Y_neg.Mod(Z_Y_neg, prime)
@@ -151,7 +194,7 @@ func TestPartialDecryptionOfOneDkgNodeAndTwoGuardians(t *testing.T) {
 	}
 
 	if elgamal.H.X.Cmp(mHX) != 0 || elgamal.H.Y.Cmp(mHY) != 0 {
-		t.Errorf("Expected %v, got %v", elgamal.H, common.BigIntToPoint(mHX, mHY))
+		t.Errorf("Expected (%v,%v) got (%v,%v)", elgamal.H.X.String(), elgamal.H.Y.String(), mHX, mHY)
 	}
 
 	// X, Y := secp256k1.Curve.ScalarMult(&elgamal.H.X, &elgamal.H.Y, big.NewInt(int64(1)).Bytes())
