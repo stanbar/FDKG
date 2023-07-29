@@ -90,9 +90,13 @@ func TestLagrangeCoefficients(t *testing.T) {
 
 	est1 := estimate1(shares, targetX, prime)
 	est2 := estimate2(shares, targetX, prime)
+	est3 := estimate3(shares, targetX, prime)
 
 	if est1.Cmp(est2) != 0 {
 		t.Errorf("Expected %v, got %v", est1, est2)
+	}
+	if est3.Cmp(est2) != 0 {
+		t.Errorf("Expected %v, got %v", est3, est2)
 	}
 
 	targetX = 4
@@ -133,6 +137,26 @@ func estimate2(shares []common.PrimaryShare, targetX int, prime *big.Int) *big.I
 		fmt.Printf("[estimate2 for target=%v] shareValue_%v: %v\n", targetX, i, shareValue)
 		prod := LagrangeCoefficientsStartFromOne(i, targetX, X, prime)
 		fmt.Printf("[estimate2 for target=%v] prod_%v: %v\n", targetX, i, prod)
+
+		prod.Mul(prod, shareValue)
+		prod.Mod(prod, prime)
+		est.Add(est, prod)
+	}
+
+	est.Mod(est, prime)
+	return est
+}
+
+func estimate3(shares []common.PrimaryShare, targetX int, prime *big.Int) *big.Int {
+	X := utils.Map(shares, func(share common.PrimaryShare) int { return share.Index })
+	Y := utils.Map(shares, func(share common.PrimaryShare) big.Int { return share.Value })
+
+	est := big.NewInt(0)
+	for i := 0; i < len(X); i++ {
+		shareValue := &Y[i]
+		fmt.Printf("[estimate3 for target=%v] shareValue_%v: %v\n", targetX, i, shareValue)
+		prod := LagrangeCoefficientsStartFromOneAbs(i, X, prime)
+		fmt.Printf("[estimate3 for target=%v] prod_%v: %v\n", targetX, i, prod)
 
 		prod.Mul(prod, shareValue)
 		prod.Mod(prod, prime)

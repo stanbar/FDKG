@@ -72,10 +72,42 @@ func LagrangeCoefficientsStartFromOne(i int, val int, X []int, prime *big.Int) *
 			// 1. (val - X[j])
 
 			nominator := big.NewInt(int64(val - X[j]))
+			fmt.Printf("nominator: %v=%v-%v\n", nominator.String(), val, X[j])
+			nominator.Mod(nominator, prime)
+			// 2. (X[i] - X[j])
+			denom := (X[i] - X[j])
+			fmt.Printf("denom: %v=%v-%v\n", denom, X[i], X[j])
+			denominator := big.NewInt(0).Mod(big.NewInt(int64(denom)), prime)
+			// 3. 1 / (X[i] - X[j])
+			denominator = big.NewInt(0).ModInverse(denominator, prime)
+			if denominator == nil {
+				panic(fmt.Sprintf("could not find inverse of %v", denom))
+			}
+			// 4. (X[i] - X[j]) * (1 / (X[i] - X[j])) = (val - X[j]) / (X[i] - X[j])
+			numDenomInverse := nominator.Mul(nominator, denominator)
+			numDenomInverse.Mod(numDenomInverse, prime)
+			// 5. prod = prod * (val - X[j]) / (X[i] - X[j])
+			prod = prod.Mul(prod, numDenomInverse)
+		}
+	}
+	return prod.Mod(prod, prime)
+}
+
+func LagrangeCoefficientsStartFromOneAbs(i int, X []int, prime *big.Int) *big.Int {
+	prod := big.NewInt(1)
+	for j := 0; j < len(X); j++ {
+		if i != j {
+			// prod = prod * (val - X[j]) / (X[i] - X[j])
+			// 1. (val - X[j])
+
+			nominator := big.NewInt(int64(X[j]))
+			fmt.Printf("nominator: %v\n", X[j])
 			// 2. (X[i] - X[j])
 			denom := (X[j] - X[i])
+			fmt.Printf("denom: %v=%v-%v\n", denom, X[j], X[i])
+			denominator := big.NewInt(0).Mod(big.NewInt(int64(denom)), prime)
 			// 3. 1 / (X[i] - X[j])
-			denominator := big.NewInt(0).ModInverse(big.NewInt(int64(denom)), prime)
+			denominator = big.NewInt(0).ModInverse(denominator, prime)
 			if denominator == nil {
 				panic(fmt.Sprintf("could not find inverse of %v", denom))
 			}

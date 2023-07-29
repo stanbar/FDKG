@@ -194,9 +194,9 @@ type PartialDecryption struct {
 func onlineTally(votes []elgamal.EncryptedBallot, tallyingParties []DkgParty, partyIndexToShares map[int][]sss.Share, prime *big.Int, n_vote int) {
 	// Sum the first part of the ballots (aka. shared keys)
 	fmt.Printf("len(votes) = %v\n", len(votes))
-	A := votes[0].A
+	A := votes[0].C1
 	for _, vote := range votes[1:] {
-		X, Y := secp256k1.Curve.Add(&vote.A.X, &vote.A.Y, &A.X, &A.Y)
+		X, Y := secp256k1.Curve.Add(&vote.C1.X, &vote.C1.Y, &A.X, &A.Y)
 		A.X, A.Y = *X, *Y
 	}
 
@@ -205,9 +205,9 @@ func onlineTally(votes []elgamal.EncryptedBallot, tallyingParties []DkgParty, pa
 	}
 
 	// Sum the second part of the ballots (payload)
-	B := votes[0].B
+	B := votes[0].C2
 	for _, vote := range votes[1:] {
-		X, Y := secp256k1.Curve.Add(&vote.B.X, &vote.B.Y, &B.X, &B.Y)
+		X, Y := secp256k1.Curve.Add(&vote.C2.X, &vote.C2.Y, &B.X, &B.Y)
 		B.X, B.Y = *X, *Y
 	}
 

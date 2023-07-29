@@ -106,13 +106,8 @@ func TestShamirSecretSharing(t *testing.T) {
 		t.Errorf("Expected secret %v, got %v", node.VotingPrivKeyShare, secret)
 	}
 }
-func TestPartialDecryptionOfOneDkgNodeAndTwoGuardians(t *testing.T) {
-	//TODO write the simplified version of TestPartialDecryptionOfTwoDkgNodesAndThreeGuardia
-	// i.e. when we have only one dkg node and two guardians
-	// only alice is dkg node
-	// alice shares are generated
-	// bob and carol are guardians
 
+func TestPartialDecryptionOfOneDkgNodeAndTwoGuardians(t *testing.T) {
 	prime := secp256k1.FieldOrder
 	alice := NewLocalParty(1, prime, 1)
 	bob := NewLocalParty(11, prime, 1).PublicParty
@@ -125,60 +120,44 @@ func TestPartialDecryptionOfOneDkgNodeAndTwoGuardians(t *testing.T) {
 
 	votingPubKey := VotingPublicKey([]DkgParty{aliceDkg})
 
-	d_bob := alicePrimeShares[0].Value
-	d_carol := alicePrimeShares[1].Value
+	share_bob := alicePrimeShares[0].Value
+	share_carol := alicePrimeShares[1].Value
 
 	vote_alice := elgamal.EncryptBoolean(true, votingPubKey, alice.PublicKey, prime)
 	// vote_bob := elgamal.EncryptBoolean(true, votingPubKey, bob.PublicKey, prime)
 	// vote_carol := elgamal.EncryptBoolean(true, votingPubKey, carol.PublicKey, prime)
 
-	votes := []elgamal.EncryptedBallot{vote_alice}
+	C1 := vote_alice.C1
 
-	A := votes[0].A
-	for _, vote := range votes[1:] {
-		X, Y := secp256k1.Curve.Add(&vote.A.X, &vote.A.Y, &A.X, &A.Y)
-		A.X, A.Y = *X, *Y
-	}
+	A_bob_X, A_bob_Y := secp256k1.Curve.ScalarMult(&C1.X, &C1.Y, share_bob.Bytes())
+	bob_lagrange := sss.LagrangeCoefficientsStartFromOneAbs(0, []int{11, 22}, prime)
+	Z_bob_X, Z_bob_Y := secp256k1.Curve.ScalarMult(A_bob_X, A_bob_Y, bob_lagrange.Bytes())
 
-	if !secp256k1.Curve.IsOnCurve(&A.X, &A.Y) {
-		panic("A is not on curve")
-	}
+	A_carol_X, A_carol_Y := secp256k1.Curve.ScalarMult(&C1.X, &C1.Y, share_carol.Bytes())
+	carol_lagrange := sss.LagrangeCoefficientsStartFromOneAbs(1, []int{11, 22}, prime)
+	Z_carol_X, Z_carol_Y := secp256k1.Curve.ScalarMult(A_carol_X, A_carol_Y, carol_lagrange.Bytes())
 
-	// Sum the second part of the ballots (payload)
-	B := votes[0].B
-	for _, vote := range votes[1:] {
-		X, Y := secp256k1.Curve.Add(&vote.B.X, &vote.B.Y, &B.X, &B.Y)
-		B.X, B.Y = *X, *Y
-	}
-
-	if !secp256k1.Curve.IsOnCurve(&B.X, &B.Y) {
-		panic("B is not on curve")
-	}
-
-	A_bob := common.BigIntToPoint(secp256k1.Curve.ScalarMult(&A.X, &A.Y, d_bob.Bytes()))
-	A_carol := common.BigIntToPoint(secp256k1.Curve.ScalarMult(&A.X, &A.Y, d_carol.Bytes()))
-
-	bob_lagrange := sss.LagrangeCoefficientsStartFromOne(0, 0, []int{11, 22}, prime)
-	Z_bob_X, Z_bob_Y := secp256k1.Curve.ScalarMult(&A_bob.X, &A_bob.Y, bob_lagrange.Bytes())
-
-	carol_lagrange := sss.LagrangeCoefficientsStartFromOne(1, 0, []int{11, 22}, prime)
-	Z_carol_X, Z_carol_Y := secp256k1.Curve.ScalarMult(&A_carol.X, &A_carol.Y, carol_lagrange.Bytes())
-
-	Z := common.BigIntToPoint(secp256k1.Curve.Add(Z_bob_X, Z_bob_Y, Z_carol_X, Z_carol_Y))
+	Z_X, Z_Y := secp256k1.Curve.Add(Z_bob_X, Z_bob_Y, Z_carol_X, Z_carol_Y)
 
 	// mM = B-Z
-	Z_Y_neg := new(big.Int).Neg(&Z.Y)
+	Z_Y_neg := new(big.Int).Neg(Z_Y)
 	Z_Y_neg = Z_Y_neg.Mod(Z_Y_neg, prime)
-	mHX, mHY := secp256k1.Curve.Add(&B.X, &B.Y, &Z.X, Z_Y_neg)
+
+	C2 := vote_alice.C2
+	mHX, mHY := secp256k1.Curve.Add(&C2.X, &C2.Y, Z_X, Z_Y_neg)
 
 	if !secp256k1.Curve.IsOnCurve(mHX, mHY) {
 		panic("mH is not on curve")
 	}
 
-	X, Y := secp256k1.Curve.ScalarMult(&elgamal.H.X, &elgamal.H.Y, big.NewInt(int64(1)).Bytes())
-	if X.Cmp(mHX) != 0 || Y.Cmp(mHY) != 0 {
-		t.Errorf("Expected %v, got %v", X, mHX)
+	if elgamal.H.X.Cmp(mHX) != 0 || elgamal.H.Y.Cmp(mHY) != 0 {
+		t.Errorf("Expected %v, got %v", elgamal.H, common.BigIntToPoint(mHX, mHY))
 	}
+
+	// X, Y := secp256k1.Curve.ScalarMult(&elgamal.H.X, &elgamal.H.Y, big.NewInt(int64(1)).Bytes())
+	// if X.Cmp(mHX) != 0 || Y.Cmp(mHY) != 0 {
+	// 	t.Errorf("Expected %v, got %v", X, mHX)
+	// }
 }
 
 func TestPartialDecryptionOfTwoDkgNodesAndThreeGuardian(t *testing.T) {
@@ -204,34 +183,6 @@ func TestPartialDecryptionOfTwoDkgNodesAndThreeGuardian(t *testing.T) {
 	fmt.Printf("Carol shares %v\n", utils.Map(carolShares, func(share common.PrimaryShare) int { return share.Index }))
 	fmt.Printf("Dave shares %v\n", utils.Map(daveShares, func(share common.PrimaryShare) int { return share.Index }))
 	fmt.Printf("Eve shares %v\n", utils.Map(eveShares, func(share common.PrimaryShare) int { return share.Index }))
-
-	// d_carol := carolShares[0].Value.Add(&carolShares[0].Value, &carolShares[1].Value)
-	// d_dave := daveShares[0].Value.Add(&daveShares[0].Value, &daveShares[1].Value)
-	// d_eve := eveShares[0].Value.Add(&eveShares[0].Value, &eveShares[1].Value)
-
-	//TODO: continue when TestPartialDecryptionOfOneDkgNodeAndTwoGuardians works
-
-	// ended here
-	// A_carol := A * d_carol
-
-	// X := utils.Map(alicePrimeShares, func(share common.PrimaryShare) int { return share.Index })
-	// Y := utils.Map(alicePrimeShares, func(share common.PrimaryShare) big.Int { return share.Value })
-
-	// est := big.NewInt(0)
-	// for i := 0; i < len(X); i++ {
-	// 	shareValue := &Y[i]
-	// 	prod := sss.LagrangeCoefficientsStartFromOne(i, 0, X, prime)
-
-	// 	prod.Mul(prod, shareValue)
-	// 	prod.Mod(prod, prime)
-	// 	est.Add(est, prod)
-	// }
-
-	// est.Mod(est, prime)
-
-	// if est.Cmp(alice.VotingPrivKeyShare) != 0 {
-	// 	t.Errorf("Expected secret %v, got %v", alice.VotingPrivKeyShare, est)
-	// }
 }
 
 func TestPointAtInfinity(t *testing.T) {
@@ -287,9 +238,9 @@ func TestVoting(t *testing.T) {
 
 	votes := voting(localNodes, encryptionKey, prime)
 
-	A := votes[0].A
+	A := votes[0].C1
 	for _, vote := range votes[1:] {
-		X, Y := secp256k1.Curve.Add(&vote.A.X, &vote.A.Y, &A.X, &A.Y)
+		X, Y := secp256k1.Curve.Add(&vote.C1.X, &vote.C1.Y, &A.X, &A.Y)
 		A.X, A.Y = *X, *Y
 	}
 
@@ -298,9 +249,9 @@ func TestVoting(t *testing.T) {
 	}
 
 	// Sum the second part of the ballots (payload)
-	B := votes[0].B
+	B := votes[0].C2
 	for _, vote := range votes[1:] {
-		X, Y := secp256k1.Curve.Add(&vote.B.X, &vote.B.Y, &B.X, &B.Y)
+		X, Y := secp256k1.Curve.Add(&vote.C2.X, &vote.C2.Y, &B.X, &B.Y)
 		B.X, B.Y = *X, *Y
 	}
 
