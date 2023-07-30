@@ -72,11 +72,9 @@ func LagrangeCoefficientsStartFromOne(i int, val int, X []int, prime *big.Int) *
 			// 1. (val - X[j])
 
 			nominator := big.NewInt(int64(val - X[j]))
-			fmt.Printf("nominator: %v=%v-%v\n", nominator.String(), val, X[j])
 			nominator.Mod(nominator, prime)
 			// 2. (X[i] - X[j])
 			denom := (X[i] - X[j])
-			fmt.Printf("denom: %v=%v-%v\n", denom, X[i], X[j])
 			denominator := big.NewInt(0).Mod(big.NewInt(int64(denom)), prime)
 			// 3. 1 / (X[i] - X[j])
 			denominator = big.NewInt(0).ModInverse(denominator, prime)
