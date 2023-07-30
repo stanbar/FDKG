@@ -14,6 +14,6 @@ func Map[T, U interface{}](arr []T, f func(T) U) []U {
 }
 
 func RandomBigInt(prime *big.Int) *big.Int {
-	randomInt, _ := rand.Int(rand.Reader, prime)
-	return randomInt
+	randomInt, _ := rand.Int(rand.Reader, prime.Sub(prime, big.NewInt(2)))
+	return randomInt.Add(randomInt, big.NewInt(1))
 }
