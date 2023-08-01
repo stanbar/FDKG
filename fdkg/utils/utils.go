@@ -1,8 +1,10 @@
 package utils
 
 import (
-	"crypto/rand"
+	cryptoRand "crypto/rand"
+	"fmt"
 	"math/big"
+	"math/rand"
 )
 
 func Map[T, U interface{}](arr []T, f func(T) U) []U {
@@ -13,7 +15,18 @@ func Map[T, U interface{}](arr []T, f func(T) U) []U {
 	return result
 }
 
-func RandomBigInt(prime *big.Int) *big.Int {
-	randomInt, _ := rand.Int(rand.Reader, prime.Sub(prime, big.NewInt(2)))
-	return randomInt.Add(randomInt, big.NewInt(1))
+func RandomBigInt(prime *big.Int, r *rand.Rand) *big.Int {
+	if prime.Cmp(big.NewInt(1)) <= 0 {
+		panic(fmt.Sprintf("prime must be greater than 1, got %v", prime))
+	}
+
+	randomNum, err := cryptoRand.Int(r, prime)
+	if err != nil {
+		panic(err)
+	}
+
+	// Add 1 to the random number to make it in the range [1, max - 1]
+	randomNum.Add(randomNum, big.NewInt(1))
+
+	return randomNum
 }

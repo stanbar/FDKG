@@ -12,103 +12,107 @@ import (
 	"github.com/torusresearch/pvss/secp256k1"
 )
 
+const ITERATIONS = 1000
+
 func TestShamirSecretSharing(t *testing.T) {
-	prime := secp256k1.FieldOrder
-	// Example shares with x-coordinates and corresponding y-values
-	// y = x^2 + 2x + 1
-	// x-0, y=1
-	// x=1, y=4
-	// x=2, y=9
-	// x=3, y=16
-	// x=4, y=25
+	for i := 0; i < ITERATIONS; i++ {
+		prime := secp256k1.FieldOrder
+		// Example shares with x-coordinates and corresponding y-values
+		// y = x^2 + 2x + 1
+		// x-0, y=1
+		// x=1, y=4
+		// x=2, y=9
+		// x=3, y=16
+		// x=4, y=25
 
-	shares := []common.PrimaryShare{
-		{Index: 3, Value: *big.NewInt(16)},
-		{Index: 1, Value: *big.NewInt(4)},
-		{Index: 2, Value: *big.NewInt(9)},
-	}
+		shares := []common.PrimaryShare{
+			{Index: 3, Value: *big.NewInt(16)},
+			{Index: 1, Value: *big.NewInt(4)},
+			{Index: 2, Value: *big.NewInt(9)},
+		}
 
-	targetX := 0
+		targetX := 0
 
-	// reference implementation
-	interpolated := LagrangeScalar(shares, targetX, prime)
-	fmt.Printf("LagrangeScalar at f(%v)=%v\n", targetX, interpolated)
-	if interpolated.Cmp(big.NewInt(1)) != 0 {
-		t.Errorf("Expected interpolated %v, got %v", 1, interpolated)
-	}
+		// reference implementation
+		interpolated := LagrangeScalar(shares, targetX, prime)
+		fmt.Printf("LagrangeScalar at f(%v)=%v\n", targetX, interpolated)
+		if interpolated.Cmp(big.NewInt(1)) != 0 {
+			t.Errorf("Expected interpolated %v, got %v", 1, interpolated)
+		}
 
-	interpolated = Interpolate(targetX, shares, prime)
-	fmt.Printf("Basis Polynomial at f(%v)=%v\n", targetX, interpolated)
-	if interpolated.Cmp(big.NewInt(1)) != 0 {
-		t.Errorf("Expected interpolated %v, got %v", 1, interpolated)
-	}
+		interpolated = Interpolate(targetX, shares, prime)
+		fmt.Printf("Basis Polynomial at f(%v)=%v\n", targetX, interpolated)
+		if interpolated.Cmp(big.NewInt(1)) != 0 {
+			t.Errorf("Expected interpolated %v, got %v", 1, interpolated)
+		}
 
-	interpolated = InterpolateWithSeparateCoefficients(targetX, shares, prime)
-	fmt.Printf("InterpolateWithSeparateCoefficients at f(%v)=%v\n", targetX, interpolated)
-	if interpolated.Cmp(big.NewInt(1)) != 0 {
-		t.Errorf("Expected interpolated %v, got %v", 1, interpolated)
-	}
+		interpolated = InterpolateWithSeparateCoefficients(targetX, shares, prime)
+		fmt.Printf("InterpolateWithSeparateCoefficients at f(%v)=%v\n", targetX, interpolated)
+		if interpolated.Cmp(big.NewInt(1)) != 0 {
+			t.Errorf("Expected interpolated %v, got %v", 1, interpolated)
+		}
 
-	targetX = 4
+		targetX = 4
 
-	interpolated = LagrangeScalar(shares, targetX, prime)
-	fmt.Printf("LagrangeScalar at f(%v)=%v\n", targetX, interpolated)
-	if interpolated.Cmp(big.NewInt(25)) != 0 {
-		t.Errorf("Expected interpolated %v, got %v", 25, interpolated)
-	}
+		interpolated = LagrangeScalar(shares, targetX, prime)
+		fmt.Printf("LagrangeScalar at f(%v)=%v\n", targetX, interpolated)
+		if interpolated.Cmp(big.NewInt(25)) != 0 {
+			t.Errorf("Expected interpolated %v, got %v", 25, interpolated)
+		}
 
-	interpolated = Interpolate(targetX, shares, prime)
-	fmt.Printf("Basis Polynomial at f(%v)=%v\n", targetX, interpolated)
-	if interpolated.Cmp(big.NewInt(25)) != 0 {
-		t.Errorf("Expected : %v, got %v", 25, interpolated)
-	}
+		interpolated = Interpolate(targetX, shares, prime)
+		fmt.Printf("Basis Polynomial at f(%v)=%v\n", targetX, interpolated)
+		if interpolated.Cmp(big.NewInt(25)) != 0 {
+			t.Errorf("Expected : %v, got %v", 25, interpolated)
+		}
 
-	interpolated = InterpolateWithSeparateCoefficients(targetX, shares, prime)
-	fmt.Printf("InterpolateWithSeparateCoefficients at f(%v)=%v\n", targetX, interpolated)
-	if interpolated.Cmp(big.NewInt(25)) != 0 {
-		t.Errorf("Expected interpolated %v, got %v", 25, interpolated)
+		interpolated = InterpolateWithSeparateCoefficients(targetX, shares, prime)
+		fmt.Printf("InterpolateWithSeparateCoefficients at f(%v)=%v\n", targetX, interpolated)
+		if interpolated.Cmp(big.NewInt(25)) != 0 {
+			t.Errorf("Expected interpolated %v, got %v", 25, interpolated)
+		}
 	}
 }
 
 func TestLagrangeCoefficients(t *testing.T) {
-	prime := secp256k1.FieldOrder
-	// Example shares with x-coordinates and corresponding y-values
-	// y = x^2 + 2x + 1
-	// x-0, y=1
-	// x=1, y=4
-	// x=2, y=9
-	// x=3, y=16
-	// x=4, y=25
+	for i := 0; i < ITERATIONS; i++ {
+		prime := secp256k1.FieldOrder
+		// Example shares with x-coordinates and corresponding y-values
+		// y = x^2 + 2x + 1
+		// x-0, y=1
+		// x=1, y=4
+		// x=2, y=9
+		// x=3, y=16
+		// x=4, y=25
 
-	shares := []common.PrimaryShare{
-		{Index: 1, Value: *big.NewInt(4)},
-		{Index: 2, Value: *big.NewInt(9)},
-		{Index: 3, Value: *big.NewInt(16)},
+		shares := []common.PrimaryShare{
+			{Index: 1, Value: *big.NewInt(4)},
+			{Index: 2, Value: *big.NewInt(9)},
+			{Index: 3, Value: *big.NewInt(16)},
+		}
+
+		targetX := 0
+
+		est1 := estimate1(shares, targetX, prime)
+		est2 := estimate2(shares, targetX, prime)
+		est3 := estimate3(shares, targetX, prime)
+
+		if est1.Cmp(est2) != 0 {
+			t.Errorf("Expected %v, got %v", est1, est2)
+		}
+		if est3.Cmp(est2) != 0 {
+			t.Errorf("Expected %v, got %v", est3, est2)
+		}
+
+		targetX = 4
+
+		est1 = estimate1(shares, targetX, prime)
+		est2 = estimate2(shares, targetX, prime)
+
+		if est1.Cmp(est2) != 0 {
+			t.Errorf("Expected %v, got %v", est1, est2)
+		}
 	}
-
-	targetX := 0
-
-	est1 := estimate1(shares, targetX, prime)
-	est2 := estimate2(shares, targetX, prime)
-	est3 := estimate3(shares, targetX, prime)
-
-	if est1.Cmp(est2) != 0 {
-		t.Errorf("Expected %v, got %v", est1, est2)
-	}
-	if est3.Cmp(est2) != 0 {
-		t.Errorf("Expected %v, got %v", est3, est2)
-	}
-
-	targetX = 4
-
-	est1 = estimate1(shares, targetX, prime)
-	est2 = estimate2(shares, targetX, prime)
-
-	if est1.Cmp(est2) != 0 {
-		t.Errorf("Expected %v, got %v", est1, est2)
-	}
-
-	/// ----
 }
 
 func estimate1(shares []common.PrimaryShare, targetX int, prime *big.Int) *big.Int {

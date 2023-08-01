@@ -2,6 +2,7 @@ package elgamal
 
 import (
 	"math/big"
+	"math/rand"
 
 	"github.com/torusresearch/pvss/secp256k1"
 
@@ -10,16 +11,15 @@ import (
 )
 
 type EncryptedBallot struct {
-	VoterPubKey common.Point
-	C1          common.Point
-	C2          common.Point
+	C1 common.Point
+	C2 common.Point
 }
 
 // TODO: make it deterministic and independent of the base point
 var H = secp256k1.H
 
-func EncryptBoolean(yesOrNo bool, votingPublicKey common.Point, voter common.Point, prime *big.Int) EncryptedBallot {
-	blindingFactor := utils.RandomBigInt(prime)
+func EncryptBoolean(yesOrNo bool, votingPublicKey common.Point, prime *big.Int, r *rand.Rand) EncryptedBallot {
+	blindingFactor := utils.RandomBigInt(prime, r)
 	comm := common.BigIntToPoint(secp256k1.Curve.ScalarBaseMult(blindingFactor.Bytes()))
 
 	// k_i * E
@@ -32,7 +32,7 @@ func EncryptBoolean(yesOrNo bool, votingPublicKey common.Point, voter common.Poi
 
 	// (k_i * G, k_i * E + m * H)
 	mHX, mHY := secp256k1.Curve.ScalarMult(&H.X, &H.Y, m.Bytes())
-	return EncryptedBallot{VoterPubKey: voter, C1: comm, C2: common.BigIntToPoint(secp256k1.Curve.Add(X, Y, mHX, mHY))}
+	return EncryptedBallot{C1: comm, C2: common.BigIntToPoint(secp256k1.Curve.Add(X, Y, mHX, mHY))}
 }
 
 func (b *EncryptedBallot) DecryptBoolean(votingPrivateKey *big.Int, prime *big.Int) bool {
@@ -62,8 +62,8 @@ func (b *EncryptedBallot) DecryptBoolean(votingPrivateKey *big.Int, prime *big.I
 	}
 }
 
-func EncryptNumber(m int, votingPublicKey common.Point, voter common.Point, prime *big.Int) EncryptedBallot {
-	blindingFactor := utils.RandomBigInt(prime)
+func EncryptNumber(m int, votingPublicKey common.Point, prime *big.Int, r *rand.Rand) EncryptedBallot {
+	blindingFactor := utils.RandomBigInt(prime, r)
 	comm := common.BigIntToPoint(secp256k1.Curve.ScalarBaseMult(blindingFactor.Bytes()))
 
 	// k_i * E
@@ -71,7 +71,7 @@ func EncryptNumber(m int, votingPublicKey common.Point, voter common.Point, prim
 
 	// (k_i * G, k_i * E + m * H)
 	mHX, mHY := secp256k1.Curve.ScalarMult(&H.X, &H.Y, big.NewInt(int64(m)).Bytes())
-	return EncryptedBallot{VoterPubKey: voter, C1: comm, C2: common.BigIntToPoint(secp256k1.Curve.Add(X, Y, mHX, mHY))}
+	return EncryptedBallot{C1: comm, C2: common.BigIntToPoint(secp256k1.Curve.Add(X, Y, mHX, mHY))}
 }
 
 func (b *EncryptedBallot) DecryptNumber(votingPrivateKey *big.Int, max int, prime *big.Int) int {
