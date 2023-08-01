@@ -4,135 +4,19 @@ import (
 	"fmt"
 	"math/big"
 	"math/rand"
+	"time"
 
 	"github.com/delendum-xyz/private-voting/fdkg/common"
 	"github.com/delendum-xyz/private-voting/fdkg/elgamal"
-	"github.com/delendum-xyz/private-voting/fdkg/polynomial"
+	"github.com/delendum-xyz/private-voting/fdkg/pki"
 	"github.com/delendum-xyz/private-voting/fdkg/sss"
 	"github.com/delendum-xyz/private-voting/fdkg/utils"
 	"github.com/torusresearch/pvss/secp256k1"
 )
 
-type LocalParty struct {
-	PublicParty
-	PrivateKey         *big.Int
-	VotingPrivKeyShare *big.Int
-	Polynomial         polynomial.Polynomial
-	vote               bool
-}
-
-type PublicParty struct {
-	Index           int
-	PublicKey       common.Point
-	VotingPublicKey common.Point
-}
-
-type DkgParty struct {
-	LocalParty
-	TrustedParties []PublicParty
-}
-
-func NewLocalParty(index int, prime *big.Int, degree int) LocalParty {
-	if index < 1 {
-		panic("index must be greater than 0")
-	}
-	privateKey := utils.RandomBigInt(prime)
-	publicKey := common.BigIntToPoint(secp256k1.Curve.ScalarBaseMult(privateKey.Bytes()))
-
-	polynomial := polynomial.RandomPolynomial(prime, degree)
-	votingPrivKeyShare := polynomial.Evaluate(0)
-	votingPubKeyShare := common.BigIntToPoint(secp256k1.Curve.ScalarBaseMult(votingPrivKeyShare.Bytes()))
-
-	return LocalParty{
-		PublicParty: PublicParty{
-			Index:           index,
-			PublicKey:       publicKey,
-			VotingPublicKey: votingPubKeyShare,
-		},
-		PrivateKey:         privateKey,
-		VotingPrivKeyShare: votingPrivKeyShare,
-		Polynomial:         polynomial,
-		vote:               index%2 == 0,
-	}
-}
-
-func (p LocalParty) EncryptedBallot(encryptionKey common.Point, prime *big.Int) elgamal.EncryptedBallot {
-	fmt.Printf("Party_%d voting %v\n", p.Index, p.vote)
-	return elgamal.EncryptBoolean(p.vote, encryptionKey, p.PublicKey, prime)
-}
-
-func (p DkgParty) GenerateShares() []sss.Share {
-	indices := utils.Map(p.TrustedParties, func(party PublicParty) int { return party.Index })
-	shares := sss.GenerateShares(p.Polynomial, p.Index, indices)
-	return shares
-}
-
-func (p LocalParty) toDkgParty(trustedParties []PublicParty) DkgParty {
-	return DkgParty{
-		LocalParty:     p,
-		TrustedParties: trustedParties,
-	}
-}
-
-func randomTrustedParties(p LocalParty, publicNodes []PublicParty, threshold int) []PublicParty {
-	// take random subset of m nodes participating in DKG without the node itself
-	tempPublicNodes := make([]PublicParty, len(publicNodes))
-	copy(tempPublicNodes, publicNodes)
-	rand.Shuffle(len(tempPublicNodes), func(i, j int) { tempPublicNodes[i], tempPublicNodes[j] = tempPublicNodes[j], tempPublicNodes[i] })
-
-	trustedParties := make([]PublicParty, threshold)
-	parties := 0
-
-	for _, node := range tempPublicNodes {
-		if parties == threshold {
-			break
-		}
-		if node.Index != p.Index {
-			trustedParties[parties] = node
-			parties += 1
-		}
-	}
-	return trustedParties
-}
-
-func createRandomNodes(count int, prime *big.Int, degree int) []LocalParty {
-	if degree >= count {
-		panic("degree must be less than count otherwise it's impossible to reconstruct the secret.")
-	}
-	nodes := make([]LocalParty, count)
-	for i := range nodes {
-		newNode := NewLocalParty(i+1, prime, degree)
-		nodes[i] = newNode
-		fmt.Printf("Party_%d voted %v of polynomial %v\n", newNode.Index, newNode.vote, newNode.Polynomial.String())
-	}
-	return nodes
-}
-
-func GenerateSetOfNodes(n int, n_dkg int, n_trustedParties int, degree int, prime *big.Int) ([]LocalParty, []DkgParty) {
-	localNodes := createRandomNodes(n, prime, degree)
-
-	publicNodes := make([]PublicParty, n)
-	for i := range localNodes {
-		publicNodes[i] = localNodes[i].PublicParty
-	}
-
-	tempPublicNodes := make([]LocalParty, len(localNodes))
-	copy(tempPublicNodes, localNodes)
-	rand.Shuffle(len(tempPublicNodes), func(i, j int) { tempPublicNodes[i], tempPublicNodes[j] = tempPublicNodes[j], tempPublicNodes[i] })
-	fmt.Printf("tempPublicNodes %v \n", utils.Map(tempPublicNodes, func(party LocalParty) int { return party.Index }))
-
-	dkgNodes := make([]DkgParty, n_dkg)
-	for i, node := range tempPublicNodes[:n_dkg] {
-		// 	// take random subset of m nodes participating in DKG without the node itself
-		trustedParties := randomTrustedParties(node, publicNodes, n_trustedParties)
-		dkgNodes[i] = node.toDkgParty(trustedParties)
-		fmt.Printf("Party_%d has following trusted parties %v \n", node.Index, utils.Map(trustedParties, func(party PublicParty) int { return party.Index }))
-	}
-	return localNodes, dkgNodes
-}
-
 func main() {
 	// Prime field modulus (choose a suitable prime based on the problem)
+	r := rand.New(rand.NewSource(time.Now().Unix()))
 	prime := secp256k1.FieldOrder
 	n := 6
 	n_dkg := 6
@@ -141,7 +25,7 @@ func main() {
 	degree := 1 // shares to reconstruct is degree+1
 	n_trustedParties := 5
 
-	localNodes, dkgNodes := GenerateSetOfNodes(n, n_dkg, n_trustedParties, degree, prime)
+	localNodes, dkgNodes := pki.GenerateSetOfNodes(n, n_dkg, n_trustedParties, degree, prime, r)
 
 	// generate shares for each node
 	partyIndexToShares := make(map[int][]sss.Share)
@@ -154,7 +38,7 @@ func main() {
 	encryptionKey := VotingPublicKey(dkgNodes)
 
 	votingNodes := sampleRandom(localNodes, n_vote)
-	votes := voting(votingNodes, encryptionKey, prime)
+	votes := voting(votingNodes, encryptionKey, prime, r)
 
 	onlineTally(votes, dkgNodes, partyIndexToShares, prime, n_vote)
 }
@@ -167,7 +51,7 @@ func sampleRandom[T interface{}](nodes []T, n int) []T {
 	return sampleNodes
 }
 
-func VotingPublicKey(dkgNodes []DkgParty) common.Point {
+func VotingPublicKey(dkgNodes []pki.DkgParty) common.Point {
 	sum := dkgNodes[0].VotingPublicKey
 	for _, node := range dkgNodes[1:] {
 		pubKey := node.VotingPublicKey
@@ -177,10 +61,10 @@ func VotingPublicKey(dkgNodes []DkgParty) common.Point {
 	return common.BigIntToPoint(&sum.X, &sum.Y)
 }
 
-func voting(nodes []LocalParty, encryptionKey common.Point, prime *big.Int) []elgamal.EncryptedBallot {
+func voting(nodes []pki.LocalParty, encryptionKey common.Point, prime *big.Int, r *rand.Rand) []elgamal.EncryptedBallot {
 	votes := make([]elgamal.EncryptedBallot, len(nodes))
 	for index, node := range nodes {
-		encryptedBallot := node.EncryptedBallot(encryptionKey, prime)
+		encryptedBallot := node.EncryptedBallot(encryptionKey, prime, r)
 		votes[index] = encryptedBallot
 	}
 	return votes
@@ -191,7 +75,7 @@ type PartialDecryption struct {
 	Value common.Point
 }
 
-func onlineTally(votes []elgamal.EncryptedBallot, tallyingParties []DkgParty, partyIndexToShares map[int][]sss.Share, prime *big.Int, n_vote int) {
+func onlineTally(votes []elgamal.EncryptedBallot, tallyingParties []pki.DkgParty, partyIndexToShares map[int][]sss.Share, prime *big.Int, n_vote int) {
 	// Sum the first part of the ballots (aka. shared keys)
 	fmt.Printf("len(votes) = %v\n", len(votes))
 	A := votes[0].C1
