@@ -15,6 +15,11 @@ type Share struct {
 	Value *big.Int
 }
 
+// Share String() function that print only the first three digits of the value
+func (s Share) String() string {
+	return fmt.Sprintf("[%v, %v->%v]", s.Value.String()[0:3], s.From, s.To)
+}
+
 func (s Share) ToPrimaryShare() common.PrimaryShare {
 	return common.PrimaryShare{
 		Index: s.To,
@@ -23,7 +28,7 @@ func (s Share) ToPrimaryShare() common.PrimaryShare {
 }
 
 func GenerateShares(p polynomial.Polynomial, from int, indices []int) []Share {
-	if len(indices) <= (p.Degree()) {
+	if len(indices) <= p.Degree() {
 		panic("not enough trusted parties (and so shares) to reconstruct the secret")
 	}
 	shares := make([]Share, len(indices))

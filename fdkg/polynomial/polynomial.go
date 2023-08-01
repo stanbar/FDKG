@@ -3,6 +3,7 @@ package polynomial
 import (
 	"fmt"
 	"math/big"
+	"math/rand"
 
 	"github.com/delendum-xyz/private-voting/fdkg/utils"
 )
@@ -24,25 +25,26 @@ func (p Polynomial) String() string {
 	// f(x) = a_0 + a_1*x + a_2*x^2 + ... + a_t*x^t
 	var result string
 	for i, coeff := range p.coefficients {
-		result += fmt.Sprintf("%v*x^%v + ", coeff, i)
+		result += fmt.Sprintf("%v..*x^%v + ", coeff.String()[:3], i)
 	}
-	return result[:len(result)-3]
+	return result[:len(result)-3] // -3 to remove the last " + "
 }
 
-func RandomPolynomial(prime *big.Int, degree int) Polynomial {
+func RandomPolynomial(prime *big.Int, degree int, r *rand.Rand) Polynomial {
 	return Polynomial{
-		coefficients: generateRandomPolynomial(degree, prime),
+		coefficients: generateRandomPolynomial(degree, prime, r),
 		prime:        prime,
 	}
 }
 
+// 123432*x + 519731300
 // GenerateRandomPolynomialOverPrimeNaturalField generates a random polynomial
 // of degree t over the prime field of natural numbers.
-func generateRandomPolynomial(t int, prime *big.Int) []*big.Int {
+func generateRandomPolynomial(t int, prime *big.Int, r *rand.Rand) []*big.Int {
 	coefficients := make([]*big.Int, t+1)
 	for i := 0; i <= t; i++ {
 		// Generate a random integer in the range [1, prime - 1].
-		coeff := utils.RandomBigInt(prime)
+		coeff := utils.RandomBigInt(prime, r)
 
 		coefficients[i] = coeff
 	}
