@@ -1,6 +1,7 @@
 package sss
 
 import (
+	"crypto/elliptic"
 	"math/big"
 	"testing"
 
@@ -8,15 +9,12 @@ import (
 
 	"github.com/delendum-xyz/private-voting/fdkg/common"
 	"github.com/delendum-xyz/private-voting/fdkg/utils"
-
-	"github.com/torusresearch/pvss/secp256k1"
 )
 
 const ITERATIONS = 1000
 
 func TestShamirSecretSharing(t *testing.T) {
 	for i := 0; i < ITERATIONS; i++ {
-		prime := secp256k1.FieldOrder
 		// Example shares with x-coordinates and corresponding y-values
 		// y = x^2 + 2x + 1
 		// x-0, y=1
@@ -34,19 +32,19 @@ func TestShamirSecretSharing(t *testing.T) {
 		targetX := 0
 
 		// reference implementation
-		interpolated := LagrangeScalar(shares, targetX, prime)
+		interpolated := LagrangeScalar(shares, targetX, curve)
 		fmt.Printf("LagrangeScalar at f(%v)=%v\n", targetX, interpolated)
 		if interpolated.Cmp(big.NewInt(1)) != 0 {
 			t.Errorf("Expected interpolated %v, got %v", 1, interpolated)
 		}
 
-		interpolated = Interpolate(targetX, shares, prime)
+		interpolated = Interpolate(targetX, shares, curve)
 		fmt.Printf("Basis Polynomial at f(%v)=%v\n", targetX, interpolated)
 		if interpolated.Cmp(big.NewInt(1)) != 0 {
 			t.Errorf("Expected interpolated %v, got %v", 1, interpolated)
 		}
 
-		interpolated = InterpolateWithSeparateCoefficients(targetX, shares, prime)
+		interpolated = InterpolateWithSeparateCoefficients(targetX, shares, curve)
 		fmt.Printf("InterpolateWithSeparateCoefficients at f(%v)=%v\n", targetX, interpolated)
 		if interpolated.Cmp(big.NewInt(1)) != 0 {
 			t.Errorf("Expected interpolated %v, got %v", 1, interpolated)
@@ -54,19 +52,19 @@ func TestShamirSecretSharing(t *testing.T) {
 
 		targetX = 4
 
-		interpolated = LagrangeScalar(shares, targetX, prime)
+		interpolated = LagrangeScalar(shares, targetX, curve)
 		fmt.Printf("LagrangeScalar at f(%v)=%v\n", targetX, interpolated)
 		if interpolated.Cmp(big.NewInt(25)) != 0 {
 			t.Errorf("Expected interpolated %v, got %v", 25, interpolated)
 		}
 
-		interpolated = Interpolate(targetX, shares, prime)
+		interpolated = Interpolate(targetX, shares, curve)
 		fmt.Printf("Basis Polynomial at f(%v)=%v\n", targetX, interpolated)
 		if interpolated.Cmp(big.NewInt(25)) != 0 {
 			t.Errorf("Expected : %v, got %v", 25, interpolated)
 		}
 
-		interpolated = InterpolateWithSeparateCoefficients(targetX, shares, prime)
+		interpolated = InterpolateWithSeparateCoefficients(targetX, shares, curve)
 		fmt.Printf("InterpolateWithSeparateCoefficients at f(%v)=%v\n", targetX, interpolated)
 		if interpolated.Cmp(big.NewInt(25)) != 0 {
 			t.Errorf("Expected interpolated %v, got %v", 25, interpolated)
@@ -76,7 +74,6 @@ func TestShamirSecretSharing(t *testing.T) {
 
 func TestLagrangeCoefficients(t *testing.T) {
 	for i := 0; i < ITERATIONS; i++ {
-		prime := secp256k1.FieldOrder
 		// Example shares with x-coordinates and corresponding y-values
 		// y = x^2 + 2x + 1
 		// x-0, y=1
@@ -93,10 +90,13 @@ func TestLagrangeCoefficients(t *testing.T) {
 
 		targetX := 0
 
-		est1 := estimate1(shares, targetX, prime)
-		est2 := estimate2(shares, targetX, prime)
-		est3 := estimate3(shares, targetX, prime)
+		est1 := estimate1(shares, targetX, curve)
+		est2 := estimate2(shares, targetX, curve)
+		est3 := estimate3(shares, targetX, curve)
 
+		if est1.Cmp(big.NewInt(1)) != 0 {
+			t.Errorf("Expected %v, got %v", est1, big.NewInt(1))
+		}
 		if est1.Cmp(est2) != 0 {
 			t.Errorf("Expected %v, got %v", est1, est2)
 		}
@@ -106,8 +106,8 @@ func TestLagrangeCoefficients(t *testing.T) {
 
 		targetX = 4
 
-		est1 = estimate1(shares, targetX, prime)
-		est2 = estimate2(shares, targetX, prime)
+		est1 = estimate1(shares, targetX, curve)
+		est2 = estimate2(shares, targetX, curve)
 
 		if est1.Cmp(est2) != 0 {
 			t.Errorf("Expected %v, got %v", est1, est2)
@@ -115,23 +115,23 @@ func TestLagrangeCoefficients(t *testing.T) {
 	}
 }
 
-func estimate1(shares []common.PrimaryShare, targetX int, prime *big.Int) *big.Int {
+func estimate1(shares []common.PrimaryShare, targetX int, curve elliptic.Curve) *big.Int {
 	X := utils.Map(shares, func(share common.PrimaryShare) int { return share.Index })
 	Y := utils.Map(shares, func(share common.PrimaryShare) big.Int { return share.Value })
 
 	est := big.NewInt(0)
 	for i := 0; i < len(X); i++ {
 		shareValue := &Y[i]
-		prod := LagrangeCoefficients(shareValue, i, targetX, X, prime)
+		prod := LagrangeCoefficients(shareValue, i, targetX, X, curve)
 		fmt.Printf("[estimate1 for target=%v] prod_%v: %v\n", targetX, i, prod)
 		est.Add(est, prod)
 	}
 
-	est.Mod(est, prime)
+	est.Mod(est, curve.Params().N)
 	return est
 }
 
-func estimate2(shares []common.PrimaryShare, targetX int, prime *big.Int) *big.Int {
+func estimate2(shares []common.PrimaryShare, targetX int, curve elliptic.Curve) *big.Int {
 	X := utils.Map(shares, func(share common.PrimaryShare) int { return share.Index })
 	Y := utils.Map(shares, func(share common.PrimaryShare) big.Int { return share.Value })
 
@@ -139,19 +139,19 @@ func estimate2(shares []common.PrimaryShare, targetX int, prime *big.Int) *big.I
 	for i := 0; i < len(X); i++ {
 		shareValue := &Y[i]
 		fmt.Printf("[estimate2 for target=%v] shareValue_%v: %v\n", targetX, i, shareValue)
-		prod := LagrangeCoefficientsStartFromOne(i, targetX, X, prime)
+		prod := LagrangeCoefficientsStartFromOne(i, targetX, X, curve)
 		fmt.Printf("[estimate2 for target=%v] prod_%v: %v\n", targetX, i, prod)
 
 		prod.Mul(prod, shareValue)
-		prod.Mod(prod, prime)
+		prod.Mod(prod, curve.Params().N)
 		est.Add(est, prod)
 	}
 
-	est.Mod(est, prime)
+	est.Mod(est, curve.Params().N)
 	return est
 }
 
-func estimate3(shares []common.PrimaryShare, targetX int, prime *big.Int) *big.Int {
+func estimate3(shares []common.PrimaryShare, targetX int, curve elliptic.Curve) *big.Int {
 	X := utils.Map(shares, func(share common.PrimaryShare) int { return share.Index })
 	Y := utils.Map(shares, func(share common.PrimaryShare) big.Int { return share.Value })
 
@@ -159,14 +159,14 @@ func estimate3(shares []common.PrimaryShare, targetX int, prime *big.Int) *big.I
 	for i := 0; i < len(X); i++ {
 		shareValue := &Y[i]
 		fmt.Printf("[estimate3 for target=%v] shareValue_%v: %v\n", targetX, i, shareValue)
-		prod := LagrangeCoefficientsStartFromOneAbs(i, X, prime)
+		prod := LagrangeCoefficientsStartFromOneAbs(i, X, curve)
 		fmt.Printf("[estimate3 for target=%v] prod_%v: %v\n", targetX, i, prod)
 
 		prod.Mul(prod, shareValue)
-		prod.Mod(prod, prime)
+		prod.Mod(prod, curve.Params().N)
 		est.Add(est, prod)
 	}
 
-	est.Mod(est, prime)
+	est.Mod(est, curve.Params().N)
 	return est
 }

@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"math/big"
 	"testing"
+
+	"github.com/torusresearch/pvss/secp256k1"
 )
 
 // Point represents a point on the elliptic curve.
@@ -24,35 +26,37 @@ type Share struct {
 	Y *big.Int // y-coordinate of the share (f(x))
 }
 
+var curve = elliptic.P256()
+
 // GenerateCoefficients generates random coefficients for the polynomial of degree 'degree'.
-func GenerateCoefficients(degree int, prime *big.Int) []*big.Int {
+func GenerateCoefficients(degree int, curve elliptic.Curve) []*big.Int {
 	coefficients := make([]*big.Int, degree+1)
 	for i := range coefficients {
-		coefficients[i], _ = rand.Int(rand.Reader, prime)
+		coefficients[i], _ = rand.Int(rand.Reader, curve.Params().N)
 	}
 	return coefficients
 }
 
 // Evaluate evaluates the polynomial at the given x-coordinate 'x'.
-func (p *Polynomial) Evaluate(x *big.Int, prime *big.Int) *big.Int {
+func (p *Polynomial) Evaluate(x *big.Int, prime big.Int) *big.Int {
 	result := big.NewInt(0)
 	for i, coeff := range p.coefficients {
 		temp := new(big.Int).Set(x)
 		for j := 0; j < i; j++ {
 			temp.Mul(temp, x)
-			temp.Mod(temp, prime)
+			temp.Mod(temp, curve.Params().N)
 		}
 		temp.Mul(temp, coeff)
-		temp.Mod(temp, prime)
+		temp.Mod(temp, curve.Params().N)
 		result.Add(result, temp)
-		result.Mod(result, prime)
+		result.Mod(result, curve.Params().N)
 	}
 	return result
 }
 
 // GenerateShares generates 'numShares' shares of the secret 'secret' using 'threshold' and prime 'prime'.
-func GenerateShares(secret *big.Int, threshold, numShares int, prime *big.Int) []*Share {
-	coefficients := GenerateCoefficients(threshold-1, prime)
+func GenerateShares(secret *big.Int, threshold, numShares int, curve elliptic.Curve) []*Share {
+	coefficients := GenerateCoefficients(threshold-1, curve)
 	coefficients = append(coefficients, secret)
 
 	shares := make([]*Share, numShares)
@@ -63,12 +67,12 @@ func GenerateShares(secret *big.Int, threshold, numShares int, prime *big.Int) [
 			temp := new(big.Int).Set(x)
 			for k := 1; k < j; k++ {
 				temp.Mul(temp, x)
-				temp.Mod(temp, prime)
+				temp.Mod(temp, curve.Params().N)
 			}
 			temp.Mul(temp, coefficients[j])
-			temp.Mod(temp, prime)
+			temp.Mod(temp, curve.Params().N)
 			shares[i].Y.Add(shares[i].Y, temp)
-			shares[i].Y.Mod(shares[i].Y, prime)
+			shares[i].Y.Mod(shares[i].Y, curve.Params().N)
 		}
 	}
 
@@ -76,7 +80,7 @@ func GenerateShares(secret *big.Int, threshold, numShares int, prime *big.Int) [
 }
 
 // RecoverSecret recovers the secret from the given shares using Lagrange interpolation.
-func RecoverSecret(shares []*Share, prime *big.Int) *big.Int {
+func RecoverSecret(shares []*Share, curve elliptic.Curve) *big.Int {
 	if len(shares) == 0 {
 		return nil
 	}
@@ -90,15 +94,15 @@ func RecoverSecret(shares []*Share, prime *big.Int) *big.Int {
 				continue
 			}
 			numerator.Mul(numerator, new(big.Int).Neg(shares[j].X))
-			numerator.Mod(numerator, prime)
+			numerator.Mod(numerator, curve.Params().N)
 			denominator.Mul(denominator, new(big.Int).Sub(shares[i].X, shares[j].X))
-			denominator.Mod(denominator, prime)
+			denominator.Mod(denominator, curve.Params().N)
 		}
-		denominator.ModInverse(denominator, prime)
+		denominator.ModInverse(denominator, curve.Params().N)
 		numerator.Mul(numerator, denominator)
-		numerator.Mod(numerator, prime)
+		numerator.Mod(numerator, curve.Params().N)
 		secret.Add(secret, numerator)
-		secret.Mod(secret, prime)
+		secret.Mod(secret, curve.Params().N)
 	}
 
 	return secret
@@ -107,7 +111,6 @@ func RecoverSecret(shares []*Share, prime *big.Int) *big.Int {
 func TestMain(t *testing.T) {
 	// Elliptic curve parameters
 	curve := elliptic.P256()
-	prime := curve.Params().P
 
 	// Secret to be shared
 	secret := big.NewInt(12345)
@@ -117,13 +120,23 @@ func TestMain(t *testing.T) {
 	threshold := 3
 
 	// Generate shares
-	shares := GenerateShares(secret, threshold, numShares, prime)
+	shares := GenerateShares(secret, threshold, numShares, curve)
 	fmt.Println("Shares:")
 	for _, share := range shares {
 		fmt.Printf("(%d, %d)\n", share.X, share.Y)
 	}
 
 	// Select any 'threshold' number of shares to recover the secret
-	recoveredSecret := RecoverSecret(shares[:threshold], prime)
+	recoveredSecret := RecoverSecret(shares[:threshold], curve)
 	fmt.Println("Recovered Secret:", recoveredSecret)
+}
+
+func TestEcParams(t *testing.T) {
+	if elliptic.P256().Params().P.Cmp(secp256k1.FieldOrder) != 0 {
+		t.Errorf("P256 curve params are not equal to secp256k1")
+	}
+	if elliptic.P256().Params().N.Cmp(secp256k1.GeneratorOrder) != 0 {
+		t.Errorf("P256 curve params are not equal to secp256k1")
+	}
+
 }

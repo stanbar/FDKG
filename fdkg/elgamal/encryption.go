@@ -1,6 +1,7 @@
 package elgamal
 
 import (
+	"crypto/elliptic"
 	"math/big"
 	"math/rand"
 
@@ -16,10 +17,9 @@ type EncryptedBallot struct {
 }
 
 // TODO: make it deterministic and independent of the base point
-var H = secp256k1.H
-
-func EncryptBoolean(yesOrNo bool, votingPublicKey common.Point, prime *big.Int, r *rand.Rand) EncryptedBallot {
-	blindingFactor := utils.RandomBigInt(prime, r)
+func EncryptBoolean(yesOrNo bool, votingPublicKey common.Point, curve elliptic.Curve, r *rand.Rand) EncryptedBallot {
+	H := secp256k1.HashToPoint(secp256k1.G.X.Bytes())
+	blindingFactor := utils.RandomBigInt(curve, r)
 	comm := common.BigIntToPoint(secp256k1.Curve.ScalarBaseMult(blindingFactor.Bytes()))
 
 	// k_i * E
@@ -35,8 +35,8 @@ func EncryptBoolean(yesOrNo bool, votingPublicKey common.Point, prime *big.Int, 
 	return EncryptedBallot{C1: comm, C2: common.BigIntToPoint(secp256k1.Curve.Add(X, Y, mHX, mHY))}
 }
 
-func (b *EncryptedBallot) DecryptBoolean(votingPrivateKey *big.Int, prime *big.Int) bool {
-
+func (b EncryptedBallot) DecryptBoolean(votingPrivateKey big.Int, curve elliptic.Curve) bool {
+	H := secp256k1.HashToPoint(secp256k1.G.X.Bytes())
 	// (A,B) = (k_i * G, k_i * E + m * H)
 	// TODO: implement the decryption of single ballot for testing purposes
 
@@ -46,7 +46,7 @@ func (b *EncryptedBallot) DecryptBoolean(votingPrivateKey *big.Int, prime *big.I
 	// (B - (priv * A))
 	// pA inverse
 	pAYNeg := new(big.Int).Neg(pAY)
-	pAYNeg.Mod(pAYNeg, prime)
+	pAYNeg.Mod(pAYNeg, curve.Params().P)
 	mHX, mHY := secp256k1.Curve.Add(&b.C2.X, &b.C2.Y, pAX, pAYNeg)
 	m := big.NewInt(0)
 	if mHX.Cmp(&H.X) == 0 && mHY.Cmp(&H.Y) == 0 {
@@ -62,8 +62,9 @@ func (b *EncryptedBallot) DecryptBoolean(votingPrivateKey *big.Int, prime *big.I
 	}
 }
 
-func EncryptNumber(m int, votingPublicKey common.Point, prime *big.Int, r *rand.Rand) EncryptedBallot {
-	blindingFactor := utils.RandomBigInt(prime, r)
+func EncryptNumber(m int, votingPublicKey common.Point, curve elliptic.Curve, r *rand.Rand) EncryptedBallot {
+	H := secp256k1.HashToPoint(secp256k1.G.X.Bytes())
+	blindingFactor := utils.RandomBigInt(curve, r)
 	comm := common.BigIntToPoint(secp256k1.Curve.ScalarBaseMult(blindingFactor.Bytes()))
 
 	// k_i * E
@@ -74,13 +75,13 @@ func EncryptNumber(m int, votingPublicKey common.Point, prime *big.Int, r *rand.
 	return EncryptedBallot{C1: comm, C2: common.BigIntToPoint(secp256k1.Curve.Add(X, Y, mHX, mHY))}
 }
 
-func (b *EncryptedBallot) DecryptNumber(votingPrivateKey *big.Int, max int, prime *big.Int) int {
+func (b *EncryptedBallot) DecryptNumber(votingPrivateKey big.Int, max int, curve elliptic.Curve) int {
 	pAX, pAY := secp256k1.Curve.ScalarMult(&b.C1.X, &b.C1.Y, votingPrivateKey.Bytes())
-	return b.DecryptNumberWithSharedKey(common.BigIntToPoint(pAX, pAY), max, prime)
+	return b.DecryptNumberWithSharedKey(common.BigIntToPoint(pAX, pAY), max, curve)
 }
 
-func (b *EncryptedBallot) DecryptNumberWithSharedKey(sharedKey common.Point, max int, prime *big.Int) int {
-
+func (b *EncryptedBallot) DecryptNumberWithSharedKey(sharedKey common.Point, max int, curve elliptic.Curve) int {
+	H := secp256k1.HashToPoint(secp256k1.G.X.Bytes())
 	// (A,B) = (k_i * G, k_i * E + m * H)
 	// m*H = B - (k_i * E) = B - (k_i * priv * G) = B - (priv * A)
 	// (priv * A)
@@ -88,13 +89,12 @@ func (b *EncryptedBallot) DecryptNumberWithSharedKey(sharedKey common.Point, max
 	// (B - (priv * A))
 	// pA inverse
 	pAYNeg := new(big.Int).Neg(&pAY)
-	pAYNeg.Mod(pAYNeg, prime)
+	pAYNeg.Mod(pAYNeg, curve.Params().P)
 	mHX, mHY := secp256k1.Curve.Add(&b.C2.X, &b.C2.Y, &pAX, pAYNeg)
 
 	// search for x such that x*G = M
 
 	x := 0
-	H := H
 	for x <= max {
 		X, Y := secp256k1.Curve.ScalarMult(&H.X, &H.Y, big.NewInt(int64(x)).Bytes())
 		if X.Cmp(mHX) == 0 && Y.Cmp(mHY) == 0 {

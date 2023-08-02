@@ -18,13 +18,12 @@ const ITERATIONS = 1000
 
 func TestNewLocalParty(t *testing.T) {
 	for i := 0; i < ITERATIONS; i++ {
-		prime := secp256k1.FieldOrder
 		r := rand.New(rand.NewSource(int64(i)))
 		n := 6
 		n_dkg := 6
 		degree := 1
 		n_trustedParties := 3
-		localNodes, dkgNodes := pki.GenerateSetOfNodes(n, n_dkg, n_trustedParties, degree, prime, r)
+		localNodes, dkgNodes := pki.GenerateSetOfNodes(n, n_dkg, n_trustedParties, degree, curve, r, r)
 		if len(localNodes) != n {
 			t.Errorf("Expected %d nodes, got %d", n, len(localNodes))
 		}
@@ -43,13 +42,13 @@ func TestNewLocalParty(t *testing.T) {
 		for i, node := range localNodes {
 			for j, otherNode := range localNodes {
 				if i != j {
-					if node.PrivateKey.Cmp(otherNode.PrivateKey) == 0 {
+					if node.PrivateKey.Cmp(&otherNode.PrivateKey) == 0 {
 						t.Errorf("Expected private keys to be different, got %v and %v", node.PrivateKey, otherNode.PrivateKey)
 					}
 					if node.PublicKey.X.Cmp(&otherNode.PublicKey.X) == 0 && node.PublicKey.Y.Cmp(&otherNode.PublicKey.Y) == 0 {
 						t.Errorf("Expected public keys to be different, got %v and %v", node.PublicKey, otherNode.PublicKey)
 					}
-					if node.VotingPrivKeyShare.Cmp(otherNode.VotingPrivKeyShare) == 0 {
+					if node.VotingPrivKeyShare.Cmp(&otherNode.VotingPrivKeyShare) == 0 {
 						t.Errorf("Expected voting private keys to be different, got %v and %v", node.VotingPrivKeyShare, otherNode.VotingPrivKeyShare)
 					}
 					if node.VotingPublicKey.X.Cmp(&otherNode.VotingPublicKey.X) == 0 && node.VotingPublicKey.Y.Cmp(&otherNode.VotingPublicKey.Y) == 0 {
@@ -65,15 +64,14 @@ func TestNewLocalParty(t *testing.T) {
 	}
 }
 
-func TestCorrectSharingAngReconstruction(t *testing.T) {
+func TestCorrectSharingAndReconstruction(t *testing.T) {
 	for i := 0; i < ITERATIONS; i++ {
-		prime := secp256k1.FieldOrder
 		r := rand.New(rand.NewSource(int64(i)))
 		n := 6
 		n_dkg := 6
 		degree := 1
 		n_trustedParties := 3
-		localNodes, dkgNodes := pki.GenerateSetOfNodes(n, n_dkg, n_trustedParties, degree, prime, r)
+		localNodes, dkgNodes := pki.GenerateSetOfNodes(n, n_dkg, n_trustedParties, degree, curve, r, r)
 		// generate shares for each node
 		receiverToShares := make(map[int][]sss.Share)
 		senderToShares := make(map[int][]sss.Share)
@@ -92,29 +90,29 @@ func TestCorrectSharingAngReconstruction(t *testing.T) {
 			primaryShares := utils.Map(shares, func(s sss.Share) common.PrimaryShare { return s.ToPrimaryShare() })
 
 			fmt.Printf("Party_%d has following shares %v \n", partyIndex, utils.Map(primaryShares, func(share common.PrimaryShare) int { return share.Index }))
-			reconstructedSecret := sss.LagrangeScalar(primaryShares, 0, prime)
+			reconstructedSecret := sss.LagrangeScalar(primaryShares, 0, curve)
 
-			if reconstructedSecret.Cmp(localNodes[partyIndex-1].VotingPrivKeyShare) != 0 {
-				t.Errorf("Expected secret match VotingPrivKeyShare")
+			if reconstructedSecret.Cmp(&localNodes[partyIndex-1].VotingPrivKeyShare) != 0 {
+				t.Errorf("[%v] Expected secret match VotingPrivKeyShare. reconstructedSecret: %v, VotingPrivKeyShare: %v", i, reconstructedSecret, &localNodes[partyIndex-1].VotingPrivKeyShare)
 			}
 		}
 	}
 }
 
+// Failed cases 3, 14, 25, ... (i.e. 11k+3)
 func TestShamirSecretSharing(t *testing.T) {
+	r := rand.New(rand.NewSource(int64(0)))
 	for i := 0; i < ITERATIONS; i++ {
-		prime := secp256k1.FieldOrder
-		r := rand.New(rand.NewSource(int64(i)))
-		node := pki.NewLocalParty(1, prime, 2, r)
-		node11 := pki.NewLocalParty(11, prime, 2, r).PublicParty
-		node22 := pki.NewLocalParty(22, prime, 2, r).PublicParty
-		node33 := pki.NewLocalParty(33, prime, 2, r).PublicParty
+		node := pki.NewLocalParty(1, curve, 2, r, r)
+		node11 := pki.NewLocalParty(11, curve, 2, r, r).PublicParty
+		node22 := pki.NewLocalParty(22, curve, 2, r, r).PublicParty
+		node33 := pki.NewLocalParty(33, curve, 2, r, r).PublicParty
 		nodeDkg := node.ToDkgParty([]pki.PublicParty{node11, node22, node33})
 		shares := nodeDkg.GenerateShares()
 		primeShares := utils.Map(shares, func(s sss.Share) common.PrimaryShare { return s.ToPrimaryShare() })
-		secret := sss.LagrangeScalar(primeShares, 0, prime)
-		if secret.Cmp(node.VotingPrivKeyShare) != 0 {
-			t.Errorf("Expected secret %v, got %v", node.VotingPrivKeyShare, secret)
+		secret := sss.LagrangeScalar(primeShares, 0, curve)
+		if secret.Cmp(&node.VotingPrivKeyShare) != 0 {
+			t.Errorf("[%v] Expected secret %v, got %v \n shares: %v", i, &node.VotingPrivKeyShare, secret, shares)
 		}
 	}
 }
@@ -138,13 +136,16 @@ func TestTransitivity(t *testing.T) {
 	}
 }
 
+// the issue is with the randomness used within Alice.
 func TestPartialDecryptionOfOneDkgNodeAndTwoGuardiansOneVote(t *testing.T) {
+	variable := rand.New(rand.NewSource(int64(ITERATIONS)))
+
 	for i := 0; i < ITERATIONS; i++ {
-		prime := secp256k1.FieldOrder
 		r := rand.New(rand.NewSource(int64(i)))
-		alice := pki.NewLocalParty(1, prime, 1, r)
-		bob_local := pki.NewLocalParty(11, prime, 1, r)
-		carol_local := pki.NewLocalParty(22, prime, 1, r)
+		constant := rand.New(rand.NewSource(int64(ITERATIONS + 8)))
+		alice := pki.NewLocalParty(1, curve, 2, variable, constant)
+		bob_local := pki.NewLocalParty(11, curve, 2, r, r)
+		carol_local := pki.NewLocalParty(22, curve, 2, r, r)
 
 		bob := bob_local.PublicParty
 		carol := carol_local.PublicParty
@@ -163,18 +164,22 @@ func TestPartialDecryptionOfOneDkgNodeAndTwoGuardiansOneVote(t *testing.T) {
 		}
 		share_bob := alicePrimaryShares[0].Value
 		share_carol := alicePrimaryShares[1].Value
-		if share_bob.Cmp(&share_carol) == 0 || alicePrimaryShares[0].Index == alicePrimaryShares[1].Index {
+		// Bob and Carol should have different shares
+		if alicePrimaryShares[0].Index-alicePrimaryShares[1].Index == 0 {
+			t.Errorf("First and second indexes should be different %v != %v", alicePrimaryShares[0].Index, alicePrimaryShares[1].Index)
+		}
+		if share_bob.Cmp(&share_carol) == 0 {
 			t.Errorf("Bob share should be different than Carol share %v != %v", share_bob, share_carol)
 		}
-		vote_alice := elgamal.EncryptBoolean(true, votingPubKey, prime, r)
+		vote_alice := elgamal.EncryptBoolean(true, votingPubKey, curve, r)
 
-		bob_lagrange := sss.LagrangeCoefficientsStartFromOne(0, 0, []int{11, 22}, prime)
+		bob_lagrange := sss.LagrangeCoefficientsStartFromOne(0, 0, []int{11, 22}, curve)
 		bob_v := bob_lagrange.Mul(bob_lagrange, &share_bob)
-		bob_v = bob_lagrange.Mod(bob_v, prime)
+		bob_v = bob_lagrange.Mod(bob_v, curve.Params().N)
 
-		carol_lagrange := sss.LagrangeCoefficientsStartFromOne(1, 0, []int{11, 22}, prime)
+		carol_lagrange := sss.LagrangeCoefficientsStartFromOne(1, 0, []int{11, 22}, curve)
 		carol_v := carol_lagrange.Mul(carol_lagrange, &share_carol)
-		carol_v = carol_lagrange.Mod(carol_v, prime)
+		carol_v = carol_lagrange.Mod(carol_v, curve.Params().N)
 
 		// sum votes
 
@@ -186,7 +191,7 @@ func TestPartialDecryptionOfOneDkgNodeAndTwoGuardiansOneVote(t *testing.T) {
 
 		Z_X, Z_Y := secp256k1.Curve.Add(bob_Z_X, bob_Z_Y, carol_Z_X, carol_Z_Y)
 
-		// result := vote_alice.DecryptNumberWithSharedKey(common.BigIntToPoint(Z_X, Z_Y), 100, prime)
+		// result := vote_alice.DecryptNumberWithSharedKey(common.BigIntToPoint(Z_X, Z_Y), 100, curve)
 		// if result != 1 {
 		// 	t.Errorf("Expected decryption to be 1, got %v", result)
 		// }
@@ -208,9 +213,23 @@ func TestPartialDecryptionOfOneDkgNodeAndTwoGuardiansOneVote(t *testing.T) {
 		// sum votes
 		C2_X, C2_Y := &vote_alice.C2.X, &vote_alice.C2.Y
 
-		pAYNeg := new(big.Int).Neg(Z_Y)
-		pAYNeg.Mod(pAYNeg, prime)
-		mHX, mHY := secp256k1.Curve.Add(C2_X, C2_Y, Z_X, pAYNeg)
+		negZ_Y := new(big.Int).Neg(Z_Y)
+		negZ_Y.Mod(negZ_Y, curve.Params().P)
+
+		negZ := common.BigIntToPoint(Z_X, negZ_Y)
+		if Z_X.Cmp(&negZ.X) != 0 {
+			t.Errorf("negZ.X != Z.X")
+		}
+		if !secp256k1.Curve.IsOnCurve(Z_X, Z_Y) {
+			panic("Z is not on curve, X: " + Z_X.String() + " Y: " + Z_Y.String())
+		}
+		if !secp256k1.Curve.IsOnCurve(&negZ.X, &negZ.Y) {
+			fmt.Printf("Z is on curve (%v,%v)\n", Z_X, Z_Y)
+			panic(fmt.Sprintf("negZ is not on curve, %v, %v", &negZ.X, &negZ.Y))
+		}
+
+		mHX, mHY := secp256k1.Curve.Add(C2_X, C2_Y, &negZ.X, &negZ.Y)
+
 		m := big.NewInt(0)
 		if mHX.Cmp(&elgamal.H.X) == 0 && mHY.Cmp(&elgamal.H.Y) == 0 {
 			m = big.NewInt(1)
@@ -233,10 +252,9 @@ func TestPartialDecryptionOfOneDkgNodeAndTwoGuardiansOneVote(t *testing.T) {
 func TestPartialDecryptionOfOneDkgNodeAndTwoGuardiansAndManyVotes(t *testing.T) {
 	for i := 0; i < ITERATIONS; i++ {
 		r := rand.New(rand.NewSource(int64(i)))
-		prime := secp256k1.FieldOrder
-		alice := pki.NewLocalParty(1, prime, 1, r)
-		bob_local := pki.NewLocalParty(11, prime, 1, r)
-		carol_local := pki.NewLocalParty(22, prime, 1, r)
+		alice := pki.NewLocalParty(1, curve, 2, r, r)
+		bob_local := pki.NewLocalParty(11, curve, 2, r, r)
+		carol_local := pki.NewLocalParty(22, curve, 2, r, r)
 
 		bob := bob_local.PublicParty
 		carol := carol_local.PublicParty
@@ -267,16 +285,16 @@ func TestPartialDecryptionOfOneDkgNodeAndTwoGuardiansAndManyVotes(t *testing.T) 
 			// create n_votes votes
 			votes := make([]elgamal.EncryptedBallot, n_votes)
 			for i := 0; i < n_votes; i++ {
-				votes[i] = elgamal.EncryptBoolean(i%2 == 0, votingPubKey, prime, r)
+				votes[i] = elgamal.EncryptBoolean(i%2 == 0, votingPubKey, curve, r)
 			}
 
-			bob_lagrange := sss.LagrangeCoefficientsStartFromOne(0, 0, []int{11, 22}, prime)
+			bob_lagrange := sss.LagrangeCoefficientsStartFromOne(0, 0, []int{11, 22}, curve)
 			bob_v := bob_lagrange.Mul(bob_lagrange, &share_bob)
-			bob_v = bob_lagrange.Mod(bob_v, prime)
+			bob_v = bob_lagrange.Mod(bob_v, curve.Params().N)
 
-			carol_lagrange := sss.LagrangeCoefficientsStartFromOne(1, 0, []int{11, 22}, prime)
+			carol_lagrange := sss.LagrangeCoefficientsStartFromOne(1, 0, []int{11, 22}, curve)
 			carol_v := carol_lagrange.Mul(carol_lagrange, &share_carol)
-			carol_v = carol_lagrange.Mod(carol_v, prime)
+			carol_v = carol_lagrange.Mod(carol_v, curve.Params().N)
 
 			// sum votes
 			C1_X, C1_Y := big.NewInt(0), big.NewInt(0)
@@ -290,7 +308,7 @@ func TestPartialDecryptionOfOneDkgNodeAndTwoGuardiansAndManyVotes(t *testing.T) 
 
 			Z_X, Z_Y := secp256k1.Curve.Add(bob_Z_X, bob_Z_Y, carol_Z_X, carol_Z_Y)
 
-			// result := vote_alice.DecryptNumberWithSharedKey(common.BigIntToPoint(Z_X, Z_Y), 100, prime)
+			// result := vote_alice.DecryptNumberWithSharedKey(common.BigIntToPoint(Z_X, Z_Y), 100, curve)
 			// if result != 1 {
 			// 	t.Errorf("Expected decryption to be 1, got %v", result)
 			// }
@@ -312,9 +330,16 @@ func TestPartialDecryptionOfOneDkgNodeAndTwoGuardiansAndManyVotes(t *testing.T) 
 				C2_X, C2_Y = secp256k1.Curve.Add(&vote.C2.X, &vote.C2.Y, C2_X, C2_Y)
 			}
 
-			pAYNeg := new(big.Int).Neg(Z_Y)
-			pAYNeg.Mod(pAYNeg, prime)
-			mHX, mHY := secp256k1.Curve.Add(C2_X, C2_Y, Z_X, pAYNeg)
+			negZ_Y := new(big.Int).Neg(Z_Y)
+			negZ_Y.Mod(negZ_Y, curve.Params().P)
+
+			negZ := common.BigIntToPoint(Z_X, negZ_Y)
+			if !secp256k1.Curve.IsOnCurve(&negZ.X, &negZ.Y) {
+				panic("negZ is not on curve")
+			}
+
+			mHX, mHY := secp256k1.Curve.Add(C2_X, C2_Y, &negZ.X, &negZ.Y)
+
 			x := 0
 			for x <= n_votes {
 				X, Y := secp256k1.Curve.ScalarMult(&elgamal.H.X, &elgamal.H.Y, big.NewInt(int64(x)).Bytes())
@@ -341,13 +366,12 @@ func TestPartialDecryptionOfOneDkgNodeAndTwoGuardiansAndManyVotes(t *testing.T) 
 
 func TestPartialDecryptionOfTwoDkgNodesAndThreeGuardian(t *testing.T) {
 	for i := 0; i < ITERATIONS; i++ {
-		prime := secp256k1.FieldOrder
 		r := rand.New(rand.NewSource(int64(i)))
-		alice := pki.NewLocalParty(1, prime, 1, r)
-		bob := pki.NewLocalParty(2, prime, 1, r)
-		carol := pki.NewLocalParty(11, prime, 1, r).PublicParty
-		dave := pki.NewLocalParty(22, prime, 1, r).PublicParty
-		eve := pki.NewLocalParty(33, prime, 1, r).PublicParty
+		alice := pki.NewLocalParty(1, curve, 2, r, r)
+		bob := pki.NewLocalParty(2, curve, 2, r, r)
+		carol := pki.NewLocalParty(11, curve, 2, r, r).PublicParty
+		dave := pki.NewLocalParty(22, curve, 2, r, r).PublicParty
+		eve := pki.NewLocalParty(33, curve, 2, r, r).PublicParty
 		aliceDkg := alice.ToDkgParty([]pki.PublicParty{carol, dave, eve})
 		bobDkg := bob.ToDkgParty([]pki.PublicParty{carol, dave, eve})
 
@@ -380,17 +404,16 @@ func TestPointAtInfinity(t *testing.T) {
 func TestVotingKeysSharing(t *testing.T) {
 	for i := 0; i < ITERATIONS; i++ {
 		r := rand.New(rand.NewSource(int64(i)))
-		prime := secp256k1.FieldOrder
 		n := 6
 		n_dkg := 6
 		degree := 1
 		n_trustedParties := 3
-		_, dkgNodes := pki.GenerateSetOfNodes(n, n_dkg, n_trustedParties, degree, prime, r)
+		_, dkgNodes := pki.GenerateSetOfNodes(n, n_dkg, n_trustedParties, degree, curve, r, r)
 		encryptionKey := VotingPublicKey(dkgNodes)
 
 		decryptionKey := dkgNodes[0].VotingPrivKeyShare
 		for _, node := range dkgNodes[1:] {
-			decryptionKey.Add(decryptionKey, node.VotingPrivKeyShare)
+			decryptionKey.Add(&decryptionKey, &node.VotingPrivKeyShare)
 		}
 
 		X, Y := secp256k1.Curve.ScalarBaseMult(decryptionKey.Bytes())
@@ -408,12 +431,11 @@ func TestVotingKeysSharing(t *testing.T) {
 func TestVoting(t *testing.T) {
 	for i := 0; i < ITERATIONS; i++ {
 		r := rand.New(rand.NewSource(int64(i)))
-		prime := secp256k1.FieldOrder
 		n := 6
 		n_dkg := 1
 		degree := 1
 		n_trustedParties := 3
-		localNodes, dkgNodes := pki.GenerateSetOfNodes(n, n_dkg, n_trustedParties, degree, prime, r)
+		localNodes, dkgNodes := pki.GenerateSetOfNodes(n, n_dkg, n_trustedParties, degree, curve, r, r)
 		encryptionKey := VotingPublicKey(dkgNodes)
 
 		if len(dkgNodes) != n_dkg {
@@ -423,7 +445,7 @@ func TestVoting(t *testing.T) {
 			t.Errorf("Expected encryption key to be equal to voting public key share, got %v", encryptionKey)
 		}
 
-		votes := voting(localNodes, encryptionKey, prime, r)
+		votes := voting(localNodes, encryptionKey, curve, r)
 
 		A := votes[0].C1
 		for _, vote := range votes[1:] {
@@ -472,7 +494,7 @@ func TestVoting(t *testing.T) {
 			for _, share := range primaryShares {
 				shareOfDecryptionKey.Add(shareOfDecryptionKey, &share.Value)
 			}
-			shareOfDecryptionKey.Mod(shareOfDecryptionKey, prime)
+			shareOfDecryptionKey.Mod(shareOfDecryptionKey, curve.Params().N)
 
 			// m*H = B - (k_i * E) = B - (k_i * priv * G) = B - (priv * A)
 			// (priv * A)
@@ -496,7 +518,7 @@ func TestVoting(t *testing.T) {
 
 		for i := 0; i < len(X); i++ {
 			A_x, A_y := &A_is[i].X, &A_is[i].Y
-			lagrangeBasis := sss.LagrangeCoefficientsStartFromOne(i, 0, X, prime)
+			lagrangeBasis := sss.LagrangeCoefficientsStartFromOne(i, 0, X, curve)
 
 			// lagrangeBasis * A_i
 			X, Y := secp256k1.Curve.ScalarMult(A_x, A_y, lagrangeBasis.Bytes())
@@ -513,7 +535,7 @@ func TestVoting(t *testing.T) {
 
 		// M = B-Z
 		ZNegY := new(big.Int).Neg(Z_Y)
-		ZNegY.Mod(ZNegY, prime)
+		ZNegY.Mod(ZNegY, curve.Params().P)
 		mHX, mHY := secp256k1.Curve.Add(&B.X, &B.Y, Z_X, ZNegY)
 		if !secp256k1.Curve.IsOnCurve(mHX, mHY) {
 			panic("M=B-Z is not on curve")
