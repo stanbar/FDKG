@@ -8,6 +8,7 @@ import (
 	"github.com/delendum-xyz/private-voting/fdkg/common"
 	"github.com/delendum-xyz/private-voting/fdkg/polynomial"
 	"github.com/delendum-xyz/private-voting/fdkg/utils"
+	"github.com/torusresearch/pvss/secp256k1"
 )
 
 type Share struct {
@@ -16,7 +17,7 @@ type Share struct {
 	Value big.Int
 }
 
-var curve = elliptic.P256()
+var curve = secp256k1.Curve
 
 // Share String() function that print only the first three digits of the value
 func (s Share) String() string {

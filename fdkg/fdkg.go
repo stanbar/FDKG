@@ -12,7 +12,7 @@ import (
 	"github.com/torusresearch/pvss/secp256k1"
 )
 
-var curve = elliptic.P256()
+var curve = secp256k1.Curve
 
 func main() {
 	// Prime field modulus (choose a suitable prime based on the problem)

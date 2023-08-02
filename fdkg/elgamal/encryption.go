@@ -16,9 +16,10 @@ type EncryptedBallot struct {
 	C2 common.Point
 }
 
+var H = secp256k1.H
+
 // TODO: make it deterministic and independent of the base point
 func EncryptBoolean(yesOrNo bool, votingPublicKey common.Point, curve elliptic.Curve, r *rand.Rand) EncryptedBallot {
-	H := secp256k1.HashToPoint(secp256k1.G.X.Bytes())
 	blindingFactor := utils.RandomBigInt(curve, r)
 	comm := common.BigIntToPoint(secp256k1.Curve.ScalarBaseMult(blindingFactor.Bytes()))
 
@@ -36,7 +37,6 @@ func EncryptBoolean(yesOrNo bool, votingPublicKey common.Point, curve elliptic.C
 }
 
 func (b EncryptedBallot) DecryptBoolean(votingPrivateKey big.Int, curve elliptic.Curve) bool {
-	H := secp256k1.HashToPoint(secp256k1.G.X.Bytes())
 	// (A,B) = (k_i * G, k_i * E + m * H)
 	// TODO: implement the decryption of single ballot for testing purposes
 
@@ -63,7 +63,6 @@ func (b EncryptedBallot) DecryptBoolean(votingPrivateKey big.Int, curve elliptic
 }
 
 func EncryptNumber(m int, votingPublicKey common.Point, curve elliptic.Curve, r *rand.Rand) EncryptedBallot {
-	H := secp256k1.HashToPoint(secp256k1.G.X.Bytes())
 	blindingFactor := utils.RandomBigInt(curve, r)
 	comm := common.BigIntToPoint(secp256k1.Curve.ScalarBaseMult(blindingFactor.Bytes()))
 
@@ -81,7 +80,6 @@ func (b *EncryptedBallot) DecryptNumber(votingPrivateKey big.Int, max int, curve
 }
 
 func (b *EncryptedBallot) DecryptNumberWithSharedKey(sharedKey common.Point, max int, curve elliptic.Curve) int {
-	H := secp256k1.HashToPoint(secp256k1.G.X.Bytes())
 	// (A,B) = (k_i * G, k_i * E + m * H)
 	// m*H = B - (k_i * E) = B - (k_i * priv * G) = B - (priv * A)
 	// (priv * A)

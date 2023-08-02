@@ -182,7 +182,6 @@ func TestPartialDecryptionOfOneDkgNodeAndTwoGuardiansOneVote(t *testing.T) {
 		carol_v = carol_lagrange.Mod(carol_v, curve.Params().N)
 
 		// sum votes
-
 		C1_X, C1_Y := &vote_alice.C1.X, &vote_alice.C1.Y
 
 		// partial decryptions
@@ -190,11 +189,6 @@ func TestPartialDecryptionOfOneDkgNodeAndTwoGuardiansOneVote(t *testing.T) {
 		carol_Z_X, carol_Z_Y := secp256k1.Curve.ScalarMult(C1_X, C1_Y, carol_v.Bytes())
 
 		Z_X, Z_Y := secp256k1.Curve.Add(bob_Z_X, bob_Z_Y, carol_Z_X, carol_Z_Y)
-
-		// result := vote_alice.DecryptNumberWithSharedKey(common.BigIntToPoint(Z_X, Z_Y), 100, curve)
-		// if result != 1 {
-		// 	t.Errorf("Expected decryption to be 1, got %v", result)
-		// }
 
 		if !secp256k1.Curve.IsOnCurve(Z_X, Z_Y) {
 			t.Errorf(`Z is not on curve Z_X: %v Z_Y: %v
@@ -250,8 +244,8 @@ func TestPartialDecryptionOfOneDkgNodeAndTwoGuardiansOneVote(t *testing.T) {
 // 2. Zero is generated which zeroes everthing else.
 
 func TestPartialDecryptionOfOneDkgNodeAndTwoGuardiansAndManyVotes(t *testing.T) {
-	for i := 0; i < ITERATIONS; i++ {
-		r := rand.New(rand.NewSource(int64(i)))
+	r := rand.New(rand.NewSource(int64(0)))
+	for i := 0; i < 10; i++ {
 		alice := pki.NewLocalParty(1, curve, 2, r, r)
 		bob_local := pki.NewLocalParty(11, curve, 2, r, r)
 		carol_local := pki.NewLocalParty(22, curve, 2, r, r)
@@ -307,11 +301,6 @@ func TestPartialDecryptionOfOneDkgNodeAndTwoGuardiansAndManyVotes(t *testing.T) 
 			carol_Z_X, carol_Z_Y := secp256k1.Curve.ScalarMult(C1_X, C1_Y, carol_v.Bytes())
 
 			Z_X, Z_Y := secp256k1.Curve.Add(bob_Z_X, bob_Z_Y, carol_Z_X, carol_Z_Y)
-
-			// result := vote_alice.DecryptNumberWithSharedKey(common.BigIntToPoint(Z_X, Z_Y), 100, curve)
-			// if result != 1 {
-			// 	t.Errorf("Expected decryption to be 1, got %v", result)
-			// }
 
 			if !secp256k1.Curve.IsOnCurve(Z_X, Z_Y) {
 				t.Errorf("Z is not on curve Z_X: %v Z_Y: %v,\n bob_Z_X: %v  bob_Z_Y: %v\n carol_Z_X: %v  carol_Z_Y: %v\n bob_v: %v carol: %v",

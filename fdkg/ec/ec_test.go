@@ -26,7 +26,7 @@ type Share struct {
 	Y *big.Int // y-coordinate of the share (f(x))
 }
 
-var curve = elliptic.P256()
+var curve = secp256k1.Curve
 
 // GenerateCoefficients generates random coefficients for the polynomial of degree 'degree'.
 func GenerateCoefficients(degree int, curve elliptic.Curve) []*big.Int {
@@ -129,14 +129,4 @@ func TestMain(t *testing.T) {
 	// Select any 'threshold' number of shares to recover the secret
 	recoveredSecret := RecoverSecret(shares[:threshold], curve)
 	fmt.Println("Recovered Secret:", recoveredSecret)
-}
-
-func TestEcParams(t *testing.T) {
-	if elliptic.P256().Params().P.Cmp(secp256k1.FieldOrder) != 0 {
-		t.Errorf("P256 curve params are not equal to secp256k1")
-	}
-	if elliptic.P256().Params().N.Cmp(secp256k1.GeneratorOrder) != 0 {
-		t.Errorf("P256 curve params are not equal to secp256k1")
-	}
-
 }

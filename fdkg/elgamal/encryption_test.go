@@ -1,7 +1,6 @@
 package elgamal
 
 import (
-	"crypto/elliptic"
 	"fmt"
 	"math/rand"
 	"testing"
@@ -13,7 +12,7 @@ import (
 
 const ITERATIONS = 1000
 
-var curve = elliptic.P256()
+var curve = secp256k1.Curve
 
 func TestBooleanEncryption(t *testing.T) {
 	for i := 0; i < ITERATIONS; i++ {
