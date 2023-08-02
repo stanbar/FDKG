@@ -2,6 +2,7 @@ package main
 
 import (
 	"crypto/elliptic"
+	"math/big"
 	"math/rand"
 	"time"
 
@@ -9,6 +10,7 @@ import (
 	"github.com/delendum-xyz/private-voting/fdkg/elgamal"
 	"github.com/delendum-xyz/private-voting/fdkg/pki"
 	"github.com/delendum-xyz/private-voting/fdkg/sss"
+	"github.com/delendum-xyz/private-voting/fdkg/utils"
 	"github.com/torusresearch/pvss/secp256k1"
 )
 
@@ -24,7 +26,7 @@ func main() {
 	degree := 1 // shares to reconstruct is degree+1
 	n_trustedParties := 5
 
-	localNodes, dkgNodes := pki.GenerateSetOfNodes(n, n_dkg, n_trustedParties, degree, curve, r, r)
+	localNodes, dkgNodes := pki.GenerateSetOfNodes(n, n_dkg, n_trustedParties, degree, curve, r)
 
 	// generate shares for each node
 	partyIndexToShares := make(map[int][]sss.Share)
@@ -36,13 +38,14 @@ func main() {
 	}
 	encryptionKey := VotingPublicKey(dkgNodes)
 
-	votingNodes := sampleRandom(localNodes, n_vote)
-	votes := voting(votingNodes, encryptionKey, curve, r)
+	votingNodes := SampleRandom(localNodes, n_vote)
+	votes := Voting(votingNodes, encryptionKey, curve, r)
 
-	onlineTally(votes, dkgNodes, partyIndexToShares, curve, n_vote)
+	OnlineTally(votes, dkgNodes, partyIndexToShares, curve, n_vote)
+	// results := OfflineTally(votes, dkgNodes, partyIndexToShares, curve, n_vote)
 }
 
-func sampleRandom[T interface{}](nodes []T, n int) []T {
+func SampleRandom[T interface{}](nodes []T, n int) []T {
 	tempNodes := make([]T, len(nodes))
 	copy(tempNodes, nodes)
 	rand.Shuffle(len(nodes), func(i, j int) { tempNodes[i], tempNodes[j] = tempNodes[j], tempNodes[i] })
@@ -60,13 +63,10 @@ func VotingPublicKey(dkgNodes []pki.DkgParty) common.Point {
 	return common.BigIntToPoint(&sum.X, &sum.Y)
 }
 
-func voting(nodes []pki.LocalParty, encryptionKey common.Point, curve elliptic.Curve, r *rand.Rand) []elgamal.EncryptedBallot {
-	votes := make([]elgamal.EncryptedBallot, len(nodes))
-	for index, node := range nodes {
-		encryptedBallot := node.EncryptedBallot(encryptionKey, curve, r)
-		votes[index] = encryptedBallot
-	}
-	return votes
+func Voting(nodes []pki.LocalParty, encryptionKey common.Point, curve elliptic.Curve, r *rand.Rand) []elgamal.EncryptedBallot {
+	return utils.Map(nodes, func(node pki.LocalParty) elgamal.EncryptedBallot {
+		return node.EncryptedBallot(encryptionKey, curve, r)
+	})
 }
 
 type PartialDecryption struct {
@@ -74,6 +74,9 @@ type PartialDecryption struct {
 	Value common.Point
 }
 
-func onlineTally(votes []elgamal.EncryptedBallot, tallyingParties []pki.DkgParty, partyIndexToShares map[int][]sss.Share, curve elliptic.Curve, n_vote int) {
-
+func OnlineTally(votes []elgamal.EncryptedBallot, tallyingParties []pki.DkgParty, partyIndexToShares map[int][]sss.Share, curve elliptic.Curve, n_vote int) {
+	C1_X, C1_Y := big.NewInt(0), big.NewInt(0)
+	for _, vote := range votes {
+		C1_X, C1_Y = secp256k1.Curve.Add(&vote.C1.X, &vote.C1.Y, C1_X, C1_Y)
+	}
 }

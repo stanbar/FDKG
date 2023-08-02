@@ -60,7 +60,7 @@ func NewLocalParty(index int, curve elliptic.Curve, threshold int, r *rand.Rand)
 		PrivateKey:         privateKey,
 		VotingPrivKeyShare: votingPrivKeyShare,
 		Polynomial:         polynomial,
-		vote:               index%2 == 0,
+		vote:               index%2 == 1,
 	}
 }
 

@@ -16,6 +16,14 @@ func Map[T, U interface{}](arr []T, f func(T) U) []U {
 	return result
 }
 
+func Sum[T interface{}](arr []T, f func(T, T) T) T {
+	result := arr[0]
+	for _, v := range arr[1:] {
+		result = f(result, v)
+	}
+	return result
+}
+
 func RandomBigIntOld(prime big.Int, r *rand.Rand) big.Int {
 	if prime.Cmp(big.NewInt(1)) <= 0 {
 		panic(fmt.Sprintf("prime must be greater than 1, got %v", prime))

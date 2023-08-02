@@ -170,3 +170,46 @@ func estimate3(shares []common.PrimaryShare, targetX int, curve elliptic.Curve) 
 	est.Mod(est, curve.Params().N)
 	return est
 }
+
+func TestCommutingTwoSecrets(t *testing.T) {
+	// y = x^2 + 2x + 1
+	// x-0, y=1
+	// x=1, y=4
+	// x=2, y=9
+	// x=3, y=16
+	// x=4, y=25
+	alice_secret := big.NewInt(int64(1))
+	alice_shares := []common.PrimaryShare{
+		{Index: 3, Value: *big.NewInt(16)},
+		{Index: 1, Value: *big.NewInt(4)},
+		{Index: 2, Value: *big.NewInt(9)},
+	}
+
+	// y = x^2 + 2x + 3
+	// x=0, y=3
+	// x=1, y=6
+	// x=2, y=11
+	// x=3, y=18
+	// x=4, y=27
+	bob_secret := big.NewInt(int64(3))
+	bob_shares := []common.PrimaryShare{
+		{Index: 3, Value: *big.NewInt(27)},
+		{Index: 1, Value: *big.NewInt(6)},
+		{Index: 2, Value: *big.NewInt(11)},
+	}
+
+	targetX := 0
+
+	alice_interpolated_secret := InterpolateWithSeparateCoefficients(targetX, alice_shares, curve)
+	fmt.Printf("InterpolateWithSeparateCoefficients at f(%v)=%v\n", targetX, alice_interpolated_secret)
+	if alice_interpolated_secret.Cmp(alice_secret) != 0 {
+		t.Errorf("Expected interpolated %v, got %v", alice_secret, alice_interpolated_secret)
+	}
+
+	bob_interpolated_secret := InterpolateWithSeparateCoefficients(targetX, bob_shares, curve)
+	fmt.Printf("InterpolateWithSeparateCoefficients at f(%v)=%v\n", targetX, bob_interpolated_secret)
+	if bob_interpolated_secret.Cmp(bob_secret) != 0 {
+		t.Errorf("Expected interpolated %v, got %v", bob_secret, bob_interpolated_secret)
+	}
+
+}

@@ -177,15 +177,12 @@ func TestPartialDecryptionOfTwoDkgNodesAndThreeGuardiansAndOneVote(t *testing.T)
 
 		carol_sharesValues := utils.Map(carolShares, func(s common.PrimaryShare) big.Int { return s.Value })
 		carol_votingPrivKeyShare := utils.Sum(carol_sharesValues, func(s1, s2 big.Int) big.Int { return *s1.Add(&s1, &s2) })
-		carol_votingPrivKeyShare.Mod(&carol_votingPrivKeyShare, curve.N)
 
 		dave_sharesValues := utils.Map(daveShares, func(s common.PrimaryShare) big.Int { return s.Value })
 		dave_votingPrivKeyShare := utils.Sum(dave_sharesValues, func(s1, s2 big.Int) big.Int { return *s1.Add(&s1, &s2) })
-		dave_votingPrivKeyShare.Mod(&dave_votingPrivKeyShare, curve.N)
 
 		eve_sharesValues := utils.Map(eveShares, func(s common.PrimaryShare) big.Int { return s.Value })
 		eve_votingPrivKeyShare := utils.Sum(eve_sharesValues, func(s1, s2 big.Int) big.Int { return *s1.Add(&s1, &s2) })
-		eve_votingPrivKeyShare.Mod(&eve_votingPrivKeyShare, curve.N)
 
 		// voting
 
@@ -204,13 +201,13 @@ func TestPartialDecryptionOfTwoDkgNodesAndThreeGuardiansAndOneVote(t *testing.T)
 
 		// offline tally
 
-		carol_lagrange := sss.LagrangeCoefficientsStartFromOne(0, 0, []int{11, 22, 33}, curve)
+		carol_lagrange := sss.LagrangeCoefficientsStartFromOne(0, 0, []int{11, 22}, curve)
 		Z_carol := common.BigIntToPoint(secp256k1.Curve.ScalarMult(&A_carol.X, &A_carol.Y, carol_lagrange.Bytes()))
 
 		dave_lagrange := sss.LagrangeCoefficientsStartFromOne(1, 0, []int{11, 22, 33}, curve)
 		Z_dave := common.BigIntToPoint(secp256k1.Curve.ScalarMult(&A_dave.X, &A_dave.Y, dave_lagrange.Bytes()))
 
-		eve_lagrange := sss.LagrangeCoefficientsStartFromOne(2, 0, []int{11, 22, 33}, curve)
+		eve_lagrange := sss.LagrangeCoefficientsStartFromOne(1, 0, []int{22, 33}, curve)
 		Z_eve := common.BigIntToPoint(secp256k1.Curve.ScalarMult(&A_eve.X, &A_eve.Y, eve_lagrange.Bytes()))
 
 		Z := utils.Sum([]common.Point{Z_carol, Z_dave, Z_eve}, func(p1, p2 common.Point) common.Point {
@@ -279,80 +276,75 @@ func TestPartialDecryptionOfOneDkgNodeAndTwoGuardiansOneVote(t *testing.T) {
 		}
 		alicePrimaryShares := utils.Map(aliceShares, func(s sss.Share) common.PrimaryShare { return s.ToPrimaryShare() })
 
-		votingPubKey := VotingPublicKey([]pki.DkgParty{aliceDkg})
+		publicKeys := utils.Map([]pki.DkgParty{aliceDkg}, func(d pki.DkgParty) common.Point { return d.VotingPublicKey })
+		votingPubKey := utils.Sum(publicKeys, func(p1, p2 common.Point) common.Point {
+			return common.BigIntToPoint(curve.Add(&p1.X, &p1.Y, &p2.X, &p2.Y))
+		})
+
 		if votingPubKey.X.Cmp(&alice.VotingPublicKey.X) != 0 || votingPubKey.Y.Cmp(&alice.VotingPublicKey.Y) != 0 {
 			t.Errorf("Voting public key should be just alice voting public key as she is the only one in the DKG")
 		}
-		share_bob := alicePrimaryShares[0].Value
-		share_carol := alicePrimaryShares[1].Value
+
 		// Bob and Carol should have different shares
 		if alicePrimaryShares[0].Index-alicePrimaryShares[1].Index == 0 {
 			t.Errorf("First and second indexes should be different %v != %v", alicePrimaryShares[0].Index, alicePrimaryShares[1].Index)
 		}
-		if share_bob.Cmp(&share_carol) == 0 {
-			t.Errorf("Bob share should be different than Carol share %v != %v", share_bob, share_carol)
+
+		bob_votingPrivKeyShare := alicePrimaryShares[0].Value
+		carol_votingPrivKeyShare := alicePrimaryShares[1].Value
+
+		if bob_votingPrivKeyShare.Cmp(&carol_votingPrivKeyShare) == 0 {
+			t.Errorf("Bob share should be different than Carol share %v != %v", bob_votingPrivKeyShare, carol_votingPrivKeyShare)
 		}
-		vote_alice := elgamal.EncryptBoolean(true, votingPubKey, curve, r)
+
+		// voting
+		votes := Voting([]pki.LocalParty{alice}, votingPubKey, curve, r)
+		C1s := utils.Map(votes, func(vote elgamal.EncryptedBallot) common.Point { return vote.C1 })
+
+		// online tally
+		C1 := utils.Sum(C1s, func(p1, p2 common.Point) common.Point {
+			return common.BigIntToPoint(secp256k1.Curve.Add(&p1.X, &p1.Y, &p2.X, &p2.Y))
+		})
+
+		A_bob := common.BigIntToPoint(secp256k1.Curve.ScalarMult(&C1.X, &C1.Y, bob_votingPrivKeyShare.Bytes()))
+		A_carol := common.BigIntToPoint(secp256k1.Curve.ScalarMult(&C1.X, &C1.Y, carol_votingPrivKeyShare.Bytes()))
+
+		// offline tally
 
 		bob_lagrange := sss.LagrangeCoefficientsStartFromOne(0, 0, []int{11, 22}, curve)
-		bob_v := bob_lagrange.Mul(bob_lagrange, &share_bob)
-		bob_v = bob_lagrange.Mod(bob_v, curve.Params().N)
+		Z_bob := common.BigIntToPoint(secp256k1.Curve.ScalarMult(&A_bob.X, &A_bob.Y, bob_lagrange.Bytes()))
 
 		carol_lagrange := sss.LagrangeCoefficientsStartFromOne(1, 0, []int{11, 22}, curve)
-		carol_v := carol_lagrange.Mul(carol_lagrange, &share_carol)
-		carol_v = carol_lagrange.Mod(carol_v, curve.Params().N)
+		Z_carol := common.BigIntToPoint(secp256k1.Curve.ScalarMult(&A_carol.X, &A_carol.Y, carol_lagrange.Bytes()))
 
-		// sum votes
-		C1_X, C1_Y := &vote_alice.C1.X, &vote_alice.C1.Y
+		Z := utils.Sum([]common.Point{Z_bob, Z_carol}, func(p1, p2 common.Point) common.Point {
+			return common.BigIntToPoint(curve.Add(&p1.X, &p1.Y, &p2.X, &p2.Y))
+		})
 
-		// partial decryptions
-		bob_Z_X, bob_Z_Y := secp256k1.Curve.ScalarMult(C1_X, C1_Y, bob_v.Bytes())
-		carol_Z_X, carol_Z_Y := secp256k1.Curve.ScalarMult(C1_X, C1_Y, carol_v.Bytes())
-
-		Z_X, Z_Y := secp256k1.Curve.Add(bob_Z_X, bob_Z_Y, carol_Z_X, carol_Z_Y)
-
-		if !secp256k1.Curve.IsOnCurve(Z_X, Z_Y) {
-			t.Errorf(`Z is not on curve Z_X: %v Z_Y: %v
-			bob_Z_X: %v  bob_Z_Y: %v 
-			carol_Z_X: %v  carol_Z_Y: %v
-			bob_v: %v carol: %v`, Z_X, Z_Y,
-				bob_Z_X, bob_Z_Y, carol_Z_X, carol_Z_Y, bob_v.String()[:5], carol_v.String()[:5])
-			panic("Z is not on curve, X: " + Z_X.String() + " Y: " + Z_Y.String())
+		if !curve.IsOnCurve(&Z.X, &Z.Y) {
+			t.Errorf("Z is not on curve Z_X: %v Z_Y: %v", Z.X, Z.Y)
+			panic("Z is not on curve")
 		}
 
-		expectedZ_X, expectedZ_Y := secp256k1.Curve.ScalarMult(C1_X, C1_Y, bob_v.Add(bob_v, carol_v).Bytes())
-		if expectedZ_X.Cmp(Z_X) != 0 || expectedZ_Y.Cmp(Z_Y) != 0 {
-			t.Errorf("Expected (%v,%v) got (%v,%v)", expectedZ_X, expectedZ_Y, Z_X, Z_Y)
-		}
+		C2s := utils.Map(votes, func(vote elgamal.EncryptedBallot) common.Point { return vote.C2 })
+		C2 := utils.Sum(C2s, func(p1, p2 common.Point) common.Point {
+			return common.BigIntToPoint(curve.Add(&p1.X, &p1.Y, &p2.X, &p2.Y))
+		})
 
-		// sum votes
-		C2_X, C2_Y := &vote_alice.C2.X, &vote_alice.C2.Y
-
-		negZ_Y := new(big.Int).Neg(Z_Y)
+		negZ_Y := new(big.Int).Neg(&Z.Y)
 		negZ_Y.Mod(negZ_Y, curve.Params().P)
+		negZ := common.BigIntToPoint(&Z.X, negZ_Y)
 
-		negZ := common.BigIntToPoint(Z_X, negZ_Y)
-		if Z_X.Cmp(&negZ.X) != 0 {
-			t.Errorf("negZ.X != Z.X")
-		}
-		if !secp256k1.Curve.IsOnCurve(Z_X, Z_Y) {
-			panic("Z is not on curve, X: " + Z_X.String() + " Y: " + Z_Y.String())
-		}
-		if !secp256k1.Curve.IsOnCurve(&negZ.X, &negZ.Y) {
-			fmt.Printf("Z is on curve (%v,%v)\n", Z_X, Z_Y)
-			panic(fmt.Sprintf("negZ is not on curve, %v, %v", &negZ.X, &negZ.Y))
-		}
-
-		mHX, mHY := secp256k1.Curve.Add(C2_X, C2_Y, &negZ.X, &negZ.Y)
+		M := common.BigIntToPoint(curve.Add(&C2.X, &C2.Y, &negZ.X, &negZ.Y))
 
 		m := big.NewInt(0)
-		if mHX.Cmp(&elgamal.H.X) == 0 && mHY.Cmp(&elgamal.H.Y) == 0 {
+		if M.X.Cmp(&elgamal.H.X) == 0 && M.Y.Cmp(&elgamal.H.Y) == 0 {
 			m = big.NewInt(1)
-		} else if mHX.Cmp(big.NewInt(0)) != 0 || mHY.Cmp(big.NewInt(0)) != 0 {
+		} else if M.X.Cmp(big.NewInt(0)) != 0 || M.Y.Cmp(big.NewInt(0)) != 0 {
 			panic("m*H is neither 0 nor H")
 		}
 		testMHX, testMHY := secp256k1.Curve.ScalarMult(&elgamal.H.X, &elgamal.H.Y, m.Bytes())
-		if testMHX.Cmp(mHX) != 0 || testMHY.Cmp(mHY) != 0 {
+		if testMHX.Cmp(&M.X) != 0 || testMHY.Cmp(&M.Y) != 0 {
 			panic("m*H != B - (k_i * E)")
 		} else {
 			fmt.Printf("m is %v\n", m)
@@ -405,11 +397,9 @@ func TestPartialDecryptionOfOneDkgNodeAndTwoGuardiansAndManyVotes(t *testing.T) 
 
 			bob_lagrange := sss.LagrangeCoefficientsStartFromOne(0, 0, []int{11, 22}, curve)
 			bob_v := bob_lagrange.Mul(bob_lagrange, &share_bob)
-			bob_v = bob_lagrange.Mod(bob_v, curve.Params().N)
 
 			carol_lagrange := sss.LagrangeCoefficientsStartFromOne(1, 0, []int{11, 22}, curve)
 			carol_v := carol_lagrange.Mul(carol_lagrange, &share_carol)
-			carol_v = carol_lagrange.Mod(carol_v, curve.Params().N)
 
 			// sum votes
 			C1_X, C1_Y := big.NewInt(0), big.NewInt(0)
@@ -471,33 +461,6 @@ func TestPartialDecryptionOfOneDkgNodeAndTwoGuardiansAndManyVotes(t *testing.T) 
 				fmt.Printf("m is %v\n", x)
 			}
 		}
-	}
-}
-
-func TestPartialDecryptionOfTwoDkgNodesAndThreeGuardian(t *testing.T) {
-	for i := 0; i < ITERATIONS; i++ {
-		r := rand.New(rand.NewSource(int64(i)))
-		alice := pki.NewLocalParty(1, curve, 2, r)
-		bob := pki.NewLocalParty(2, curve, 2, r)
-		carol := pki.NewLocalParty(11, curve, 2, r).PublicParty
-		dave := pki.NewLocalParty(22, curve, 2, r).PublicParty
-		eve := pki.NewLocalParty(33, curve, 2, r).PublicParty
-		aliceDkg := alice.ToDkgParty([]pki.PublicParty{carol, dave, eve})
-		bobDkg := bob.ToDkgParty([]pki.PublicParty{carol, dave, eve})
-
-		aliceShares := aliceDkg.GenerateShares()
-		bobShares := bobDkg.GenerateShares()
-		alicePrimeShares := utils.Map(aliceShares, func(s sss.Share) common.PrimaryShare { return s.ToPrimaryShare() })
-		bobPrimeShares := utils.Map(bobShares, func(s sss.Share) common.PrimaryShare { return s.ToPrimaryShare() })
-		fmt.Printf("Alice shares %v\n", utils.Map(alicePrimeShares, func(share common.PrimaryShare) int { return share.Index }))
-		fmt.Printf("Bob shares %v\n", utils.Map(bobPrimeShares, func(share common.PrimaryShare) int { return share.Index }))
-
-		carolShares := []common.PrimaryShare{alicePrimeShares[0], bobPrimeShares[0]}
-		daveShares := []common.PrimaryShare{alicePrimeShares[1], bobPrimeShares[1]}
-		eveShares := []common.PrimaryShare{alicePrimeShares[2], bobPrimeShares[2]}
-		fmt.Printf("Carol shares %v\n", utils.Map(carolShares, func(share common.PrimaryShare) int { return share.Index }))
-		fmt.Printf("Dave shares %v\n", utils.Map(daveShares, func(share common.PrimaryShare) int { return share.Index }))
-		fmt.Printf("Eve shares %v\n", utils.Map(eveShares, func(share common.PrimaryShare) int { return share.Index }))
 	}
 }
 
