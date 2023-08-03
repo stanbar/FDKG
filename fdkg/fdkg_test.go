@@ -171,6 +171,17 @@ func TestPartialDecryptionOfTwoDkgNodesAndThreeGuardiansAndOneVote(t *testing.T)
 			t.Errorf("Voting public key should not be just alice voting public key as she is the only one in the DKG")
 		}
 
+		// voting
+
+		votes := Voting([]pki.LocalParty{alice, bob, carol_local, dave_local, eve_local}, votingPubKey, curve, r)
+
+		C1s := utils.Map(votes, func(vote elgamal.EncryptedBallot) common.Point { return vote.C1 })
+
+		// online tally
+		C1 := utils.Sum(C1s, func(p1, p2 common.Point) common.Point {
+			return common.BigIntToPoint(curve.Add(&p1.X, &p1.Y, &p2.X, &p2.Y))
+		})
+
 		carolShares := []common.PrimaryShare{aliceShares[0].ProductOfShareAndCoefficient()}
 		daveShares := []common.PrimaryShare{aliceShares[1].ProductOfShareAndCoefficient(), bobShares[0].ProductOfShareAndCoefficient()}
 		eveShares := []common.PrimaryShare{bobShares[1].ProductOfShareAndCoefficient()}
@@ -183,17 +194,6 @@ func TestPartialDecryptionOfTwoDkgNodesAndThreeGuardiansAndOneVote(t *testing.T)
 
 		eve_sharesValues := utils.Map(eveShares, func(s common.PrimaryShare) big.Int { return s.Value })
 		eve_votingPrivKeyShare := utils.Sum(eve_sharesValues, func(s1, s2 big.Int) big.Int { return *s1.Add(&s1, &s2) })
-
-		// voting
-
-		votes := Voting([]pki.LocalParty{alice, bob, carol_local, dave_local, eve_local}, votingPubKey, curve, r)
-
-		C1s := utils.Map(votes, func(vote elgamal.EncryptedBallot) common.Point { return vote.C1 })
-
-		// online tally
-		C1 := utils.Sum(C1s, func(p1, p2 common.Point) common.Point {
-			return common.BigIntToPoint(curve.Add(&p1.X, &p1.Y, &p2.X, &p2.Y))
-		})
 
 		A_carol := common.BigIntToPoint(curve.ScalarMult(&C1.X, &C1.Y, carol_votingPrivKeyShare.Bytes()))
 		A_dave := common.BigIntToPoint(curve.ScalarMult(&C1.X, &C1.Y, dave_votingPrivKeyShare.Bytes()))
