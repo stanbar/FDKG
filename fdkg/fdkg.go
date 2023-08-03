@@ -28,8 +28,9 @@ func main() {
 
 	degree := 1 // shares to reconstruct is degree+1
 	n_trustedParties := 5
+	options := 5
 
-	localNodes, dkgNodes := pki.GenerateSetOfNodes(n, n_dkg, n_trustedParties, degree, curve, r)
+	localNodes, dkgNodes := pki.GenerateSetOfNodes(n, options, n_dkg, n_trustedParties, degree, curve, r)
 
 	// generate shares for each node
 	partyIndexToShares := make(map[int][]sss.Share)
@@ -47,14 +48,6 @@ func main() {
 	partialDecryptions := OnlineTally(votes, partyIndexToShares, curve)
 	results := OfflineTally(votes, partialDecryptions, curve)
 	fmt.Printf("Results: %v\n", results)
-}
-
-func SampleRandom[T interface{}](nodes []T, n int) []T {
-	tempNodes := make([]T, len(nodes))
-	copy(tempNodes, nodes)
-	rand.Shuffle(len(nodes), func(i, j int) { tempNodes[i], tempNodes[j] = tempNodes[j], tempNodes[i] })
-	sampleNodes := tempNodes[:n]
-	return sampleNodes
 }
 
 func VotingPublicKey(dkgNodes []pki.DkgParty) common.Point {

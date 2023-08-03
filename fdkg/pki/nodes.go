@@ -19,7 +19,7 @@ type LocalParty struct {
 	PrivateKey         big.Int
 	VotingPrivKeyShare big.Int
 	Polynomial         polynomial.Polynomial
-	vote               bool
+	vote               int
 }
 
 type PublicParty struct {
@@ -33,7 +33,7 @@ type DkgParty struct {
 	TrustedParties []PublicParty
 }
 
-func NewLocalParty(index int, curve elliptic.Curve, threshold int, r *rand.Rand) LocalParty {
+func NewLocalParty(index int, options int, curve elliptic.Curve, threshold int, r *rand.Rand) LocalParty {
 	if index < 1 {
 		panic("index must be greater than 0")
 	}
@@ -60,13 +60,13 @@ func NewLocalParty(index int, curve elliptic.Curve, threshold int, r *rand.Rand)
 		PrivateKey:         privateKey,
 		VotingPrivKeyShare: votingPrivKeyShare,
 		Polynomial:         polynomial,
-		vote:               index%2 == 1,
+		vote:               index % options,
 	}
 }
 
 func (p LocalParty) EncryptedBallot(encryptionKey common.Point, curve elliptic.Curve, r *rand.Rand) elgamal.EncryptedBallot {
 	fmt.Printf("Party_%d voting %v\n", p.Index, p.vote)
-	return elgamal.EncryptBoolean(p.vote, encryptionKey, curve, r)
+	return elgamal.EncryptBoolean(p.vote%2 == 0, encryptionKey, curve, r)
 }
 
 func (p DkgParty) GenerateShares() []sss.Share {
@@ -103,21 +103,21 @@ func randomTrustedParties(p LocalParty, publicNodes []PublicParty, threshold int
 	return trustedParties
 }
 
-func createRandomNodes(count int, curve elliptic.Curve, degree int, r *rand.Rand) []LocalParty {
+func createRandomNodes(count int, options int, curve elliptic.Curve, degree int, r *rand.Rand) []LocalParty {
 	if degree >= count {
 		panic("degree must be less than count otherwise it's impossible to reconstruct the secret.")
 	}
 	nodes := make([]LocalParty, count)
 	for i := range nodes {
-		newNode := NewLocalParty(i+1, curve, degree, r)
+		newNode := NewLocalParty(i+1, options, curve, degree, r)
 		nodes[i] = newNode
 		fmt.Printf("Party_%d voted %v of polynomial %v\n", newNode.Index, newNode.vote, newNode.Polynomial.String())
 	}
 	return nodes
 }
 
-func GenerateSetOfNodes(n int, n_dkg int, n_trustedParties int, degree int, curve elliptic.Curve, r *rand.Rand) ([]LocalParty, []DkgParty) {
-	localNodes := createRandomNodes(n, curve, degree, r)
+func GenerateSetOfNodes(n int, options int, n_dkg int, n_trustedParties int, degree int, curve elliptic.Curve, r *rand.Rand) ([]LocalParty, []DkgParty) {
+	localNodes := createRandomNodes(n, options, curve, degree, r)
 
 	publicNodes := make([]PublicParty, n)
 	for i := range localNodes {

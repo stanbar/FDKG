@@ -82,3 +82,44 @@ func TestAdditiveHomomorphism(t *testing.T) {
 		}
 	}
 }
+
+func TestEnumEncryption(t *testing.T) {
+	for i := 0; i < ITERATIONS; i++ {
+		r := rand.New(rand.NewSource(int64(i)))
+
+		bPrivKey := utils.RandomBigInt(curve, r)
+		fmt.Printf("bPrivKey: %v\n", bPrivKey)
+		bPubKey := common.BigIntToPoint(secp256k1.Curve.ScalarBaseMult(bPrivKey.Bytes()))
+		if secp256k1.Curve.IsOnCurve(&bPubKey.X, &bPubKey.Y) == false {
+			t.Errorf("bPubKey is not on curve")
+		}
+
+		clearText := 0
+		ciphertext := EncryptEnum(clearText, bPubKey, curve, r)
+		x0, x1, x2, x3 := ciphertext.DecryptEnum(bPrivKey, 1, curve)
+		if x0 != 1 || x1 != 0 || x2 != 0 || x3 != 0 {
+			t.Errorf("deciphered != clearText, %v %v %v %v\n", x0, x1, x2, x3)
+		}
+
+		clearText = 1
+		ciphertext = EncryptEnum(clearText, bPubKey, curve, r)
+		x0, x1, x2, x3 = ciphertext.DecryptEnum(bPrivKey, 1, curve)
+		if x0 != 0 || x1 != 1 || x2 != 0 || x3 != 0 {
+			t.Errorf("deciphered != clearText, %v %v %v %v\n", x0, x1, x2, x3)
+		}
+
+		clearText = 2
+		ciphertext = EncryptEnum(clearText, bPubKey, curve, r)
+		x0, x1, x2, x3 = ciphertext.DecryptEnum(bPrivKey, 1, curve)
+		if x0 != 0 || x1 != 0 || x2 != 1 || x3 != 0 {
+			t.Errorf("deciphered != clearText, %v %v %v %v\n", x0, x1, x2, x3)
+		}
+
+		clearText = 3
+		ciphertext = EncryptEnum(clearText, bPubKey, curve, r)
+		x0, x1, x2, x3 = ciphertext.DecryptEnum(bPrivKey, 1, curve)
+		if x0 != 0 || x1 != 0 || x2 != 0 || x3 != 1 {
+			t.Errorf("deciphered != clearText, %v %v %v %v\n", x0, x1, x2, x3)
+		}
+	}
+}
