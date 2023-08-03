@@ -152,14 +152,14 @@ func TestPartialDecryptionOfTwoDkgNodesAndThreeGuardiansAndOneVote(t *testing.T)
 
 		aliceTrustedParties := []pki.PublicParty{carol, dave}
 		aliceDkg := alice.ToDkgParty(aliceTrustedParties)
-		aliceShares := utils.Map(aliceDkg.GenerateShares(), func(s sss.Share) common.PrimaryShare { return s.ToPrimaryShare() })
+		aliceShares := aliceDkg.GenerateShares()
 		if len(aliceShares) != len(aliceTrustedParties) {
 			t.Errorf("Alice should generate the same number of shares as trusted parties")
 		}
 
 		bobTrustedParties := []pki.PublicParty{dave, eve}
 		bobDkg := bob.ToDkgParty(bobTrustedParties)
-		bobShares := utils.Map(bobDkg.GenerateShares(), func(s sss.Share) common.PrimaryShare { return s.ToPrimaryShare() })
+		bobShares := bobDkg.GenerateShares()
 		if len(bobShares) != len(bobTrustedParties) {
 			t.Errorf("Alice should generate the same number of shares as trusted parties")
 		}
@@ -171,9 +171,9 @@ func TestPartialDecryptionOfTwoDkgNodesAndThreeGuardiansAndOneVote(t *testing.T)
 			t.Errorf("Voting public key should not be just alice voting public key as she is the only one in the DKG")
 		}
 
-		carolShares := []common.PrimaryShare{aliceShares[0]}
-		daveShares := []common.PrimaryShare{aliceShares[1], bobShares[0]}
-		eveShares := []common.PrimaryShare{bobShares[1]}
+		carolShares := []common.PrimaryShare{aliceShares[0].ProductOfShareAndCoefficient()}
+		daveShares := []common.PrimaryShare{aliceShares[1].ProductOfShareAndCoefficient(), bobShares[0].ProductOfShareAndCoefficient()}
+		eveShares := []common.PrimaryShare{bobShares[1].ProductOfShareAndCoefficient()}
 
 		carol_sharesValues := utils.Map(carolShares, func(s common.PrimaryShare) big.Int { return s.Value })
 		carol_votingPrivKeyShare := utils.Sum(carol_sharesValues, func(s1, s2 big.Int) big.Int { return *s1.Add(&s1, &s2) })
@@ -201,16 +201,7 @@ func TestPartialDecryptionOfTwoDkgNodesAndThreeGuardiansAndOneVote(t *testing.T)
 
 		// offline tally
 
-		carol_lagrange := sss.LagrangeCoefficientsStartFromOne(0, 0, []int{11, 22}, curve)
-		Z_carol := common.BigIntToPoint(secp256k1.Curve.ScalarMult(&A_carol.X, &A_carol.Y, carol_lagrange.Bytes()))
-
-		dave_lagrange := sss.LagrangeCoefficientsStartFromOne(1, 0, []int{11, 22, 33}, curve)
-		Z_dave := common.BigIntToPoint(secp256k1.Curve.ScalarMult(&A_dave.X, &A_dave.Y, dave_lagrange.Bytes()))
-
-		eve_lagrange := sss.LagrangeCoefficientsStartFromOne(1, 0, []int{22, 33}, curve)
-		Z_eve := common.BigIntToPoint(secp256k1.Curve.ScalarMult(&A_eve.X, &A_eve.Y, eve_lagrange.Bytes()))
-
-		Z := utils.Sum([]common.Point{Z_carol, Z_dave, Z_eve}, func(p1, p2 common.Point) common.Point {
+		Z := utils.Sum([]common.Point{A_carol, A_dave, A_eve}, func(p1, p2 common.Point) common.Point {
 			return common.BigIntToPoint(curve.Add(&p1.X, &p1.Y, &p2.X, &p2.Y))
 		})
 

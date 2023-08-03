@@ -12,9 +12,10 @@ import (
 )
 
 type Share struct {
-	From  int
-	To    int
-	Value big.Int
+	From            int
+	To              int
+	Value           big.Int
+	BasisPolynomial big.Int
 }
 
 var curve = secp256k1.Curve
@@ -31,6 +32,13 @@ func (s Share) ToPrimaryShare() common.PrimaryShare {
 	}
 }
 
+func (s Share) ProductOfShareAndCoefficient() common.PrimaryShare {
+	return common.PrimaryShare{
+		Index: s.To,
+		Value: *s.Value.Mul(&s.Value, &s.BasisPolynomial).Mod(&s.Value, curve.Params().N),
+	}
+}
+
 func GenerateShares(p polynomial.Polynomial, from int, indices []int) []Share {
 	if len(indices) <= p.Degree() {
 		panic("not enough trusted parties (and so shares) to reconstruct the secret")
@@ -41,9 +49,10 @@ func GenerateShares(p polynomial.Polynomial, from int, indices []int) []Share {
 			panic("index must not be 0 because f(0) is the secret")
 		}
 		shares[i] = Share{
-			From:  from,
-			To:    index,
-			Value: p.Evaluate(index),
+			From:            from,
+			To:              index,
+			Value:           p.Evaluate(index),
+			BasisPolynomial: *LagrangeCoefficientsStartFromOneAbs(i, indices, curve),
 		}
 	}
 	return shares
