@@ -86,6 +86,25 @@ func EncryptEnum(x int, votingPublicKey common.Point, curve elliptic.Curve, r *r
 	return EncryptedBallot{C1: comm, C2: common.BigIntToPoint(secp256k1.Curve.Add(X, Y, &generator.X, &generator.Y))}
 }
 
+func EncryptXonY(x int, y int, votingPublicKey common.Point, curve elliptic.Curve, r *rand.Rand) EncryptedBallot {
+	// use the x-th generator
+	generator := []common.Point{
+		{X: H0.X, Y: H0.Y},
+		{X: H1.X, Y: H1.Y},
+		{X: H2.X, Y: H2.Y},
+		{X: H3.X, Y: H3.Y},
+	}[y]
+	blindingFactor := utils.RandomBigInt(curve, r)
+	comm := common.BigIntToPoint(secp256k1.Curve.ScalarBaseMult(blindingFactor.Bytes()))
+
+	// k_i * E
+	X, Y := secp256k1.Curve.ScalarMult(&votingPublicKey.X, &votingPublicKey.Y, blindingFactor.Bytes())
+
+	xH_X, xH_Y := secp256k1.Curve.ScalarMult(&generator.X, &generator.Y, big.NewInt(int64(x)).Bytes())
+	// (k_i * G, k_i * E + m * H)
+	return EncryptedBallot{C1: comm, C2: common.BigIntToPoint(secp256k1.Curve.Add(X, Y, xH_X, xH_Y))}
+}
+
 func ExhoustiveSearch(max_votes int, mHX *big.Int, mHY *big.Int, curve elliptic.Curve) (int, int, int, int) {
 	rounds := 0
 	for i := 0; i <= max_votes; i++ {

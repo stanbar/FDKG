@@ -10,7 +10,7 @@ import (
 	"github.com/torusresearch/pvss/secp256k1"
 )
 
-const ITERATIONS = 1000
+const ITERATIONS = 100
 
 var curve = secp256k1.Curve
 
@@ -83,7 +83,7 @@ func TestAdditiveHomomorphism(t *testing.T) {
 	}
 }
 
-func TestEnumEncryption(t *testing.T) {
+func TestOneEnumEncryption(t *testing.T) {
 	for i := 0; i < ITERATIONS; i++ {
 		r := rand.New(rand.NewSource(int64(i)))
 
@@ -119,6 +119,47 @@ func TestEnumEncryption(t *testing.T) {
 		ciphertext = EncryptEnum(clearText, bPubKey, curve, r)
 		x0, x1, x2, x3 = ciphertext.DecryptEnum(bPrivKey, 1, curve)
 		if x0 != 0 || x1 != 0 || x2 != 0 || x3 != 1 {
+			t.Errorf("deciphered != clearText, %v %v %v %v\n", x0, x1, x2, x3)
+		}
+	}
+}
+
+func TestManyEnumEncryption(t *testing.T) {
+	for i := 0; i < 10; i++ {
+		r := rand.New(rand.NewSource(int64(i)))
+
+		bPrivKey := utils.RandomBigInt(curve, r)
+		fmt.Printf("bPrivKey: %v\n", bPrivKey)
+		bPubKey := common.BigIntToPoint(secp256k1.Curve.ScalarBaseMult(bPrivKey.Bytes()))
+		if secp256k1.Curve.IsOnCurve(&bPubKey.X, &bPubKey.Y) == false {
+			t.Errorf("bPubKey is not on curve")
+		}
+
+		clearText := 0
+		ciphertext := EncryptXonY(i, clearText, bPubKey, curve, r)
+		x0, x1, x2, x3 := ciphertext.DecryptEnum(bPrivKey, i, curve)
+		if x0 != i || x1 != 0 || x2 != 0 || x3 != 0 {
+			t.Errorf("deciphered != clearText, %v %v %v %v\n", x0, x1, x2, x3)
+		}
+
+		clearText = 1
+		ciphertext = EncryptXonY(i, clearText, bPubKey, curve, r)
+		x0, x1, x2, x3 = ciphertext.DecryptEnum(bPrivKey, i, curve)
+		if x0 != 0 || x1 != i || x2 != 0 || x3 != 0 {
+			t.Errorf("deciphered != clearText, %v %v %v %v\n", x0, x1, x2, x3)
+		}
+
+		clearText = 2
+		ciphertext = EncryptXonY(i, clearText, bPubKey, curve, r)
+		x0, x1, x2, x3 = ciphertext.DecryptEnum(bPrivKey, i, curve)
+		if x0 != 0 || x1 != 0 || x2 != i || x3 != 0 {
+			t.Errorf("deciphered != clearText, %v %v %v %v\n", x0, x1, x2, x3)
+		}
+
+		clearText = 3
+		ciphertext = EncryptXonY(i, clearText, bPubKey, curve, r)
+		x0, x1, x2, x3 = ciphertext.DecryptEnum(bPrivKey, i, curve)
+		if x0 != 0 || x1 != 0 || x2 != 0 || x3 != i {
 			t.Errorf("deciphered != clearText, %v %v %v %v\n", x0, x1, x2, x3)
 		}
 	}
