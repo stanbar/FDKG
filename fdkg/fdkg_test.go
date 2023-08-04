@@ -17,15 +17,18 @@ import (
 const ITERATIONS = 1000
 
 func TestNewLocalParty(t *testing.T) {
+	config := common.VotingConfig{
+		Size:          6,
+		Options:       2,
+		Threshold:     2,
+		GuardiansSize: 3,
+	}
 	for i := 0; i < ITERATIONS; i++ {
 		r := rand.New(rand.NewSource(int64(i)))
-		n := 6
 		n_dkg := 6
-		degree := 1
-		n_trustedParties := 3
-		localNodes, dkgNodes := pki.GenerateSetOfNodes(n, n_dkg, n_trustedParties, degree, curve, r)
-		if len(localNodes) != n {
-			t.Errorf("Expected %d nodes, got %d", n, len(localNodes))
+		localNodes, dkgNodes := pki.GenerateSetOfNodes(config, n_dkg, curve, r)
+		if len(localNodes) != config.Size {
+			t.Errorf("Expected %d nodes, got %d", config.Size, len(localNodes))
 		}
 		for _, node := range localNodes {
 			if node.Index == 0 {
@@ -65,13 +68,16 @@ func TestNewLocalParty(t *testing.T) {
 }
 
 func TestCorrectSharingAndReconstruction(t *testing.T) {
+	config := common.VotingConfig{
+		Size:          6,
+		Options:       2,
+		Threshold:     2,
+		GuardiansSize: 3,
+	}
 	for i := 0; i < ITERATIONS; i++ {
 		r := rand.New(rand.NewSource(int64(i)))
-		n := 6
 		n_dkg := 6
-		degree := 1
-		n_trustedParties := 3
-		localNodes, dkgNodes := pki.GenerateSetOfNodes(n, n_dkg, n_trustedParties, degree, curve, r)
+		localNodes, dkgNodes := pki.GenerateSetOfNodes(config, n_dkg, curve, r)
 		// generate shares for each node
 		receiverToShares := make(map[int][]sss.Share)
 		senderToShares := make(map[int][]sss.Share)
@@ -102,11 +108,17 @@ func TestCorrectSharingAndReconstruction(t *testing.T) {
 // Failed cases 3, 14, 25, ... (i.e. 11k+3)
 func TestShamirSecretSharing(t *testing.T) {
 	r := rand.New(rand.NewSource(int64(0)))
+	config := common.VotingConfig{
+		Size:          4,
+		Options:       2,
+		Threshold:     2,
+		GuardiansSize: 3,
+	}
 	for i := 0; i < ITERATIONS; i++ {
-		node := pki.NewLocalParty(1, curve, 2, r)
-		node11 := pki.NewLocalParty(11, curve, 2, r).PublicParty
-		node22 := pki.NewLocalParty(22, curve, 2, r).PublicParty
-		node33 := pki.NewLocalParty(33, curve, 2, r).PublicParty
+		node := pki.NewLocalParty(1, config, curve, r)
+		node11 := pki.NewLocalParty(11, config, curve, r).PublicParty
+		node22 := pki.NewLocalParty(22, config, curve, r).PublicParty
+		node33 := pki.NewLocalParty(33, config, curve, r).PublicParty
 		nodeDkg := node.ToDkgParty([]pki.PublicParty{node11, node22, node33})
 		shares := nodeDkg.GenerateShares()
 		primeShares := utils.Map(shares, func(s sss.Share) common.PrimaryShare { return s.ToPrimaryShare() })
@@ -136,15 +148,20 @@ func TestTransitivity(t *testing.T) {
 	}
 }
 
-// the issue is with the randomness used within Alice.
 func TestPartialDecryptionOfTwoDkgNodesAndThreeGuardiansAndOneVote(t *testing.T) {
 	r := rand.New(rand.NewSource(int64(0)))
+	config := common.VotingConfig{
+		Size:          5,
+		Options:       2,
+		Threshold:     2,
+		GuardiansSize: 2,
+	}
 	for i := 0; i < ITERATIONS; i++ {
-		alice := pki.NewLocalParty(1, curve, 2, r)
-		bob := pki.NewLocalParty(2, curve, 2, r)
-		carol_local := pki.NewLocalParty(11, curve, 2, r)
-		dave_local := pki.NewLocalParty(22, curve, 2, r)
-		eve_local := pki.NewLocalParty(33, curve, 2, r)
+		alice := pki.NewLocalParty(1, config, curve, r)
+		bob := pki.NewLocalParty(2, config, curve, r)
+		carol_local := pki.NewLocalParty(11, config, curve, r)
+		dave_local := pki.NewLocalParty(22, config, curve, r)
+		eve_local := pki.NewLocalParty(33, config, curve, r)
 
 		carol := carol_local.PublicParty
 		dave := dave_local.PublicParty
@@ -172,9 +189,7 @@ func TestPartialDecryptionOfTwoDkgNodesAndThreeGuardiansAndOneVote(t *testing.T)
 		}
 
 		// voting
-
 		votes := Voting([]pki.LocalParty{alice, bob, carol_local, dave_local, eve_local}, votingPubKey, curve, r)
-
 		C1s := utils.Map(votes, func(vote elgamal.EncryptedBallot) common.Point { return vote.C1 })
 
 		// online tally
@@ -200,7 +215,6 @@ func TestPartialDecryptionOfTwoDkgNodesAndThreeGuardiansAndOneVote(t *testing.T)
 		A_eve := common.BigIntToPoint(curve.ScalarMult(&C1.X, &C1.Y, eve_votingPrivKeyShare.Bytes()))
 
 		// offline tally
-
 		Z := utils.Sum([]common.Point{A_carol, A_dave, A_eve}, func(p1, p2 common.Point) common.Point {
 			return common.BigIntToPoint(curve.Add(&p1.X, &p1.Y, &p2.X, &p2.Y))
 		})
@@ -250,11 +264,17 @@ func TestPartialDecryptionOfTwoDkgNodesAndThreeGuardiansAndOneVote(t *testing.T)
 
 // the issue is with the randomness used within Alice.
 func TestPartialDecryptionOfOneDkgNodeAndTwoGuardiansOneVote(t *testing.T) {
+	config := common.VotingConfig{
+		Size:          3,
+		Options:       2,
+		Threshold:     2,
+		GuardiansSize: 2,
+	}
 	for i := 0; i < ITERATIONS; i++ {
 		r := rand.New(rand.NewSource(int64(i)))
-		alice := pki.NewLocalParty(1, curve, 2, r)
-		bob_local := pki.NewLocalParty(11, curve, 2, r)
-		carol_local := pki.NewLocalParty(22, curve, 2, r)
+		alice := pki.NewLocalParty(1, config, curve, r)
+		bob_local := pki.NewLocalParty(11, config, curve, r)
+		carol_local := pki.NewLocalParty(22, config, curve, r)
 
 		bob := bob_local.PublicParty
 		carol := carol_local.PublicParty
@@ -343,16 +363,18 @@ func TestPartialDecryptionOfOneDkgNodeAndTwoGuardiansOneVote(t *testing.T) {
 	}
 }
 
-// Why it fails randomly?
-// 1. I'm using wrong field order and sometimes the numbers wrap around wrong number
-// 2. Zero is generated which zeroes everthing else.
-
 func TestPartialDecryptionOfOneDkgNodeAndTwoGuardiansAndManyVotes(t *testing.T) {
 	r := rand.New(rand.NewSource(int64(0)))
+	config := common.VotingConfig{
+		Size:          3,
+		Options:       2,
+		Threshold:     2,
+		GuardiansSize: 2,
+	}
 	for i := 0; i < 4; i++ {
-		alice := pki.NewLocalParty(1, curve, 2, r)
-		bob_local := pki.NewLocalParty(11, curve, 2, r)
-		carol_local := pki.NewLocalParty(22, curve, 2, r)
+		alice := pki.NewLocalParty(1, config, curve, r)
+		bob_local := pki.NewLocalParty(11, config, curve, r)
+		carol_local := pki.NewLocalParty(22, config, curve, r)
 
 		bob := bob_local.PublicParty
 		carol := carol_local.PublicParty
@@ -466,13 +488,16 @@ func TestPointAtInfinity(t *testing.T) {
 }
 
 func TestVotingKeysSharing(t *testing.T) {
+	config := common.VotingConfig{
+		Size:          6,
+		Options:       2,
+		Threshold:     1,
+		GuardiansSize: 1,
+	}
 	for i := 0; i < ITERATIONS; i++ {
 		r := rand.New(rand.NewSource(int64(i)))
-		n := 6
 		n_dkg := 6
-		degree := 1
-		n_trustedParties := 3
-		_, dkgNodes := pki.GenerateSetOfNodes(n, n_dkg, n_trustedParties, degree, curve, r)
+		_, dkgNodes := pki.GenerateSetOfNodes(config, n_dkg, curve, r)
 		encryptionKey := VotingPublicKey(dkgNodes)
 
 		decryptionKey := dkgNodes[0].VotingPrivKeyShare
@@ -493,13 +518,16 @@ func TestVotingKeysSharing(t *testing.T) {
 }
 
 func TestVoting(t *testing.T) {
+	config := common.VotingConfig{
+		Size:          6,
+		Options:       2,
+		Threshold:     2,
+		GuardiansSize: 3,
+	}
 	for i := 0; i < ITERATIONS; i++ {
 		r := rand.New(rand.NewSource(int64(i)))
-		n := 6
 		n_dkg := 1
-		degree := 1
-		n_trustedParties := 3
-		localNodes, dkgNodes := pki.GenerateSetOfNodes(n, n_dkg, n_trustedParties, degree, curve, r)
+		localNodes, dkgNodes := pki.GenerateSetOfNodes(config, n_dkg, curve, r)
 		encryptionKey := VotingPublicKey(dkgNodes)
 
 		if len(dkgNodes) != n_dkg {
@@ -539,8 +567,8 @@ func TestVoting(t *testing.T) {
 				receiverToShares[share.To] = append(receiverToShares[share.To], share)
 			}
 		}
-		if len(receiverToShares) != n_dkg*n_trustedParties {
-			t.Errorf("Expected %d receivers, got %d", n_dkg*n_trustedParties, len(receiverToShares))
+		if len(receiverToShares) != n_dkg*config.GuardiansSize {
+			t.Errorf("Expected %d receivers, got %d", n_dkg*config.GuardiansSize, len(receiverToShares))
 		}
 
 		// IDEA: reconstruct each DKG key separatelly and provide partial decryption for each of it

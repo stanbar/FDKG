@@ -20,17 +20,17 @@ import (
 var curve = secp256k1.Curve
 
 func main() {
-	// Prime field modulus (choose a suitable prime based on the problem)
+	voting := common.VotingConfig{
+		Size:          6,
+		Options:       5,
+		Threshold:     2,
+		GuardiansSize: 5,
+	}
 	r := rand.New(rand.NewSource(time.Now().Unix()))
-	n := 6
 	n_dkg := 6
 	n_vote := 6
 
-	degree := 1 // shares to reconstruct is degree+1
-	n_trustedParties := 5
-	options := 5
-
-	localNodes, dkgNodes := pki.GenerateSetOfNodes(n, options, n_dkg, n_trustedParties, degree, curve, r)
+	localNodes, dkgNodes := pki.GenerateSetOfNodes(voting, n_dkg, curve, r)
 
 	// generate shares for each node
 	partyIndexToShares := make(map[int][]sss.Share)

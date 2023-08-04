@@ -33,7 +33,7 @@ type DkgParty struct {
 	TrustedParties []PublicParty
 }
 
-func NewLocalParty(index int, options int, curve elliptic.Curve, threshold int, r *rand.Rand) LocalParty {
+func NewLocalParty(index int, config common.VotingConfig, curve elliptic.Curve, r *rand.Rand) LocalParty {
 	if index < 1 {
 		panic("index must be greater than 0")
 	}
@@ -49,7 +49,7 @@ func NewLocalParty(index int, options int, curve elliptic.Curve, threshold int, 
 		panic("votingPubKeyShare is not on curve")
 	}
 
-	polynomial := polynomial.RandomPolynomial(votingPrivKeyShare, threshold, curve, r)
+	polynomial := polynomial.RandomPolynomial(votingPrivKeyShare, config.Threshold, curve, r)
 
 	return LocalParty{
 		PublicParty: PublicParty{
@@ -60,7 +60,7 @@ func NewLocalParty(index int, options int, curve elliptic.Curve, threshold int, 
 		PrivateKey:         privateKey,
 		VotingPrivKeyShare: votingPrivKeyShare,
 		Polynomial:         polynomial,
-		vote:               index % options,
+		vote:               index % config.Options,
 	}
 }
 
@@ -103,23 +103,23 @@ func randomTrustedParties(p LocalParty, publicNodes []PublicParty, threshold int
 	return trustedParties
 }
 
-func createRandomNodes(count int, options int, curve elliptic.Curve, degree int, r *rand.Rand) []LocalParty {
-	if degree >= count {
-		panic("degree must be less than count otherwise it's impossible to reconstruct the secret.")
+func createRandomNodes(config common.VotingConfig, curve elliptic.Curve, r *rand.Rand) []LocalParty {
+	if config.Threshold > config.Size-1 {
+		panic("Threshold must be less than size-1 otherwise it's impossible to reconstruct the secret.")
 	}
-	nodes := make([]LocalParty, count)
+	nodes := make([]LocalParty, config.Size)
 	for i := range nodes {
-		newNode := NewLocalParty(i+1, options, curve, degree, r)
+		newNode := NewLocalParty(i+1, config, curve, r)
 		nodes[i] = newNode
 		fmt.Printf("Party_%d voted %v of polynomial %v\n", newNode.Index, newNode.vote, newNode.Polynomial.String())
 	}
 	return nodes
 }
 
-func GenerateSetOfNodes(n int, options int, n_dkg int, n_trustedParties int, degree int, curve elliptic.Curve, r *rand.Rand) ([]LocalParty, []DkgParty) {
-	localNodes := createRandomNodes(n, options, curve, degree, r)
+func GenerateSetOfNodes(config common.VotingConfig, n_dkg int, curve elliptic.Curve, r *rand.Rand) ([]LocalParty, []DkgParty) {
+	localNodes := createRandomNodes(config, curve, r)
 
-	publicNodes := make([]PublicParty, n)
+	publicNodes := make([]PublicParty, config.Size)
 	for i := range localNodes {
 		publicNodes[i] = localNodes[i].PublicParty
 	}
@@ -132,7 +132,7 @@ func GenerateSetOfNodes(n int, options int, n_dkg int, n_trustedParties int, deg
 	dkgNodes := make([]DkgParty, n_dkg)
 	for i, node := range tempPublicNodes[:n_dkg] {
 		// 	// take random subset of m nodes participating in DKG without the node itself
-		trustedParties := randomTrustedParties(node, publicNodes, n_trustedParties)
+		trustedParties := randomTrustedParties(node, publicNodes, config.GuardiansSize)
 		dkgNodes[i] = node.ToDkgParty(trustedParties)
 		fmt.Printf("Party_%d has following trusted parties %v \n", node.Index, utils.Map(trustedParties, func(party PublicParty) int { return party.Index }))
 	}

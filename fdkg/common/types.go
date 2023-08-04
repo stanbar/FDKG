@@ -35,3 +35,10 @@ type Node struct {
 	Index  int
 	PubKey Point
 }
+
+type VotingConfig struct {
+	Size          int
+	Options       int
+	Threshold     int
+	GuardiansSize int
+}
