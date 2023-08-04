@@ -507,7 +507,7 @@ func TestVoting(t *testing.T) {
 		}
 
 		// IDEA: reconstruct each DKG key separatelly and provide partial decryption for each of it
-		partialDecryptions := make([]PartialDecryption, 0, len(receiverToShares))
+		partialDecryptions := make([]common.PartialDecryption, 0, len(receiverToShares))
 		// for each party reconstruct secret
 		for partyIndex, shares := range receiverToShares {
 			primaryShares := utils.Map(shares, func(s sss.Share) common.PrimaryShare { return s.ToPrimaryShare() })
@@ -530,7 +530,7 @@ func TestVoting(t *testing.T) {
 			if !secp256k1.Curve.IsOnCurve(pAX, pAY) {
 				t.Error("d_i * A is not on curve")
 			}
-			partialDecryptions = append(partialDecryptions, PartialDecryption{
+			partialDecryptions = append(partialDecryptions, common.PartialDecryption{
 				Index: partyIndex,
 				Value: common.BigIntToPoint(pAX, pAY),
 			})
@@ -540,8 +540,8 @@ func TestVoting(t *testing.T) {
 		// calculate Z
 		Z_X, Z_Y := big.NewInt(0), big.NewInt(0)
 
-		X := utils.Map(partialDecryptions, func(share PartialDecryption) int { return share.Index })
-		A_is := utils.Map(partialDecryptions, func(share PartialDecryption) common.Point { return share.Value })
+		X := utils.Map(partialDecryptions, func(share common.PartialDecryption) int { return share.Index })
+		A_is := utils.Map(partialDecryptions, func(share common.PartialDecryption) common.Point { return share.Value })
 
 		for i := 0; i < len(X); i++ {
 			A_x, A_y := &A_is[i].X, &A_is[i].Y

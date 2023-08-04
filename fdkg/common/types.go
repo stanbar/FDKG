@@ -47,3 +47,8 @@ type EncryptedBallot struct {
 	C1 Point
 	C2 Point
 }
+
+type PartialDecryption struct {
+	Index int
+	Value Point
+}

@@ -66,11 +66,6 @@ func Voting(nodes []pki.LocalParty, encryptionKey common.Point, curve elliptic.C
 	})
 }
 
-type PartialDecryption struct {
-	Index int
-	Value common.Point
-}
-
 type PartyIndexToShares = map[int][]sss.Share
 type PartyIndexToVotingPrivKeyShare = map[int][]sss.Share
 

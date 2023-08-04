@@ -11,6 +11,7 @@ import (
 	"github.com/delendum-xyz/private-voting/fdkg/polynomial"
 	"github.com/delendum-xyz/private-voting/fdkg/sss"
 	"github.com/delendum-xyz/private-voting/fdkg/utils"
+	"github.com/samber/lo"
 	"github.com/torusresearch/pvss/secp256k1"
 )
 
@@ -129,14 +130,12 @@ func GenerateSetOfNodes(config common.VotingConfig, n_dkg int, curve elliptic.Cu
 	tempPublicNodes := make([]LocalParty, len(localNodes))
 	copy(tempPublicNodes, localNodes)
 	rand.Shuffle(len(tempPublicNodes), func(i, j int) { tempPublicNodes[i], tempPublicNodes[j] = tempPublicNodes[j], tempPublicNodes[i] })
-	fmt.Printf("tempPublicNodes %v \n", utils.Map(tempPublicNodes, func(party LocalParty) int { return party.Index }))
 
-	dkgNodes := make([]DkgParty, n_dkg)
-	for i, node := range tempPublicNodes[:n_dkg] {
-		// 	// take random subset of m nodes participating in DKG without the node itself
+	dkgCandidates := lo.Samples(localNodes, n_dkg)
+	dkgNodes := lo.Map(dkgCandidates, func(node LocalParty, index int) DkgParty {
 		trustedParties := randomTrustedParties(node, publicNodes, config.GuardiansSize)
-		dkgNodes[i] = node.ToDkgParty(trustedParties)
 		fmt.Printf("Party_%d has following trusted parties %v \n", node.Index, utils.Map(trustedParties, func(party PublicParty) int { return party.Index }))
-	}
+		return node.ToDkgParty(trustedParties)
+	})
 	return localNodes, dkgNodes
 }
