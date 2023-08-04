@@ -190,7 +190,7 @@ func TestPartialDecryptionOfTwoDkgNodesAndThreeGuardiansAndOneVote(t *testing.T)
 
 		// voting
 		votes := Voting([]pki.LocalParty{alice, bob, carol_local, dave_local, eve_local}, votingPubKey, curve, r)
-		C1s := utils.Map(votes, func(vote elgamal.EncryptedBallot) common.Point { return vote.C1 })
+		C1s := utils.Map(votes, func(vote common.EncryptedBallot) common.Point { return vote.C1 })
 
 		// online tally
 		C1 := utils.Sum(C1s, func(p1, p2 common.Point) common.Point {
@@ -224,40 +224,13 @@ func TestPartialDecryptionOfTwoDkgNodesAndThreeGuardiansAndOneVote(t *testing.T)
 			panic("Z is not on curve")
 		}
 
-		C2s := utils.Map(votes, func(vote elgamal.EncryptedBallot) common.Point { return vote.C2 })
+		C2s := utils.Map(votes, func(vote common.EncryptedBallot) common.Point { return vote.C2 })
 		C2 := utils.Sum(C2s, func(p1, p2 common.Point) common.Point {
 			return common.BigIntToPoint(curve.Add(&p1.X, &p1.Y, &p2.X, &p2.Y))
 		})
-
-		negZ_Y := new(big.Int).Neg(&Z.Y)
-		negZ_Y.Mod(negZ_Y, curve.Params().P)
-		negZ := common.BigIntToPoint(&Z.X, negZ_Y)
-
-		if !secp256k1.Curve.IsOnCurve(&negZ.X, &negZ.Y) {
-			fmt.Printf("Z is on curve (%v,%v)\n", &negZ.X, &negZ.Y)
-			panic(fmt.Sprintf("negZ is not on curve, %v, %v", &negZ.X, &negZ.Y))
-		}
-
-		M := common.BigIntToPoint(curve.Add(&C2.X, &C2.Y, &negZ.X, &negZ.Y))
-
-		x := 0
-		for x <= 6 {
-			X, Y := secp256k1.Curve.ScalarMult(&elgamal.H.X, &elgamal.H.Y, big.NewInt(int64(x)).Bytes())
-			if X.Cmp(&M.X) == 0 && Y.Cmp(&M.Y) == 0 {
-				break
-			}
-			x += 1
-			if x > 6 {
-				t.Errorf("x not found")
-				panic("x not found")
-			}
-		}
-
-		testMHX, testMHY := secp256k1.Curve.ScalarMult(&elgamal.H.X, &elgamal.H.Y, big.NewInt(int64(x)).Bytes())
-		if testMHX.Cmp(&M.X) != 0 || testMHY.Cmp(&M.Y) != 0 {
-			panic("x*H != B - (k_i * E)")
-		} else {
-			fmt.Printf("x is %v\n", x)
+		result := elgamal.DecryptResults(Z, C2, len(votes), config.Options, curve)
+		if result[0] != 3 {
+			t.Errorf("The result should be 1 but was %v", result)
 		}
 	}
 }
@@ -310,7 +283,7 @@ func TestPartialDecryptionOfOneDkgNodeAndTwoGuardiansOneVote(t *testing.T) {
 
 		// voting
 		votes := Voting([]pki.LocalParty{alice}, votingPubKey, curve, r)
-		C1s := utils.Map(votes, func(vote elgamal.EncryptedBallot) common.Point { return vote.C1 })
+		C1s := utils.Map(votes, func(vote common.EncryptedBallot) common.Point { return vote.C1 })
 
 		// online tally
 		C1 := utils.Sum(C1s, func(p1, p2 common.Point) common.Point {
@@ -337,28 +310,14 @@ func TestPartialDecryptionOfOneDkgNodeAndTwoGuardiansOneVote(t *testing.T) {
 			panic("Z is not on curve")
 		}
 
-		C2s := utils.Map(votes, func(vote elgamal.EncryptedBallot) common.Point { return vote.C2 })
+		C2s := utils.Map(votes, func(vote common.EncryptedBallot) common.Point { return vote.C2 })
 		C2 := utils.Sum(C2s, func(p1, p2 common.Point) common.Point {
 			return common.BigIntToPoint(curve.Add(&p1.X, &p1.Y, &p2.X, &p2.Y))
 		})
 
-		negZ_Y := new(big.Int).Neg(&Z.Y)
-		negZ_Y.Mod(negZ_Y, curve.Params().P)
-		negZ := common.BigIntToPoint(&Z.X, negZ_Y)
-
-		M := common.BigIntToPoint(curve.Add(&C2.X, &C2.Y, &negZ.X, &negZ.Y))
-
-		m := big.NewInt(0)
-		if M.X.Cmp(&elgamal.H.X) == 0 && M.Y.Cmp(&elgamal.H.Y) == 0 {
-			m = big.NewInt(1)
-		} else if M.X.Cmp(big.NewInt(0)) != 0 || M.Y.Cmp(big.NewInt(0)) != 0 {
-			panic("m*H is neither 0 nor H")
-		}
-		testMHX, testMHY := secp256k1.Curve.ScalarMult(&elgamal.H.X, &elgamal.H.Y, m.Bytes())
-		if testMHX.Cmp(&M.X) != 0 || testMHY.Cmp(&M.Y) != 0 {
-			panic("m*H != B - (k_i * E)")
-		} else {
-			fmt.Printf("m is %v\n", m)
+		result := elgamal.DecryptResults(Z, C2, len(votes), config.Options, curve)
+		if result[0] != 1 {
+			t.Errorf("Alice should have voted for option 1, instead got %v", result)
 		}
 	}
 }
@@ -403,7 +362,7 @@ func TestPartialDecryptionOfOneDkgNodeAndTwoGuardiansAndManyVotes(t *testing.T) 
 		for n_votes := 1; n_votes < 100; n_votes++ {
 			fmt.Printf("n_votes is %v\n", n_votes)
 			// create n_votes votes
-			votes := make([]elgamal.EncryptedBallot, n_votes)
+			votes := make([]common.EncryptedBallot, n_votes)
 			for i := 0; i < n_votes; i++ {
 				votes[i] = elgamal.EncryptBoolean(i%2 == 0, votingPubKey, curve, r)
 			}
@@ -415,63 +374,39 @@ func TestPartialDecryptionOfOneDkgNodeAndTwoGuardiansAndManyVotes(t *testing.T) 
 			carol_v := carol_lagrange.Mul(carol_lagrange, &share_carol)
 
 			// sum votes
-			C1_X, C1_Y := big.NewInt(0), big.NewInt(0)
-			for _, vote := range votes {
-				C1_X, C1_Y = secp256k1.Curve.Add(&vote.C1.X, &vote.C1.Y, C1_X, C1_Y)
-			}
+			C1s := utils.Map(votes, func(vote common.EncryptedBallot) common.Point { return vote.C1 })
+
+			// online tally
+			C1 := utils.Sum(C1s, func(p1, p2 common.Point) common.Point {
+				return common.BigIntToPoint(secp256k1.Curve.Add(&p1.X, &p1.Y, &p2.X, &p2.Y))
+			})
 
 			// partial decryptions
-			bob_Z_X, bob_Z_Y := secp256k1.Curve.ScalarMult(C1_X, C1_Y, bob_v.Bytes())
-			carol_Z_X, carol_Z_Y := secp256k1.Curve.ScalarMult(C1_X, C1_Y, carol_v.Bytes())
+			bob_Z := common.BigIntToPoint(secp256k1.Curve.ScalarMult(&C1.X, &C1.Y, bob_v.Bytes()))
+			carol_Z := common.BigIntToPoint(secp256k1.Curve.ScalarMult(&C1.X, &C1.Y, carol_v.Bytes()))
 
-			Z_X, Z_Y := secp256k1.Curve.Add(bob_Z_X, bob_Z_Y, carol_Z_X, carol_Z_Y)
+			Z := utils.Sum([]common.Point{bob_Z, carol_Z}, func(p1, p2 common.Point) common.Point {
+				return common.BigIntToPoint(curve.Add(&p1.X, &p1.Y, &p2.X, &p2.Y))
+			})
 
-			if !secp256k1.Curve.IsOnCurve(Z_X, Z_Y) {
-				t.Errorf("Z is not on curve Z_X: %v Z_Y: %v,\n bob_Z_X: %v  bob_Z_Y: %v\n carol_Z_X: %v  carol_Z_Y: %v\n bob_v: %v carol: %v",
-					Z_X, Z_Y, bob_Z_X, bob_Z_Y, carol_Z_X, carol_Z_Y, bob_v.String()[:5], carol_v.String()[:5])
-				panic("Z is not on curve, X: " + Z_X.String() + " Y: " + Z_Y.String())
+			if !secp256k1.Curve.IsOnCurve(&Z.X, &Z.Y) {
+				panic("Z is not on curve, X: " + Z.X.String() + " Y: " + Z.Y.String())
 			}
 
-			expectedZ_X, expectedZ_Y := secp256k1.Curve.ScalarMult(C1_X, C1_Y, bob_v.Add(bob_v, carol_v).Bytes())
-			if expectedZ_X.Cmp(Z_X) != 0 || expectedZ_Y.Cmp(Z_Y) != 0 {
-				t.Errorf("Expected (%v,%v) got (%v,%v)", expectedZ_X, expectedZ_Y, Z_X, Z_Y)
+			expectedZ_X, expectedZ_Y := secp256k1.Curve.ScalarMult(&C1.X, &C1.Y, bob_v.Add(bob_v, carol_v).Bytes())
+			if expectedZ_X.Cmp(&Z.X) != 0 || expectedZ_Y.Cmp(&Z.Y) != 0 {
+				t.Errorf("Expected (%v,%v) got (%v,%v)", expectedZ_X, expectedZ_Y, Z.X, Z.Y)
 			}
 
 			// sum votes
-			C2_X, C2_Y := big.NewInt(0), big.NewInt(0)
-			for _, vote := range votes {
-				C2_X, C2_Y = secp256k1.Curve.Add(&vote.C2.X, &vote.C2.Y, C2_X, C2_Y)
-			}
+			C2s := utils.Map(votes, func(vote common.EncryptedBallot) common.Point { return vote.C2 })
+			C2 := utils.Sum(C2s, func(p1, p2 common.Point) common.Point {
+				return common.BigIntToPoint(curve.Add(&p1.X, &p1.Y, &p2.X, &p2.Y))
+			})
 
-			negZ_Y := new(big.Int).Neg(Z_Y)
-			negZ_Y.Mod(negZ_Y, curve.Params().P)
-
-			negZ := common.BigIntToPoint(Z_X, negZ_Y)
-			if !secp256k1.Curve.IsOnCurve(&negZ.X, &negZ.Y) {
-				panic("negZ is not on curve")
-			}
-
-			mHX, mHY := secp256k1.Curve.Add(C2_X, C2_Y, &negZ.X, &negZ.Y)
-
-			x := 0
-			for x <= n_votes {
-				X, Y := secp256k1.Curve.ScalarMult(&elgamal.H.X, &elgamal.H.Y, big.NewInt(int64(x)).Bytes())
-				if X.Cmp(mHX) == 0 && Y.Cmp(mHY) == 0 {
-					break
-				}
-				x += 1
-				if x > n_votes {
-					t.Errorf("x not found")
-					panic("x not found")
-				}
-			}
-
-			testMHX, testMHY := secp256k1.Curve.ScalarMult(&elgamal.H.X, &elgamal.H.Y, big.NewInt(int64(x)).Bytes())
-			if testMHX.Cmp(mHX) != 0 || testMHY.Cmp(mHY) != 0 {
-				t.Errorf("m*H != B - (k_i * E)")
-				panic("m*H != B - (k_i * E)")
-			} else {
-				fmt.Printf("m is %v\n", x)
+			results := elgamal.DecryptResults(Z, C2, len(votes), config.Options, curve)
+			if results[0] != 1 {
+				t.Errorf("Expected alice vote 1 got %v", results[0])
 			}
 		}
 	}
@@ -539,24 +474,24 @@ func TestVoting(t *testing.T) {
 
 		votes := Voting(localNodes, encryptionKey, curve, r)
 
-		A := votes[0].C1
-		for _, vote := range votes[1:] {
-			X, Y := secp256k1.Curve.Add(&vote.C1.X, &vote.C1.Y, &A.X, &A.Y)
-			A.X, A.Y = *X, *Y
-		}
+		C1s := utils.Map(votes, func(vote common.EncryptedBallot) common.Point { return vote.C1 })
 
-		if !secp256k1.Curve.IsOnCurve(&A.X, &A.Y) {
+		// online tally
+		C1 := utils.Sum(C1s, func(p1, p2 common.Point) common.Point {
+			return common.BigIntToPoint(secp256k1.Curve.Add(&p1.X, &p1.Y, &p2.X, &p2.Y))
+		})
+
+		if !secp256k1.Curve.IsOnCurve(&C1.X, &C1.Y) {
 			panic("A is not on curve")
 		}
 
 		// Sum the second part of the ballots (payload)
-		B := votes[0].C2
-		for _, vote := range votes[1:] {
-			X, Y := secp256k1.Curve.Add(&vote.C2.X, &vote.C2.Y, &B.X, &B.Y)
-			B.X, B.Y = *X, *Y
-		}
+		C2s := utils.Map(votes, func(vote common.EncryptedBallot) common.Point { return vote.C2 })
+		C2 := utils.Sum(C2s, func(p1, p2 common.Point) common.Point {
+			return common.BigIntToPoint(curve.Add(&p1.X, &p1.Y, &p2.X, &p2.Y))
+		})
 
-		if !secp256k1.Curve.IsOnCurve(&B.X, &B.Y) {
+		if !secp256k1.Curve.IsOnCurve(&C2.X, &C2.Y) {
 			panic("B is not on curve")
 		}
 
@@ -590,7 +525,7 @@ func TestVoting(t *testing.T) {
 
 			// m*H = B - (k_i * E) = B - (k_i * priv * G) = B - (priv * A)
 			// (priv * A)
-			pAX, pAY := secp256k1.Curve.ScalarMult(&A.X, &A.Y, shareOfDecryptionKey.Bytes())
+			pAX, pAY := secp256k1.Curve.ScalarMult(&C1.X, &C1.Y, shareOfDecryptionKey.Bytes())
 
 			if !secp256k1.Curve.IsOnCurve(pAX, pAY) {
 				t.Error("d_i * A is not on curve")
@@ -623,41 +558,10 @@ func TestVoting(t *testing.T) {
 			t.Error("Z is not on curve")
 		}
 
-		fmt.Printf("Z = (%v,%v)\n", Z_X, Z_Y)
-
-		// M = B-Z
-		ZNegY := new(big.Int).Neg(Z_Y)
-		ZNegY.Mod(ZNegY, curve.Params().P)
-		mHX, mHY := secp256k1.Curve.Add(&B.X, &B.Y, Z_X, ZNegY)
-		if !secp256k1.Curve.IsOnCurve(mHX, mHY) {
-			panic("M=B-Z is not on curve")
+		Z := common.BigIntToPoint(Z_X, Z_Y)
+		results := elgamal.DecryptResults(Z, C2, len(votes), config.Options, curve)
+		if results[0] != 3 {
+			t.Errorf("Expected result to be 3 got %v", results[0])
 		}
-
-		M_X_test, M_Y_test := secp256k1.Curve.Add(mHX, mHY, Z_X, Z_Y)
-		if !secp256k1.Curve.IsOnCurve(M_X_test, M_Y_test) {
-			panic("B=M+Z is not on curve")
-		}
-
-		if M_X_test.Cmp(&B.X) != 0 || M_Y_test.Cmp(&B.Y) != 0 {
-			panic("M != B-Z")
-		}
-		fmt.Printf("M = (%v,%v)\n", mHX, mHY)
-
-		// search for x such that x*H = M
-		x := 0
-		H := elgamal.H
-		for x <= 100 {
-			X, Y := secp256k1.Curve.ScalarMult(&H.X, &H.Y, big.NewInt(int64(x)).Bytes())
-			if X.Cmp(mHX) == 0 && Y.Cmp(mHY) == 0 {
-				break
-			}
-
-			x += 1
-			if x > 100 {
-				panic("x not found")
-			}
-		}
-
-		fmt.Printf("The voting result is %v\n", x)
 	}
 }

@@ -144,10 +144,8 @@ func LagrangeCoefficientsStartFromOneAbs(i int, X []int, curve elliptic.Curve) *
 			// 1. (val - X[j])
 
 			nominator := big.NewInt(int64(X[j]))
-			fmt.Printf("nominator: %v\n", X[j])
 			// 2. (X[i] - X[j])
 			denom := (X[j] - X[i])
-			fmt.Printf("denom: %v=%v-%v\n", denom, X[j], X[i])
 			denominator := big.NewInt(0).Mod(big.NewInt(int64(denom)), curve.Params().N)
 			// 3. 1 / (X[i] - X[j])
 			denominator = big.NewInt(0).ModInverse(denominator, curve.Params().N)

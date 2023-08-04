@@ -20,6 +20,7 @@ type LocalParty struct {
 	VotingPrivKeyShare big.Int
 	Polynomial         polynomial.Polynomial
 	vote               int
+	config             common.VotingConfig
 }
 
 type PublicParty struct {
@@ -61,12 +62,13 @@ func NewLocalParty(index int, config common.VotingConfig, curve elliptic.Curve, 
 		VotingPrivKeyShare: votingPrivKeyShare,
 		Polynomial:         polynomial,
 		vote:               index % config.Options,
+		config:             config,
 	}
 }
 
-func (p LocalParty) EncryptedBallot(encryptionKey common.Point, curve elliptic.Curve, r *rand.Rand) elgamal.EncryptedBallot {
-	fmt.Printf("Party_%d voting %v\n", p.Index, p.vote)
-	return elgamal.EncryptBoolean(p.vote%2 == 0, encryptionKey, curve, r)
+func (p LocalParty) EncryptedBallot(encryptionKey common.Point, curve elliptic.Curve, r *rand.Rand) common.EncryptedBallot {
+	fmt.Printf("Party_%d voting %v, options: %v\n", p.Index, p.vote, p.config.Options)
+	return elgamal.EncryptBallot(p.vote, p.config.Options, encryptionKey, curve, r)
 }
 
 func (p DkgParty) GenerateShares() []sss.Share {

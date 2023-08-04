@@ -20,7 +20,7 @@ import (
 var curve = secp256k1.Curve
 
 func main() {
-	voting := common.VotingConfig{
+	config := common.VotingConfig{
 		Size:          6,
 		Options:       5,
 		Threshold:     2,
@@ -30,7 +30,7 @@ func main() {
 	n_dkg := 6
 	n_vote := 6
 
-	localNodes, dkgNodes := pki.GenerateSetOfNodes(voting, n_dkg, curve, r)
+	localNodes, dkgNodes := pki.GenerateSetOfNodes(config, n_dkg, curve, r)
 
 	// generate shares for each node
 	partyIndexToShares := make(map[int][]sss.Share)
@@ -46,7 +46,7 @@ func main() {
 	votes := Voting(votingNodes, encryptionKey, curve, r)
 
 	partialDecryptions := OnlineTally(votes, partyIndexToShares, curve)
-	results := OfflineTally(votes, partialDecryptions, curve)
+	results := OfflineTally(votes, partialDecryptions, config, curve)
 	fmt.Printf("Results: %v\n", results)
 }
 
@@ -60,8 +60,8 @@ func VotingPublicKey(dkgNodes []pki.DkgParty) common.Point {
 	return common.BigIntToPoint(&sum.X, &sum.Y)
 }
 
-func Voting(nodes []pki.LocalParty, encryptionKey common.Point, curve elliptic.Curve, r *rand.Rand) []elgamal.EncryptedBallot {
-	return utils.Map(nodes, func(node pki.LocalParty) elgamal.EncryptedBallot {
+func Voting(nodes []pki.LocalParty, encryptionKey common.Point, curve elliptic.Curve, r *rand.Rand) []common.EncryptedBallot {
+	return utils.Map(nodes, func(node pki.LocalParty) common.EncryptedBallot {
 		return node.EncryptedBallot(encryptionKey, curve, r)
 	})
 }
@@ -89,8 +89,8 @@ func PartyToVotingPrivKeyShare(shares PartyIndexToShares) map[int]big.Int {
 
 type PartialDecryptions = []common.Point
 
-func OnlineTally(votes []elgamal.EncryptedBallot, shares PartyIndexToShares, curve elliptic.Curve) PartialDecryptions {
-	C1s := utils.Map(votes, func(vote elgamal.EncryptedBallot) common.Point { return vote.C1 })
+func OnlineTally(votes []common.EncryptedBallot, shares PartyIndexToShares, curve elliptic.Curve) PartialDecryptions {
+	C1s := utils.Map(votes, func(vote common.EncryptedBallot) common.Point { return vote.C1 })
 	C1 := utils.Sum(C1s, func(p1, p2 common.Point) common.Point {
 		return common.BigIntToPoint(curve.Add(&p1.X, &p1.Y, &p2.X, &p2.Y))
 	})
@@ -103,32 +103,15 @@ func OnlineTally(votes []elgamal.EncryptedBallot, shares PartyIndexToShares, cur
 	return Zs
 }
 
-func OfflineTally(votes []elgamal.EncryptedBallot, partialDecryptions PartialDecryptions, curve elliptic.Curve) int {
+func OfflineTally(votes []common.EncryptedBallot, partialDecryptions PartialDecryptions, config common.VotingConfig, curve elliptic.Curve) []int {
 	Z := utils.Sum(partialDecryptions, func(p1, p2 common.Point) common.Point {
 		return common.BigIntToPoint(curve.Add(&p1.X, &p1.Y, &p2.X, &p2.Y))
 	})
 
-	C2s := utils.Map(votes, func(vote elgamal.EncryptedBallot) common.Point { return vote.C2 })
+	C2s := utils.Map(votes, func(vote common.EncryptedBallot) common.Point { return vote.C2 })
 	C2 := utils.Sum(C2s, func(p1, p2 common.Point) common.Point {
 		return common.BigIntToPoint(curve.Add(&p1.X, &p1.Y, &p2.X, &p2.Y))
 	})
 
-	negZ_Y := new(big.Int).Neg(&Z.Y)
-	negZ_Y.Mod(negZ_Y, curve.Params().P)
-	negZ := common.BigIntToPoint(&Z.X, negZ_Y)
-
-	M := common.BigIntToPoint(curve.Add(&C2.X, &C2.Y, &negZ.X, &negZ.Y))
-
-	x := 0
-	for x <= len(votes) {
-		X, Y := secp256k1.Curve.ScalarMult(&elgamal.H.X, &elgamal.H.Y, big.NewInt(int64(x)).Bytes())
-		if X.Cmp(&M.X) == 0 && Y.Cmp(&M.Y) == 0 {
-			break
-		}
-		x += 1
-		if x > len(votes) {
-			panic("x not found")
-		}
-	}
-	return x
+	return elgamal.DecryptResults(Z, C2, len(votes), config.Options, curve)
 }

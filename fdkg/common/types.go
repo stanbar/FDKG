@@ -42,3 +42,8 @@ type VotingConfig struct {
 	Threshold     int
 	GuardiansSize int
 }
+
+type EncryptedBallot struct {
+	C1 Point
+	C2 Point
+}
