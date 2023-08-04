@@ -364,7 +364,7 @@ func TestPartialDecryptionOfOneDkgNodeAndTwoGuardiansAndManyVotes(t *testing.T) 
 			// create n_votes votes
 			votes := make([]common.EncryptedBallot, n_votes)
 			for i := 0; i < n_votes; i++ {
-				votes[i] = elgamal.EncryptBoolean(i%2 == 0, votingPubKey, curve, r)
+				votes[i] = elgamal.EncryptSingleCandidate(i%2, votingPubKey, curve, r)
 			}
 
 			bob_lagrange := sss.LagrangeCoefficientsStartFromOne(0, 0, []int{11, 22}, curve)
@@ -405,8 +405,8 @@ func TestPartialDecryptionOfOneDkgNodeAndTwoGuardiansAndManyVotes(t *testing.T) 
 			})
 
 			results := elgamal.DecryptResults(Z, C2, len(votes), config.Options, curve)
-			if results[0] != 1 {
-				t.Errorf("Expected alice vote 1 got %v", results[0])
+			if results[0] != n_votes/2 {
+				t.Errorf("Expected %v votes got %v", n_votes/2, results[0])
 			}
 		}
 	}
