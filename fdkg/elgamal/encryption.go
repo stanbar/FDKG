@@ -12,10 +12,10 @@ import (
 	"github.com/delendum-xyz/private-voting/fdkg/utils"
 )
 
-var H0 = *secp256k1.HashToPoint(secp256k1.H.X.Bytes())
-var H1 = *secp256k1.HashToPoint(H0.X.Bytes())
-var H2 = *secp256k1.HashToPoint(H1.X.Bytes())
-var H3 = *secp256k1.HashToPoint(H2.X.Bytes())
+var H0 = secp256k1.HashToPoint(secp256k1.H.X.Bytes())
+var H1 = secp256k1.HashToPoint(H0.X.Bytes())
+var H2 = secp256k1.HashToPoint(H1.X.Bytes())
+var H3 = secp256k1.HashToPoint(H2.X.Bytes())
 
 func EncryptEnum(x int, votingPublicKey common.Point, curve elliptic.Curve, r *rand.Rand) common.EncryptedBallot {
 	// use the x-th generator

@@ -15,11 +15,15 @@ type Polynomial struct {
 	threshold    int
 }
 
+func (p Polynomial) Coefficients() []big.Int {
+	return p.coefficients
+}
+
 func (p Polynomial) Degree() int {
 	return len(p.coefficients) - 1
 }
 
-func (p Polynomial) Evaluate(target int) big.Int {
+func (p Polynomial) Evaluate(target int64) big.Int {
 	return *polyEval(p, target, p.curve)
 }
 func (p Polynomial) String() string {
@@ -32,7 +36,16 @@ func (p Polynomial) String() string {
 	return result[:len(result)-3] // -3 to remove the last " + "
 }
 
-func RandomPolynomial(secret big.Int, threshold int, curve elliptic.Curve, r *rand.Rand) Polynomial {
+func RandomPolynomial(threshold int, curve elliptic.Curve, r *rand.Rand) Polynomial {
+	// Create secret sharing polynomial
+	coefficients := make([]big.Int, threshold)
+	for i := 0; i < threshold; i++ { //randomly choose coeffs
+		coefficients[i] = utils.RandomBigInt(curve, r)
+	}
+	return Polynomial{coefficients, curve, threshold}
+}
+
+func RandomPolynomialForSecret(secret big.Int, threshold int, curve elliptic.Curve, r *rand.Rand) Polynomial {
 	// Create secret sharing polynomial
 	coefficients := make([]big.Int, threshold)
 	coefficients[0] = secret         //assign secret as coeff of x^0
@@ -43,8 +56,8 @@ func RandomPolynomial(secret big.Int, threshold int, curve elliptic.Curve, r *ra
 }
 
 // Eval computes the private share v = p(i).
-func polyEval(polynomial Polynomial, x int, curve elliptic.Curve) *big.Int { // get private share
-	xi := big.NewInt(int64(x))
+func polyEval(polynomial Polynomial, x int64, curve elliptic.Curve) *big.Int { // get private share
+	xi := big.NewInt(x)
 	sum := new(big.Int)
 	sum.Add(sum, &polynomial.coefficients[0])
 
@@ -52,7 +65,7 @@ func polyEval(polynomial Polynomial, x int, curve elliptic.Curve) *big.Int { // 
 		tmp := new(big.Int).Mul(xi, &polynomial.coefficients[i])
 		sum.Add(sum, tmp)
 		sum.Mod(sum, curve.Params().N)
-		xi.Mul(xi, big.NewInt(int64(x)))
+		xi.Mul(xi, big.NewInt(x))
 		xi.Mod(xi, curve.Params().N)
 	}
 	return sum
