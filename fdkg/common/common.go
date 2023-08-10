@@ -6,6 +6,10 @@ import (
 	"golang.org/x/crypto/sha3"
 )
 
+func PointZero() Point {
+	return Point{X: *big.NewInt(0), Y: *big.NewInt(0)}
+}
+
 func BigIntToPoint(x, y *big.Int) Point {
 	return Point{X: *x, Y: *y}
 }

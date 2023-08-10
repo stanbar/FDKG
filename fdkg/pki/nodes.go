@@ -51,7 +51,7 @@ func NewLocalParty(index int, config common.VotingConfig, curve elliptic.Curve, 
 		panic("votingPubKeyShare is not on curve")
 	}
 
-	polynomial := polynomial.RandomPolynomial(votingPrivKeyShare, config.Threshold, curve, r)
+	polynomial := polynomial.RandomPolynomialForSecret(votingPrivKeyShare, config.Threshold, curve, r)
 
 	return LocalParty{
 		PublicParty: PublicParty{
@@ -72,8 +72,8 @@ func (p LocalParty) EncryptedBallot(encryptionKey common.Point, curve elliptic.C
 	return elgamal.EncryptBallot(p.vote, p.config.Options, encryptionKey, curve, r)
 }
 
-func (p DkgParty) GenerateShares() []sss.Share {
-	indices := utils.Map(p.TrustedParties, func(party PublicParty) int { return party.Index })
+func (p DkgParty) GenerateShares(curve elliptic.Curve) []sss.Share {
+	indices := lo.Map(p.TrustedParties, func(party PublicParty, _ int) int { return party.Index })
 	shares := sss.GenerateShares(p.Polynomial, p.Index, indices)
 	return shares
 }
@@ -106,7 +106,7 @@ func randomTrustedParties(p LocalParty, publicNodes []PublicParty, threshold int
 	return trustedParties
 }
 
-func createRandomNodes(config common.VotingConfig, curve elliptic.Curve, r *rand.Rand) []LocalParty {
+func CreateRandomNodes(config common.VotingConfig, curve elliptic.Curve, r *rand.Rand) []LocalParty {
 	if config.Threshold > config.Size-1 {
 		panic("Threshold must be less than size-1 otherwise it's impossible to reconstruct the secret.")
 	}
@@ -120,7 +120,7 @@ func createRandomNodes(config common.VotingConfig, curve elliptic.Curve, r *rand
 }
 
 func GenerateSetOfNodes(config common.VotingConfig, n_dkg int, curve elliptic.Curve, r *rand.Rand) ([]LocalParty, []DkgParty) {
-	localNodes := createRandomNodes(config, curve, r)
+	localNodes := CreateRandomNodes(config, curve, r)
 
 	publicNodes := make([]PublicParty, config.Size)
 	for i := range localNodes {
@@ -134,7 +134,7 @@ func GenerateSetOfNodes(config common.VotingConfig, n_dkg int, curve elliptic.Cu
 	dkgCandidates := lo.Samples(localNodes, n_dkg)
 	dkgNodes := lo.Map(dkgCandidates, func(node LocalParty, index int) DkgParty {
 		trustedParties := randomTrustedParties(node, publicNodes, config.GuardiansSize)
-		fmt.Printf("Party_%d has following trusted parties %v \n", node.Index, utils.Map(trustedParties, func(party PublicParty) int { return party.Index }))
+		fmt.Printf("Party_%d has following trusted parties %v \n", node.Index, lo.Map(trustedParties, func(party PublicParty, _ int) int { return party.Index }))
 		return node.ToDkgParty(trustedParties)
 	})
 	return localNodes, dkgNodes

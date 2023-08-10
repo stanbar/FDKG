@@ -30,7 +30,7 @@ func Map[In any, Out any](s []In, f mapFunc[In, Out]) []Out {
 }
 
 func TestPVSS(test *testing.T) {
-	nodeList := createRandomNodes(20)
+	nodeList := CreateRandomNodes(20)
 	nodes := Map(nodeList.Nodes, func(n Node) common.Node { return n.Node })
 	privateKeys := Map(nodeList.Nodes, func(n Node) big.Int { return n.PrivKey })
 
@@ -56,7 +56,7 @@ func TestPVSS(test *testing.T) {
 	assert.False(test, errorsExist)
 }
 
-func createRandomNodes(number int) *nodeList {
+func CreateRandomNodes(number int) *nodeList {
 	list := new(nodeList)
 	privateKeys := make([]big.Int, number)
 	for i := 0; i < number; i++ {

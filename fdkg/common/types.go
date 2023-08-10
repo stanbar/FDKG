@@ -1,6 +1,8 @@
 package common
 
 import (
+	"crypto/elliptic"
+	"errors"
 	"math/big"
 )
 
@@ -27,8 +29,23 @@ type PrimaryShare struct {
 }
 
 type Point struct {
-	X big.Int
-	Y big.Int
+	X, Y big.Int
+}
+
+func (p Point) IsOnCurve(curve elliptic.Curve) bool {
+	return curve.IsOnCurve(&p.X, &p.Y)
+}
+
+var ErrInvalidPoint = errors.New("marshaled point was invalid")
+
+func (p *Point) Marshal(curve elliptic.Curve) []byte {
+	return elliptic.Marshal(curve, &p.X, &p.Y)
+}
+
+func (p *Point) Unmarshal(curve elliptic.Curve, data []byte) error {
+	pX, pY := elliptic.Unmarshal(curve, data)
+	p.X, p.Y = *pX, *pY
+	return nil
 }
 
 type Node struct {

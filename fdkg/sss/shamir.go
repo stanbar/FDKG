@@ -51,7 +51,7 @@ func GenerateShares(p polynomial.Polynomial, from int, indices []int) []Share {
 		shares[i] = Share{
 			From:            from,
 			To:              index,
-			Value:           p.Evaluate(index),
+			Value:           p.Evaluate(int64(index)),
 			BasisPolynomial: *LagrangeCoefficientsStartFromOneAbs(i, indices, curve),
 		}
 	}
