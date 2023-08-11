@@ -11,6 +11,7 @@ import (
 	"github.com/delendum-xyz/private-voting/fdkg/pki"
 	"github.com/delendum-xyz/private-voting/fdkg/sss"
 	"github.com/delendum-xyz/private-voting/fdkg/utils"
+	"github.com/samber/lo"
 	"github.com/torusresearch/pvss/secp256k1"
 )
 
@@ -82,7 +83,7 @@ func TestCorrectSharingAndReconstruction(t *testing.T) {
 		receiverToShares := make(map[int][]sss.Share)
 		senderToShares := make(map[int][]sss.Share)
 		for _, node := range dkgNodes {
-			shares := node.GenerateShares()
+			shares := node.GenerateShares(curve)
 			if len(shares) == 0 {
 				t.Errorf("Node %d generated no shares", node.Index)
 			}
@@ -120,7 +121,7 @@ func TestShamirSecretSharing(t *testing.T) {
 		node22 := pki.NewLocalParty(22, config, curve, r).PublicParty
 		node33 := pki.NewLocalParty(33, config, curve, r).PublicParty
 		nodeDkg := node.ToDkgParty([]pki.PublicParty{node11, node22, node33})
-		shares := nodeDkg.GenerateShares()
+		shares := nodeDkg.GenerateShares(curve)
 		primeShares := utils.Map(shares, func(s sss.Share) common.PrimaryShare { return s.ToPrimaryShare() })
 		secret := sss.LagrangeScalar(primeShares, 0, curve)
 		if secret.Cmp(&node.VotingPrivKeyShare) != 0 {
@@ -169,21 +170,21 @@ func TestPartialDecryptionOfTwoDkgNodesAndThreeGuardiansAndOneVote(t *testing.T)
 
 		aliceTrustedParties := []pki.PublicParty{carol, dave}
 		aliceDkg := alice.ToDkgParty(aliceTrustedParties)
-		aliceShares := aliceDkg.GenerateShares()
+		aliceShares := aliceDkg.GenerateShares(curve)
 		if len(aliceShares) != len(aliceTrustedParties) {
 			t.Errorf("Alice should generate the same number of shares as trusted parties")
 		}
 
 		bobTrustedParties := []pki.PublicParty{dave, eve}
 		bobDkg := bob.ToDkgParty(bobTrustedParties)
-		bobShares := bobDkg.GenerateShares()
+		bobShares := bobDkg.GenerateShares(curve)
 		if len(bobShares) != len(bobTrustedParties) {
 			t.Errorf("Alice should generate the same number of shares as trusted parties")
 		}
 		publicKeys := utils.Map([]pki.DkgParty{aliceDkg, bobDkg}, func(d pki.DkgParty) common.Point { return d.VotingPublicKey })
-		votingPubKey := utils.Sum(publicKeys, func(p1, p2 common.Point) common.Point {
+		votingPubKey := lo.Reduce(publicKeys, func(p1, p2 common.Point, _ int) common.Point {
 			return common.BigIntToPoint(curve.Add(&p1.X, &p1.Y, &p2.X, &p2.Y))
-		})
+		}, common.PointZero())
 		if votingPubKey.X.Cmp(&alice.VotingPublicKey.X) == 0 || votingPubKey.Y.Cmp(&alice.VotingPublicKey.Y) == 0 {
 			t.Errorf("Voting public key should not be just alice voting public key as she is the only one in the DKG")
 		}
@@ -193,31 +194,31 @@ func TestPartialDecryptionOfTwoDkgNodesAndThreeGuardiansAndOneVote(t *testing.T)
 		C1s := utils.Map(votes, func(vote common.EncryptedBallot) common.Point { return vote.C1 })
 
 		// online tally
-		C1 := utils.Sum(C1s, func(p1, p2 common.Point) common.Point {
+		C1 := lo.Reduce(C1s, func(p1, p2 common.Point, _ int) common.Point {
 			return common.BigIntToPoint(curve.Add(&p1.X, &p1.Y, &p2.X, &p2.Y))
-		})
+		}, common.PointZero())
 
 		carolShares := []common.PrimaryShare{aliceShares[0].ProductOfShareAndCoefficient()}
 		daveShares := []common.PrimaryShare{aliceShares[1].ProductOfShareAndCoefficient(), bobShares[0].ProductOfShareAndCoefficient()}
 		eveShares := []common.PrimaryShare{bobShares[1].ProductOfShareAndCoefficient()}
 
 		carol_sharesValues := utils.Map(carolShares, func(s common.PrimaryShare) big.Int { return s.Value })
-		carol_votingPrivKeyShare := utils.Sum(carol_sharesValues, func(s1, s2 big.Int) big.Int { return *s1.Add(&s1, &s2) })
+		carol_votingPrivKeyShare := lo.Reduce(carol_sharesValues, func(acc *big.Int, s2 big.Int, _ int) *big.Int { return acc.Add(acc, &s2) }, big.NewInt(0))
 
 		dave_sharesValues := utils.Map(daveShares, func(s common.PrimaryShare) big.Int { return s.Value })
-		dave_votingPrivKeyShare := utils.Sum(dave_sharesValues, func(s1, s2 big.Int) big.Int { return *s1.Add(&s1, &s2) })
+		dave_votingPrivKeyShare := lo.Reduce(dave_sharesValues, func(acc *big.Int, s2 big.Int, _ int) *big.Int { return acc.Add(acc, &s2) }, big.NewInt(0))
 
 		eve_sharesValues := utils.Map(eveShares, func(s common.PrimaryShare) big.Int { return s.Value })
-		eve_votingPrivKeyShare := utils.Sum(eve_sharesValues, func(s1, s2 big.Int) big.Int { return *s1.Add(&s1, &s2) })
+		eve_votingPrivKeyShare := lo.Reduce(eve_sharesValues, func(acc *big.Int, s2 big.Int, _ int) *big.Int { return acc.Add(acc, &s2) }, big.NewInt(0))
 
 		A_carol := common.BigIntToPoint(curve.ScalarMult(&C1.X, &C1.Y, carol_votingPrivKeyShare.Bytes()))
 		A_dave := common.BigIntToPoint(curve.ScalarMult(&C1.X, &C1.Y, dave_votingPrivKeyShare.Bytes()))
 		A_eve := common.BigIntToPoint(curve.ScalarMult(&C1.X, &C1.Y, eve_votingPrivKeyShare.Bytes()))
 
 		// offline tally
-		Z := utils.Sum([]common.Point{A_carol, A_dave, A_eve}, func(p1, p2 common.Point) common.Point {
+		Z := lo.Reduce([]common.Point{A_carol, A_dave, A_eve}, func(p1, p2 common.Point, _ int) common.Point {
 			return common.BigIntToPoint(curve.Add(&p1.X, &p1.Y, &p2.X, &p2.Y))
-		})
+		}, common.PointZero())
 
 		if !curve.IsOnCurve(&Z.X, &Z.Y) {
 			t.Errorf("Z is not on curve Z_X: %v Z_Y: %v", Z.X, Z.Y)
@@ -225,9 +226,9 @@ func TestPartialDecryptionOfTwoDkgNodesAndThreeGuardiansAndOneVote(t *testing.T)
 		}
 
 		C2s := utils.Map(votes, func(vote common.EncryptedBallot) common.Point { return vote.C2 })
-		C2 := utils.Sum(C2s, func(p1, p2 common.Point) common.Point {
+		C2 := lo.Reduce(C2s, func(p1, p2 common.Point, _ int) common.Point {
 			return common.BigIntToPoint(curve.Add(&p1.X, &p1.Y, &p2.X, &p2.Y))
-		})
+		}, common.PointZero())
 		result := elgamal.DecryptResults(Z, C2, len(votes), config.Options, curve)
 		if result[0] != 3 {
 			t.Errorf("The result should be 1 but was %v", result)
@@ -254,16 +255,16 @@ func TestPartialDecryptionOfOneDkgNodeAndTwoGuardiansOneVote(t *testing.T) {
 
 		trustedParties := []pki.PublicParty{bob, carol}
 		aliceDkg := alice.ToDkgParty(trustedParties)
-		aliceShares := aliceDkg.GenerateShares()
+		aliceShares := aliceDkg.GenerateShares(curve)
 		if len(aliceShares) != len(trustedParties) {
 			t.Errorf("Alice should generate the same number of shares as trusted parties")
 		}
 		alicePrimaryShares := utils.Map(aliceShares, func(s sss.Share) common.PrimaryShare { return s.ToPrimaryShare() })
 
 		publicKeys := utils.Map([]pki.DkgParty{aliceDkg}, func(d pki.DkgParty) common.Point { return d.VotingPublicKey })
-		votingPubKey := utils.Sum(publicKeys, func(p1, p2 common.Point) common.Point {
+		votingPubKey := lo.Reduce(publicKeys, func(p1, p2 common.Point, _ int) common.Point {
 			return common.BigIntToPoint(curve.Add(&p1.X, &p1.Y, &p2.X, &p2.Y))
-		})
+		}, common.PointZero())
 
 		if votingPubKey.X.Cmp(&alice.VotingPublicKey.X) != 0 || votingPubKey.Y.Cmp(&alice.VotingPublicKey.Y) != 0 {
 			t.Errorf("Voting public key should be just alice voting public key as she is the only one in the DKG")
@@ -286,9 +287,9 @@ func TestPartialDecryptionOfOneDkgNodeAndTwoGuardiansOneVote(t *testing.T) {
 		C1s := utils.Map(votes, func(vote common.EncryptedBallot) common.Point { return vote.C1 })
 
 		// online tally
-		C1 := utils.Sum(C1s, func(p1, p2 common.Point) common.Point {
-			return common.BigIntToPoint(secp256k1.Curve.Add(&p1.X, &p1.Y, &p2.X, &p2.Y))
-		})
+		C1 := lo.Reduce(C1s, func(p1, p2 common.Point, _ int) common.Point {
+			return common.BigIntToPoint(curve.Add(&p1.X, &p1.Y, &p2.X, &p2.Y))
+		}, common.PointZero())
 
 		A_bob := common.BigIntToPoint(secp256k1.Curve.ScalarMult(&C1.X, &C1.Y, bob_votingPrivKeyShare.Bytes()))
 		A_carol := common.BigIntToPoint(secp256k1.Curve.ScalarMult(&C1.X, &C1.Y, carol_votingPrivKeyShare.Bytes()))
@@ -301,9 +302,9 @@ func TestPartialDecryptionOfOneDkgNodeAndTwoGuardiansOneVote(t *testing.T) {
 		carol_lagrange := sss.LagrangeCoefficientsStartFromOne(1, 0, []int{11, 22}, curve)
 		Z_carol := common.BigIntToPoint(secp256k1.Curve.ScalarMult(&A_carol.X, &A_carol.Y, carol_lagrange.Bytes()))
 
-		Z := utils.Sum([]common.Point{Z_bob, Z_carol}, func(p1, p2 common.Point) common.Point {
+		Z := lo.Reduce([]common.Point{Z_bob, Z_carol}, func(p1, p2 common.Point, _ int) common.Point {
 			return common.BigIntToPoint(curve.Add(&p1.X, &p1.Y, &p2.X, &p2.Y))
-		})
+		}, common.PointZero())
 
 		if !curve.IsOnCurve(&Z.X, &Z.Y) {
 			t.Errorf("Z is not on curve Z_X: %v Z_Y: %v", Z.X, Z.Y)
@@ -311,9 +312,9 @@ func TestPartialDecryptionOfOneDkgNodeAndTwoGuardiansOneVote(t *testing.T) {
 		}
 
 		C2s := utils.Map(votes, func(vote common.EncryptedBallot) common.Point { return vote.C2 })
-		C2 := utils.Sum(C2s, func(p1, p2 common.Point) common.Point {
+		C2 := lo.Reduce(C2s, func(p1, p2 common.Point, _ int) common.Point {
 			return common.BigIntToPoint(curve.Add(&p1.X, &p1.Y, &p2.X, &p2.Y))
-		})
+		}, common.PointZero())
 
 		result := elgamal.DecryptResults(Z, C2, len(votes), config.Options, curve)
 		if result[0] != 1 {
@@ -343,7 +344,7 @@ func TestPartialDecryptionOfOneDkgNodeAndTwoGuardiansAndManyVotes(t *testing.T) 
 
 		trustedParties := []pki.PublicParty{bob, carol}
 		aliceDkg := alice.ToDkgParty(trustedParties)
-		aliceShares := aliceDkg.GenerateShares()
+		aliceShares := aliceDkg.GenerateShares(curve)
 		if len(aliceShares) != len(trustedParties) {
 			t.Errorf("Alice should generate the same number of shares as trusted parties")
 		}
@@ -377,17 +378,17 @@ func TestPartialDecryptionOfOneDkgNodeAndTwoGuardiansAndManyVotes(t *testing.T) 
 			C1s := utils.Map(votes, func(vote common.EncryptedBallot) common.Point { return vote.C1 })
 
 			// online tally
-			C1 := utils.Sum(C1s, func(p1, p2 common.Point) common.Point {
-				return common.BigIntToPoint(secp256k1.Curve.Add(&p1.X, &p1.Y, &p2.X, &p2.Y))
-			})
+			C1 := lo.Reduce(C1s, func(p1, p2 common.Point, _ int) common.Point {
+				return common.BigIntToPoint(curve.Add(&p1.X, &p1.Y, &p2.X, &p2.Y))
+			}, common.PointZero())
 
 			// partial decryptions
 			bob_Z := common.BigIntToPoint(secp256k1.Curve.ScalarMult(&C1.X, &C1.Y, bob_v.Bytes()))
 			carol_Z := common.BigIntToPoint(secp256k1.Curve.ScalarMult(&C1.X, &C1.Y, carol_v.Bytes()))
 
-			Z := utils.Sum([]common.Point{bob_Z, carol_Z}, func(p1, p2 common.Point) common.Point {
+			Z := lo.Reduce([]common.Point{bob_Z, carol_Z}, func(p1, p2 common.Point, _ int) common.Point {
 				return common.BigIntToPoint(curve.Add(&p1.X, &p1.Y, &p2.X, &p2.Y))
-			})
+			}, common.PointZero())
 
 			if !secp256k1.Curve.IsOnCurve(&Z.X, &Z.Y) {
 				panic("Z is not on curve, X: " + Z.X.String() + " Y: " + Z.Y.String())
@@ -400,9 +401,9 @@ func TestPartialDecryptionOfOneDkgNodeAndTwoGuardiansAndManyVotes(t *testing.T) 
 
 			// sum votes
 			C2s := utils.Map(votes, func(vote common.EncryptedBallot) common.Point { return vote.C2 })
-			C2 := utils.Sum(C2s, func(p1, p2 common.Point) common.Point {
+			C2 := lo.Reduce(C2s, func(p1, p2 common.Point, _ int) common.Point {
 				return common.BigIntToPoint(curve.Add(&p1.X, &p1.Y, &p2.X, &p2.Y))
-			})
+			}, common.PointZero())
 
 			results := elgamal.DecryptResults(Z, C2, len(votes), config.Options, curve)
 			if results[0] != n_votes/2 {
@@ -477,9 +478,9 @@ func TestVoting(t *testing.T) {
 		C1s := utils.Map(votes, func(vote common.EncryptedBallot) common.Point { return vote.C1 })
 
 		// online tally
-		C1 := utils.Sum(C1s, func(p1, p2 common.Point) common.Point {
-			return common.BigIntToPoint(secp256k1.Curve.Add(&p1.X, &p1.Y, &p2.X, &p2.Y))
-		})
+		C1 := lo.Reduce(C1s, func(p1, p2 common.Point, _ int) common.Point {
+			return common.BigIntToPoint(curve.Add(&p1.X, &p1.Y, &p2.X, &p2.Y))
+		}, common.PointZero())
 
 		if !secp256k1.Curve.IsOnCurve(&C1.X, &C1.Y) {
 			panic("A is not on curve")
@@ -487,9 +488,9 @@ func TestVoting(t *testing.T) {
 
 		// Sum the second part of the ballots (payload)
 		C2s := utils.Map(votes, func(vote common.EncryptedBallot) common.Point { return vote.C2 })
-		C2 := utils.Sum(C2s, func(p1, p2 common.Point) common.Point {
+		C2 := lo.Reduce(C2s, func(p1, p2 common.Point, _ int) common.Point {
 			return common.BigIntToPoint(curve.Add(&p1.X, &p1.Y, &p2.X, &p2.Y))
-		})
+		}, common.PointZero())
 
 		if !secp256k1.Curve.IsOnCurve(&C2.X, &C2.Y) {
 			panic("B is not on curve")
@@ -497,7 +498,7 @@ func TestVoting(t *testing.T) {
 
 		receiverToShares := make(map[int][]sss.Share)
 		for _, node := range dkgNodes {
-			shares := node.GenerateShares()
+			shares := node.GenerateShares(curve)
 			for _, share := range shares {
 				receiverToShares[share.To] = append(receiverToShares[share.To], share)
 			}

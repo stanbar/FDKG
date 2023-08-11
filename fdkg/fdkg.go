@@ -35,7 +35,7 @@ func main() {
 	// generate shares for each node
 	partyIndexToShares := make(map[int][]sss.Share)
 	for _, node := range dkgNodes {
-		shares := node.GenerateShares()
+		shares := node.GenerateShares(curve)
 		for _, share := range shares {
 			partyIndexToShares[share.To] = append(partyIndexToShares[share.To], share)
 		}
@@ -76,8 +76,8 @@ func PartyToVotingPrivKeyShare(shares PartyIndexToShares) map[int]big.Int {
 			return share.ProductOfShareAndCoefficient().Value
 		})
 
-		votingPrivKeyShare := utils.Sum(sharesTimesCoefficients, func(s1, s2 big.Int) big.Int { return *s1.Add(&s1, &s2) })
-		partyToVotingPrivKeyShare[party] = votingPrivKeyShare
+		votingPrivKeyShare := lo.Reduce(sharesTimesCoefficients, func(agg *big.Int, item big.Int, i int) *big.Int { return agg.Add(agg, &item) }, big.NewInt(0))
+		partyToVotingPrivKeyShare[party] = *votingPrivKeyShare
 	}
 	return partyToVotingPrivKeyShare
 }
@@ -86,9 +86,9 @@ type PartialDecryptions = []common.Point
 
 func OnlineTally(votes []common.EncryptedBallot, shares PartyIndexToShares, curve elliptic.Curve) PartialDecryptions {
 	C1s := utils.Map(votes, func(vote common.EncryptedBallot) common.Point { return vote.C1 })
-	C1 := utils.Sum(C1s, func(p1, p2 common.Point) common.Point {
+	C1 := lo.Reduce(C1s, func(p1, p2 common.Point, _ int) common.Point {
 		return common.BigIntToPoint(curve.Add(&p1.X, &p1.Y, &p2.X, &p2.Y))
-	})
+	}, common.PointZero())
 
 	partyToVotingPrivKeyShare := PartyToVotingPrivKeyShare(shares)
 
@@ -99,14 +99,14 @@ func OnlineTally(votes []common.EncryptedBallot, shares PartyIndexToShares, curv
 }
 
 func OfflineTally(votes []common.EncryptedBallot, partialDecryptions PartialDecryptions, config common.VotingConfig, curve elliptic.Curve) []int {
-	Z := utils.Sum(partialDecryptions, func(p1, p2 common.Point) common.Point {
+	Z := lo.Reduce(partialDecryptions, func(p1, p2 common.Point, _ int) common.Point {
 		return common.BigIntToPoint(curve.Add(&p1.X, &p1.Y, &p2.X, &p2.Y))
-	})
+	}, common.PointZero())
 
 	C2s := utils.Map(votes, func(vote common.EncryptedBallot) common.Point { return vote.C2 })
-	C2 := utils.Sum(C2s, func(p1, p2 common.Point) common.Point {
+	C2 := lo.Reduce(C2s, func(p1, p2 common.Point, _ int) common.Point {
 		return common.BigIntToPoint(curve.Add(&p1.X, &p1.Y, &p2.X, &p2.Y))
-	})
+	}, common.PointZero())
 
 	return elgamal.DecryptResults(Z, C2, len(votes), config.Options, curve)
 }
