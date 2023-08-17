@@ -31,7 +31,7 @@ func (p Polynomial) String() string {
 	// f(x) = a_0 + a_1*x + a_2*x^2 + ... + a_t*x^t
 	var result string
 	for i, coeff := range p.coefficients {
-		result += fmt.Sprintf("%v..*x^%v + ", coeff.String()[:3], i)
+		result += fmt.Sprintf("%v..*x^%v + ", coeff.String(), i)
 	}
 	return result[:len(result)-3] // -3 to remove the last " + "
 }
