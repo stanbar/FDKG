@@ -76,7 +76,9 @@ func PartyToVotingPrivKeyShare(shares PartyIndexToShares) map[int]big.Int {
 			return share.ProductOfShareAndCoefficient().Value
 		})
 
-		votingPrivKeyShare := lo.Reduce(sharesTimesCoefficients, func(agg *big.Int, item big.Int, i int) *big.Int { return agg.Add(agg, &item) }, big.NewInt(0))
+		votingPrivKeyShare := lo.Reduce(sharesTimesCoefficients, func(agg *big.Int, item big.Int, i int) *big.Int {
+			return agg.Add(agg, &item)
+		}, big.NewInt(0))
 		partyToVotingPrivKeyShare[party] = *votingPrivKeyShare
 	}
 	return partyToVotingPrivKeyShare
