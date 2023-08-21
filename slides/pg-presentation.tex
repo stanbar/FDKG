@@ -1,0 +1,86 @@
+% THIS IS GDANSK UNIVERSITY OF TECHNLOGOGY (PG) PRESENTATION TEMPLATE
+% Creator: Jan Cychnerski <jan.cychnerski@eti.pg.edu.pl>
+% Copyleft 2019
+
+% traditional screen
+\documentclass{beamer}
+
+% wide screen
+%\documentclass[aspectratio=169]{beamer}
+
+
+%%% YOUR PACKAGES HERE %%%
+\usepackage{comment}
+\usepackage{hyperref}
+
+
+% polish language
+%\usepackage[polish]{babel}
+%\usepackage{polski}
+
+
+
+%%% IMPORT PG PRESENTATION STYLE %%%
+\include{pgbeamer/pgbeamer}
+
+
+%%% YOUR OPTIONS HERE %%%
+
+\title[Voter-to-Voter internet voting]{Voter-to-Voter internet voting}
+\author{Stanislaw Baranski}
+\date{\today}
+
+\setbeamercovered{transparent}
+
+
+\AtBeginSection[]
+{
+  \begin{frame}
+    \frametitle{Table of Contents}
+    \tableofcontents[currentsection]
+  \end{frame}
+}
+
+
+%%% DOCUMENT BEGINS HERE %%%
+
+\begin{document}
+
+%%% PG TITLE PAGE %%%
+\pgtitleframe
+
+%%% YOUR PRESENTATION HERE %%%
+
+\section{Motivation}
+
+\begin{frame}{Internet voting is hard}
+	Analysis of this area quickly reveals several unsolved issues.
+	Secure voting requires four main properties
+
+	\begin{itemize}
+	\item<1-> \textbf{Correctness}, all and only eligible votes are counted.
+	\item<2-> \textbf{Censorship resistance}, any eligible user that wants to cast a vote can do it.
+	\item<3-> \textbf{Privacy}, no one can tell which candidate the voters voted for, or even if they voted at all—preventing preliminary results and guaranteeing freedom of choice.
+	\item<4-> \textbf{Coercion resistance}, voters can not prove to anyone how they voted even if they want to—preventing selling votes as there is no way of verifying if they indeed voted on the paid candidate.
+	\end{itemize}
+
+	\pause
+	They are hard to satisfy together
+\end{frame}
+
+\section{Internet votings}
+
+\section{Contribution}
+
+\section{Voter-to-Voter internet voting}
+
+\section{Roadmap}
+
+%%% PG LAST PAGE %%%
+\pglastframe
+
+
+%%% DOCUMENT ENDS HERE. Good bye! :) %%%
+
+\end{document}
+
