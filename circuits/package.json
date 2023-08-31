@@ -5,8 +5,11 @@
     "test": "npx mocha"
   },
   "dependencies": {
+    "assert": "^2.0.0",
     "circomkit": "^0.0.18",
-    "circomlib": "^2.0.5"
+    "circomlib": "^2.0.5",
+    "circomlibjs": "^0.1.7",
+    "maci-crypto": "^1.1.2"
   },
   "devDependencies": {
     "@types/mocha": "^10.0.1",

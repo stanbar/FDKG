@@ -1,0 +1,6 @@
+{
+  "dependencies": {
+    "babyjubjub": "^1.0.4",
+    "maci-crypto": "^1.1.2"
+  }
+}
