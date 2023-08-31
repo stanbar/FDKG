@@ -1,8 +1,9 @@
 pragma circom 2.0.0;
 
-include "./node_modules/circomlib/circuits/escalarmulany.circom";
-include "./node_modules/circomlib/circuits/babyjub.circom";
-include "./node_modules/circomlib/circuits/bitify.circom";
+include "../lib/circomlib/circuits/escalarmulany.circom";
+include "../lib/circomlib/circuits/babyjub.circom";
+include "../lib/circomlib/circuits/bitify.circom";
+
 
 /*
  * Decrypts an ElGamal ciphertext.
@@ -23,7 +24,7 @@ template ElGamalDecrypt() {
     signal input c1[2];
     signal input c2[2];
     signal input xIncrement;
-    signal private input privKey;
+    signal input privKey;
     signal output out;
 
     // Convert the private key to bits
