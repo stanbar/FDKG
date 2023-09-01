@@ -6,6 +6,10 @@ import { genKeypair, genRandomSalt } from './maci-crypto.js'
 import { circomkit } from "../tests/common/index.js";
 
 import * as ff from 'ffjavascript';
+import * as circomlibjs from 'circomlibjs';
+
+const babyJub = await circomlibjs.buildBabyjub()
+const F = babyJub.F
 
 const stringifyBigInts: (obj: object) => any = ff.utils.stringifyBigInts
 const unstringifyBigInts: (obj: object) => any = ff.utils.unstringifyBigInts

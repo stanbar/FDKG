@@ -1,13 +1,16 @@
 import * as crypto from 'crypto'
 import assert from 'node:assert';
 import * as ff from 'ffjavascript';
-import * as createBlakeHash from 'blake-hash';
+import createBlakeHash from 'blake-hash';
 import * as circomlibjs from 'circomlibjs';
 
 const eddsa = await circomlibjs.buildEddsa()
+const babyJub = await circomlibjs.buildBabyjub()
+const F = babyJub.F
+const Scalar = ff.Scalar
 
 type PrivKey = bigint
-type PubKey = bigint[]
+type PubKey = [Uint8Array, Uint8Array]
 
 /*
  * A private key and a public key
@@ -18,7 +21,7 @@ interface Keypair {
 }
 
 // The BN254 group order p
-const SNARK_FIELD_SIZE = 21888242871839275222246405745257275088548364400416034343698204186575808495617n
+const SNARK_FIELD_SIZE = 21888242871839275222246405745257275088548364400416034343698204186575808495617n;
 
 /*
  * Convert a BigInt to a Buffer
@@ -27,17 +30,11 @@ const bigInt2Buffer = (i: BigInt): Buffer => {
     return Buffer.from(i.toString(16), 'hex')
 }
 
-function buffer2BigInt(buf: ArrayBuffer | Buffer): bigint {
-    let bits = 8n
-    if (ArrayBuffer.isView(buf)) bits = BigInt(buf.BYTES_PER_ELEMENT * 8)
-    else buf = new Uint8Array(buf)
-
-    let ret = 0n
-    for (const i of (buf as Buffer).values()) {
-        const bi = BigInt(i)
-        ret = (ret << bits) + bi
+function buff2hex(buff: Buffer | Uint8Array) {
+    function i2hex(i: number) {
+        return ('0' + i.toString(16)).slice(-2);
     }
-    return ret
+    return Array.from(buff).map(i2hex).join('');
 }
 
 /*
@@ -49,7 +46,7 @@ function buffer2BigInt(buf: ArrayBuffer | Buffer): bigint {
  * http://cvsweb.openbsd.org/cgi-bin/cvsweb/~checkout~/src/lib/libc/crypt/arc4random_uniform.c
  * @return A BabyJub-compatible random value.
  */
-const genRandomBabyJubValue = (): bigint => {
+const genRandomBabyJubScalar = (): bigint => {
 
     // Prevent modulo bias
     //const lim = BigInt('0x10000000000000000000000000000000000000000000000000000000000000000')
@@ -71,12 +68,18 @@ const genRandomBabyJubValue = (): bigint => {
     return privKey
 }
 
+
+const getRandomEscalar = (): Uint8Array => {
+    const scalar = genRandomBabyJubScalar()
+    return F.e(scalar.toString())
+}
+
 /*
  * @return A BabyJub-compatible private key.
  */
 const genPrivKey = (): PrivKey => {
 
-    return genRandomBabyJubValue()
+    return genRandomBabyJubScalar()
 }
 
 /*
@@ -84,7 +87,7 @@ const genPrivKey = (): PrivKey => {
  */
 const genRandomSalt = (): PrivKey => {
 
-    return genRandomBabyJubValue()
+    return genRandomBabyJubScalar()
 }
 
 
@@ -96,7 +99,7 @@ const genPubKey = (privKey: PrivKey): PubKey => {
     // Check whether privKey is a field element
     privKey = BigInt(privKey.toString())
     assert(privKey < SNARK_FIELD_SIZE)
-    return eddsa.prv2pub(bigInt2Buffer(privKey))
+    return eddsa.prv2pub(privKey)
 }
 
 const genKeypair = (): Keypair => {
@@ -132,7 +135,9 @@ export {
     genPubKey,
     genPrivKey,
     formatPrivKeyForBabyJub,
+    genRandomBabyJubScalar,
     genKeypair,
+    getRandomEscalar,
     genRandomSalt,
-    buffer2BigInt,
+    SNARK_FIELD_SIZE,
 }

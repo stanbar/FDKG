@@ -9,25 +9,23 @@ import {
     PubKey,
     PrivKey,
     genRandomSalt,
-    bigInt2Buffer,
-    buffer2BigInt,
+    SNARK_FIELD_SIZE,
 } from './maci-crypto.js'
 
+const babyJub = await circomlibjs.buildBabyjub()
+const F = babyJub.F
 
-interface BabyJubPoint {
-    x: BigInt,
-    y: BigInt,
-}
+type BabyJubPoint = [Uint8Array, Uint8Array]
 
 interface Message {
     point: BabyJubPoint,
-    xIncrement: BigInt,
+    xIncrement: Uint8Array,
 }
 
 interface ElGamalCiphertext {
     c1: BabyJubPoint;
     c2: BabyJubPoint;
-    xIncrement: BigInt;
+    xIncrement: Uint8Array;
 }
 
 /*
@@ -41,24 +39,17 @@ interface ElGamalCiphertext {
 const encodeToMessage = async (
     original: bigint
 ): Promise<Message> => {
-    const babyJub = await circomlibjs.buildBabyjub()
-    const F = babyJub.F
-
     const randomVal = genPrivKey()
     const randomPoint = genPubKey(randomVal)
 
     assert(babyJub.inSubgroup(randomPoint))
 
-    console.log({randomPoint: randomPoint[0], original})
-    const xIncrement = buffer2BigInt(F.e(F.sub(randomPoint[0], bigInt2Buffer(original))))
+    const xIncrement = F.sub(randomPoint[0], original)
 
-    console.log({xIncrement})
-    assert(xIncrement >= BigInt(0))
+    assert(F.geq(xIncrement, BigInt(0)), `xIncrement: ${xIncrement} is negative`)
+    assert(F.le(xIncrement, SNARK_FIELD_SIZE), `xIncrement: ${xIncrement} is too large`)
 
-    const xVal = randomPoint[0]
-    const yVal = randomPoint[1]
-
-    const point: BabyJubPoint = { x: xVal, y: yVal }
+    const point: BabyJubPoint = randomPoint
 
     return { point, xIncrement }
 }
@@ -69,18 +60,11 @@ const encodeToMessage = async (
  * x-increment.
  * @param message The message to convert.
  */
-const decodeMessage = async (message: Message): Promise<BigInt> => {
-
-    const babyJub = await circomlibjs.buildBabyjub()
-    const F = babyJub.F
-
-    const decoded = BigInt(
-        F.e(
-            F.sub(message.point.x, message.xIncrement),
-        )
-    )
+const decodeMessage = async (message: Message): Promise<bigint> => {
+    const decoded = buffer2BigInt(F.sub(message.point[0], message.xIncrement))
+    
     assert(decoded >= BigInt(0))
-    assert(decoded < babyJub.p)
+    assert(decoded < babyJub.p, `decoded: ${decoded}, p: ${babyJub.p} is to large`)
 
     return decoded
 }
@@ -93,26 +77,24 @@ const decodeMessage = async (message: Message): Promise<BigInt> => {
  * @param randomVal A random value y used along with the private key to
  *                  generate the ciphertext
  */
-const encrypt = async  (
+const encrypt = async (
     plaintext: bigint,
     pubKey: PubKey,
     randomVal: bigint = genRandomSalt(),
 ): Promise<ElGamalCiphertext> => {
-    const babyJub = await circomlibjs.buildBabyjub()
-
     const message: Message = await encodeToMessage(plaintext)
 
-    const c1Point = babyJub.mulPointEscalar(babyJub.Base8, randomVal)
+    const c1Point: BabyJubPoint = babyJub.mulPointEscalar(babyJub.Base8, randomVal)
 
-    const pky = babyJub.mulPointEscalar(pubKey, randomVal)
-    const c2Point = babyJub.addPoint(
-        [message.point.x, message.point.y],
+    const pky: BabyJubPoint = babyJub.mulPointEscalar(pubKey, randomVal)
+    const c2Point: BabyJubPoint = babyJub.addPoint(
+        message.point,
         pky,
     )
 
     return {
-        c1: { x: c1Point[0], y: c1Point[1] },
-        c2: { x: c2Point[0], y: c2Point[1] },
+        c1: c1Point,
+        c2: c2Point,
         xIncrement: message.xIncrement,
     }
 }
@@ -122,79 +104,36 @@ const encrypt = async  (
  * @param privKey The private key
  * @param ciphertext The ciphertext to decrypt
  */
-const decrypt = async (privKey: PrivKey, ciphertext: ElGamalCiphertext): Promise<BigInt> => {
-    const babyJub = await circomlibjs.buildBabyjub()
-    const F = babyJub.F
-
-    const c1x = babyJub.mulPointEscalar(
-        [ciphertext.c1.x, ciphertext.c1.y],
+const decrypt = async (privKey: PrivKey, ciphertext: ElGamalCiphertext): Promise<bigint> => {
+    const c1x: [Uint8Array, Uint8Array] = babyJub.mulPointEscalar(
+        ciphertext.c1,
         formatPrivKeyForBabyJub(privKey),
     )
 
     const c1xInverse = [
-        F.e(c1x[0] * BigInt(-1)),
-        BigInt(c1x[1]),
+        F.neg(c1x[0]),
+        c1x[1],
     ]
 
-    const decrypted = babyJub.addPoint(
+    const decrypted: [Uint8Array, Uint8Array] = babyJub.addPoint(
         c1xInverse,
-        [ciphertext.c2.x, ciphertext.c2.y],
+        ciphertext.c2
     )
 
     return decodeMessage(
         {
-            point: {
-                x: decrypted[0],
-                y: decrypted[1],
-            },
+            point: decrypted,
             xIncrement: ciphertext.xIncrement,
         }
     )
 }
 
-/*
- * Randomize a ciphertext such that it is different from the original
- * ciphertext but can be decrypted by the same private key.
- * @param pubKey The same public key used to encrypt the original plaintext
- * @param ciphertext The ciphertext to re-randomize.
- * @param randomVal A random value z such that the re-randomized ciphertext
- *                  could have been generated a random value y+z in the first
- *                  place (optional)
- */
-const rerandomize = async (
-    pubKey: PubKey,
-    ciphertext: ElGamalCiphertext,
-    randomVal: BigInt = genRandomSalt(),
-): Promise<ElGamalCiphertext> => {
-    const babyJub = await circomlibjs.buildBabyjub()
-    const F = babyJub.F
-
-    const d1 = babyJub.addPoint(
-        babyJub.mulPointEscalar(babyJub.Base8, randomVal),
-        [ciphertext.c1.x, ciphertext.c1.y],
-    )
-
-    const d2 = babyJub.addPoint(
-        babyJub.mulPointEscalar(pubKey, randomVal),
-        [ciphertext.c2.x, ciphertext.c2.y],
-    )
-
-    return {
-        c1: { x: d1[0], y: d1[1] },
-        c2: { x: d2[0], y: d2[1] },
-        xIncrement: ciphertext.xIncrement,
-    }
-}
-
-export type {
+export {
     Message,
     BabyJubPoint,
     ElGamalCiphertext,
-}
-export {
     encodeToMessage,
     decodeMessage,
     encrypt,
     decrypt,
-    rerandomize,
 }

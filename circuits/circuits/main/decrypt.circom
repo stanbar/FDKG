@@ -3,4 +3,4 @@ pragma circom 2.1.2;
 
 include "../decrypt.circom";
 
-component main = ElGamalDecrypt();
+component main {public[c1, c2, xIncrement]} = ElGamalDecrypt();

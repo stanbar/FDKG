@@ -17,11 +17,6 @@
     "forceConsistentCasingInFileNames": true,
     "strict": true,
   },
-  "include": [
-    "types/**/*.d.ts",
-    "src/**/*.ts",
-    "test/**/*.ts"
-  ],
   "ts-node": {
     "esm": true,
     "experimentalSpecifierResolution": "node"
