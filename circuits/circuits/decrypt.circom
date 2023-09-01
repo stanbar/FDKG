@@ -1,4 +1,4 @@
-pragma circom 2.0.0;
+pragma circom 2.1.0;
 
 include "../lib/circomlib/circuits/escalarmulany.circom";
 include "../lib/circomlib/circuits/babyjub.circom";

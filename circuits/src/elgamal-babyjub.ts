@@ -1,7 +1,6 @@
-import * as path from 'path'
 import assert from 'node:assert';
 
-const circomlibjs = require("circomlibjs")
+import * as circomlibjs from 'circomlibjs';
 
 import {
     genPubKey,
@@ -10,8 +9,9 @@ import {
     PubKey,
     PrivKey,
     genRandomSalt,
-    SnarkBigInt
-} from 'maci-crypto'
+    bigInt2Buffer,
+    buffer2BigInt,
+} from './maci-crypto.js'
 
 
 interface BabyJubPoint {
@@ -39,7 +39,7 @@ interface ElGamalCiphertext {
  *                 size.
  */
 const encodeToMessage = async (
-    original: BigInt
+    original: bigint
 ): Promise<Message> => {
     const babyJub = await circomlibjs.buildBabyjub()
     const F = babyJub.F
@@ -49,8 +49,10 @@ const encodeToMessage = async (
 
     assert(babyJub.inSubgroup(randomPoint))
 
-    const xIncrement = F.e(F.sub(randomPoint[0], original))
+    console.log({randomPoint: randomPoint[0], original})
+    const xIncrement = buffer2BigInt(F.e(F.sub(randomPoint[0], bigInt2Buffer(original))))
 
+    console.log({xIncrement})
     assert(xIncrement >= BigInt(0))
 
     const xVal = randomPoint[0]
@@ -92,9 +94,9 @@ const decodeMessage = async (message: Message): Promise<BigInt> => {
  *                  generate the ciphertext
  */
 const encrypt = async  (
-    plaintext: BigInt,
+    plaintext: bigint,
     pubKey: PubKey,
-    randomVal: BigInt = genRandomSalt(),
+    randomVal: bigint = genRandomSalt(),
 ): Promise<ElGamalCiphertext> => {
     const babyJub = await circomlibjs.buildBabyjub()
 
@@ -184,10 +186,12 @@ const rerandomize = async (
     }
 }
 
-export {
+export type {
     Message,
     BabyJubPoint,
     ElGamalCiphertext,
+}
+export {
     encodeToMessage,
     decodeMessage,
     encrypt,

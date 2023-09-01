@@ -1,7 +1,14 @@
+/// <reference path='../types/types.d.ts'/>
+
 import { WitnessTester } from "circomkit";
-import { circomkit } from "./common";
-import { encrypt } from '../src/elgamal-babyjub'
-import { stringifyBigInts, genKeypair, genRandomSalt } from 'maci-crypto'
+import { circomkit } from "./common/index.js";
+import { encrypt } from '../src/elgamal-babyjub.js'
+import { genKeypair, genRandomSalt } from '../src/maci-crypto.js'
+
+import * as ff from 'ffjavascript';
+
+const stringifyBigInts: (obj: object) => any = ff.utils.stringifyBigInts
+const unstringifyBigInts: (obj: object) => any = ff.utils.unstringifyBigInts
 
 const randomPolynomial = (threshold: number): bigint[] => {
   const coefficients = Array.from({ length: threshold }, (_, i) => genRandomSalt());
@@ -31,14 +38,15 @@ describe("pvss", () => {
     circuit = await circomkit.WitnessTester("pvss", {
       file: "pvss",
       template: "PVSS",
+      dir: "test/multiplier",
       pubs: ["public_keys"],
       params: [N, threshold],
     });
   });
 
-  // it("should have correct number of constraints", async () => {
-  //   await circuit.expectConstraintCount(N - 1);
-  // });
+  it("should have correct number of constraints", async () => {
+    await circuit.expectConstraintCount(42212);
+  });
 
   it("should multiply correctly", async () => {
     const input = {
