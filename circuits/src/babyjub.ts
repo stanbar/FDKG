@@ -1,9 +1,13 @@
 import * as circomlibjs from 'circomlibjs';
 import assert from 'node:assert';
 import * as crypto from 'crypto'
+import createBlakeHash from 'blake-hash'
 
 // https://github.com/iden3/circomlibjs/blob/main/src/babyjub.js
 export const babyjub = await circomlibjs.buildBabyjub()
+const eddsa = await circomlibjs.buildEddsa()
+
+import * as ff from 'ffjavascript';
 
 export type BabyJubPoint = [Uint8Array, Uint8Array]
 
@@ -38,6 +42,22 @@ export function inSubgroup(p: BabyJubPoint): boolean {
 
 export function addPoint(p1: BabyJubPoint, p2: BabyJubPoint): BabyJubPoint {
     return babyjub.addPoint(p1, p2)
+}
+
+
+/*
+ * An internal function which formats a random private key to be compatible
+ * with the BabyJub curve. This is the format which should be passed into the
+ * PubKey and other circuits.
+ */
+export const formatPrivKeyForBabyJub = (privKey: PrivKey): bigint => {
+    const sBuff = eddsa.pruneBuffer(
+        createBlakeHash("blake512").update(
+            Buffer.from(privKey.toString(16), 'hex'),
+        ).digest().slice(0, 32)
+    )
+    const s = ff.utils.leBuff2int(sBuff)
+    return ff.Scalar.shr(s, 3)
 }
 
 /*

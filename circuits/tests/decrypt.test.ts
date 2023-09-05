@@ -3,10 +3,10 @@
 import assert from 'node:assert';
 import { WitnessTester } from "circomkit";
 import { circomkit } from "./common/index.js";
-import { BabyJubPoint, genKeypair, genPrivKey, genPubKey, genRandomSalt, SNARK_FIELD_SIZE }  from "../src/babyjub";
+import { genKeypair, genPrivKey, genPubKey, genRandomSalt, SNARK_FIELD_SIZE, formatPrivKeyForBabyJub } from "../src/babyjub";
 import * as F from "../src/F";
 import * as ff from 'ffjavascript';
-import { ElGamalCiphertext, decrypt, encrypt } from '../src/encryption.js';
+import {  encodeToMessage, encrypt } from '../src/encryption.js';
 
 const stringifyBigInts: (obj: object) => any = ff.utils.stringifyBigInts
 const unstringifyBigInts: (obj: object) => any = ff.utils.unstringifyBigInts
@@ -48,20 +48,20 @@ describe("test ElGamalDecrypt", () => {
     await circuit.expectConstraintCount(2565);
   });
 
-  it.only("should decrypt correctly", async () => {
-    const share = evalPolynomial(coefficients, BigInt(1))
-    const privKey = genPrivKey()
+  it("should decrypt correctly", async () => {
+    const share = BigInt(0)
+    const privKey = formatPrivKeyForBabyJub(genPrivKey())
     const pubKey = genPubKey(privKey)
     const ciphertext = encrypt(share, pubKey)
+    const encoded = encodeToMessage(share)
 
     const input = {
-      c1: ciphertext.c1,
-      c2: ciphertext.c2,
-      xIncrement: ciphertext.xIncrement,
-      privKey: F.fromBigint(privKey),
+      c1: [F.toBigint(ciphertext.c1[0]), F.toBigint(ciphertext.c1[1])],
+      c2: [F.toBigint(ciphertext.c2[0]), F.toBigint(ciphertext.c2[1])],
+      xIncrement: F.toBigint(ciphertext.xIncrement),
+      privKey: privKey,
     }
-    const out = share
-
-    await circuit.expectPass(stringifyBigInts(input), {out});
+    const out = { out: share }
+    await circuit.expectPass(input, out);
   });
 });
