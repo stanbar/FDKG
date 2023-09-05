@@ -2,10 +2,9 @@ import * as circomlibjs from 'circomlibjs';
 import assert from 'node:assert';
 import * as babyjub from './babyjub'
 import * as F from './F'
-import { PubKey } from './babyjub';
+import { PubKey, SNARK_FIELD_SIZE } from './babyjub';
 import { BabyJubPoint } from './babyjub';
 import { privateDecrypt } from 'node:crypto';
-import { SNARK_FIELD_SIZE } from './maci-crypto';
 
 export interface Message {
     point: BabyJubPoint,
