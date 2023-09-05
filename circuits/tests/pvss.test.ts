@@ -3,7 +3,7 @@
 import assert from 'node:assert';
 import { WitnessTester } from "circomkit";
 import { circomkit } from "./common/index.js";
-import { BabyJubPoint, genKeypair, genRandomSalt, SNARK_FIELD_SIZE }  from "../src/babyjub";
+import { BabyJubPoint, genKeypair, genRandomSalt, SNARK_FIELD_SIZE } from "../src/babyjub";
 import * as F from "../src/F";
 import * as ff from 'ffjavascript';
 import { ElGamalCiphertext, decrypt, encrypt } from '../src/encryption.js';
@@ -50,31 +50,37 @@ describe("pvss", () => {
   });
   it("should encrypt correctly", async () => {
     for (let i = 0; i < N; i++) {
-        const share = evalPolynomial(coefficients, BigInt(i+1))
-        const message = encrypt(share, keypairs[i].pubKey)
-        const decoded = decrypt(keypairs[i].privKey, message)
+      const share = evalPolynomial(coefficients, BigInt(i + 1))
+      const message = encrypt(share, keypairs[i].pubKey)
+      const decoded = decrypt(keypairs[i].privKey, message)
 
-        assert(share == decoded)
+      assert(share == decoded)
     }
   })
-  it("should multiply correctly", async () => {
+  it("should distribute encrypted shares", async () => {
+    const shares = Array.from({ length: N }, (_, i) => {
+      const share = evalPolynomial(coefficients, BigInt(i + 1))
+      return share
+    })
+    const ciphertexts = shares.map((share, i): ElGamalCiphertext => {
+      return encrypt(share, keypairs[i].pubKey, r1[i])
+    })
+
     const input = {
       coefficients,
       r1,
       r2,
-      public_keys: keypairs.map((key) => key.pubKey)
+      public_keys: keypairs.map((key) => key.pubKey.map(F.toBigint))
     }
-    const shares = Array.from({ length: N }, (_, i) => {
-        const share = evalPolynomial(coefficients, BigInt(i+1))
-        return share
-    })
-    const ciphertexts = shares.map((share, i): ElGamalCiphertext => {
-        return encrypt(share, keypairs[i].pubKey, r1[i])
-    })
-    const out = ciphertexts.map((ciphertext) => {
-      return [ciphertext.c1[0], ciphertext.c1[1], ciphertext.c2[0], ciphertext.c2[1], ciphertext.xIncrement]
-    })
+    const out = {
+      out: ciphertexts.map((ciphertext) => {
+        return [
+          ciphertext.c1[0], ciphertext.c1[1], 
+          ciphertext.c2[0], ciphertext.c2[1],
+          ciphertext.xIncrement].map(F.toBigint)
+      })
+    }
 
-    await circuit.expectPass(stringifyBigInts(input), stringifyBigInts(out));
+    await circuit.expectPass(input, out);
   });
 });

@@ -96,7 +96,7 @@ export const genRandomBabyJubScalar = (): bigint => {
  */
 export const genPrivKey = (): PrivKey => {
 
-    return genRandomBabyJubScalar()
+    return formatPrivKeyForBabyJub(genRandomBabyJubScalar())
 }
 
 /*
@@ -104,7 +104,7 @@ export const genPrivKey = (): PrivKey => {
  */
 export const genRandomSalt = (): PrivKey => {
 
-    return genRandomBabyJubScalar()
+    return formatPrivKeyForBabyJub(genRandomBabyJubScalar())
 }
 
 /*
