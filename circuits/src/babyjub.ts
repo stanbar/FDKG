@@ -2,6 +2,7 @@ import * as circomlibjs from 'circomlibjs';
 import assert from 'node:assert';
 import * as crypto from 'crypto'
 
+// https://github.com/iden3/circomlibjs/blob/main/src/babyjub.js
 export const babyjub = await circomlibjs.buildBabyjub()
 
 export type BabyJubPoint = [Uint8Array, Uint8Array]

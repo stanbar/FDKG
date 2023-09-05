@@ -67,8 +67,10 @@ describe('ElGamal encryption and decryption', () => {
         const bobPub = babyjub.mulPointEscalar(babyjub.Base8, bobSk)
 
         const secret = 123n
+
         const message = encrypt(secret, bobPub)
         const decoded = decrypt(bobSk, message)
+
         assert(secret == decoded)
     })
 })
