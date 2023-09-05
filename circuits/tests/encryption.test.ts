@@ -60,10 +60,10 @@ describe('ElGamal encryption and decryption', () => {
         assert(secret == decoded)
     })
     it("should encrypt and decrypt 123", async () => {
-        const aliceSk = babyjub.genRandomBabyJubScalar()
+        const aliceSk = babyjub.genPrivKey()
         const alicePub = babyjub.mulPointEscalar(babyjub.Base8, aliceSk)
 
-        const bobSk = babyjub.genRandomBabyJubScalar()
+        const bobSk = babyjub.genPrivKey()
         const bobPub = babyjub.mulPointEscalar(babyjub.Base8, bobSk)
 
         const secret = 123n

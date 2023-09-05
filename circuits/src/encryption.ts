@@ -29,8 +29,9 @@ export const encrypt = (
     plaintext: bigint,
     pubKey: PubKey,
     randomVal: bigint = babyjub.genRandomSalt(),
+    randomVal2: bigint = babyjub.genRandomSalt(),
 ): ElGamalCiphertext => {
-    const message: Message = encodeToMessage(plaintext)
+    const message: Message = encodeToMessage(plaintext, randomVal2)
 
     const c1Point = babyjub.mulPointEscalar(babyjub.Base8, randomVal)
 
@@ -53,9 +54,9 @@ export const encrypt = (
  *                 size.
  */
 export const encodeToMessage = (
-    original: bigint
+    original: bigint,
+    randomVal: bigint = babyjub.genRandomSalt(),
 ): Message => {
-    const randomVal = babyjub.genRandomBabyJubScalar()
     const randomPoint = babyjub.genPubKey(randomVal)
 
     assert(babyjub.inSubgroup(randomPoint))

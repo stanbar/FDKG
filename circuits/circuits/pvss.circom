@@ -19,7 +19,7 @@ template PVSS(guardian_set_size, threshold) {
     component C1[guardian_set_size];
     component rP[guardian_set_size];
     component r2Bits[guardian_set_size];
-    component M[guardian_set_size];
+    component randomPoint[guardian_set_size];
     component C2[guardian_set_size];
 
     // create share for each party
@@ -54,22 +54,24 @@ template PVSS(guardian_set_size, threshold) {
         for (var j = 0; j < 253; j ++) {
             rP[i].e[j] <== r1Bits[i].out[j];
         }
+
         // M = r2*G
+        // encodeToMessage(eval) -> Message
         r2Bits[i] = Num2Bits(253);
         r2Bits[i].in <== r2[i];
-        M[i] = EscalarMulFix(253, BASE8);
+        randomPoint[i] = EscalarMulFix(253, BASE8);
         for (var j = 0; j < 253; j ++) {
-            M[i].e[j] <== r2Bits[i].out[j];
+            randomPoint[i].e[j] <== r2Bits[i].out[j];
         }
+        var xDelta = randomPoint[i].out[0] - eval;
 
         // r * public_key + M
         C2[i] = BabyAdd();
         C2[i].x1 <== rP[i].out[0];
         C2[i].y1 <== rP[i].out[1];
-        C2[i].x2 <== M[i].out[0];
-        C2[i].y2 <== M[i].out[1];
+        C2[i].x2 <== randomPoint[i].out[0];
+        C2[i].y2 <== randomPoint[i].out[1];
 
-        var xDelta = eval - C2[i].xout;
         out[i][0] <== C1[i].out[0]; // C1.x
         out[i][1] <== C1[i].out[1]; // C1.y
         out[i][2] <== C2[i].xout; // C2.x

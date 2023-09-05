@@ -63,7 +63,7 @@ describe("pvss", () => {
       return share
     })
     const ciphertexts = shares.map((share, i): ElGamalCiphertext => {
-      return encrypt(share, keypairs[i].pubKey, r1[i])
+      return encrypt(share, keypairs[i].pubKey, r1[i], r2[i])
     })
 
     const input = {
