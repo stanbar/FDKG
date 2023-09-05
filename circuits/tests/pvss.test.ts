@@ -3,7 +3,7 @@
 import assert from 'node:assert';
 import { WitnessTester } from "circomkit";
 import { circomkit } from "./common/index.js";
-import { BabyJubPoint, genKeypair, genRandomSalt }  from "../src/babyjub";
+import { BabyJubPoint, genKeypair, genRandomSalt, SNARK_FIELD_SIZE }  from "../src/babyjub";
 import * as F from "../src/F";
 import * as ff from 'ffjavascript';
 import { ElGamalCiphertext, decrypt, encrypt } from '../src/encryption.js';
@@ -20,9 +20,9 @@ const evalPolynomial = (coefficients: bigint[], x: bigint): bigint => {
   let result = coefficients[0];
   for (let i = 1; i < coefficients.length; i++) {
     const evals = coefficients[i] * (x ** BigInt(i));
-    result = result + evals;
+    result = (result + evals) % SNARK_FIELD_SIZE;
   }
-  return result;
+  return result % SNARK_FIELD_SIZE;
 }
 
 describe("pvss", () => {
@@ -45,25 +45,17 @@ describe("pvss", () => {
     });
   });
 
-  it.only("encode decode", async () => {
-    const value = BigInt(1)
-    F.e(value)
-  });
   it("should have correct number of constraints", async () => {
     await circuit.expectConstraintCount(42212);
   });
   it("should encrypt correctly", async () => {
-    const shares = Array.from({ length: N }, (_, i) => {
+    for (let i = 0; i < N; i++) {
         const share = evalPolynomial(coefficients, BigInt(i+1))
-        return share
-    })
-    const ciphertexts = shares.map((share, i): ElGamalCiphertext => {
-        return encrypt(share, keypairs[i].pubKey, r1[i])
-    })
+        const message = encrypt(share, keypairs[i].pubKey)
+        const decoded = decrypt(keypairs[i].privKey, message)
 
-    ciphertexts.map((ciphertext, i) => {
-      assert(shares[i] == decrypt(keypairs[i].privKey, ciphertext), "decryption failed")
-    })
+        assert(share == decoded)
+    }
   })
   it("should multiply correctly", async () => {
     const input = {
@@ -83,6 +75,6 @@ describe("pvss", () => {
       return [ciphertext.c1[0], ciphertext.c1[1], ciphertext.c2[0], ciphertext.c2[1], ciphertext.xIncrement]
     })
 
-    await circuit.expectPass(stringifyBigInts(input), stringifyBigInts({out}));
+    await circuit.expectPass(stringifyBigInts(input), stringifyBigInts(out));
   });
 });
