@@ -3,7 +3,7 @@
 import assert from 'node:assert';
 import { WitnessTester } from "circomkit";
 import { circomkit } from "./common/index.js";
-import { BabyJubPoint, genKeypair, genRandomSalt, SNARK_FIELD_SIZE } from "../src/babyjub";
+import { genKeypair, genRandomSalt, SNARK_FIELD_SIZE } from "../src/babyjub";
 import * as F from "../src/F";
 import * as ff from 'ffjavascript';
 import { ElGamalCiphertext, decrypt, encrypt } from '../src/encryption.js';
