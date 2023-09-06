@@ -32,7 +32,28 @@ describe("pvss", () => {
   const keypairs = Array.from({ length: N }, (_, i) => genKeypair());
   const r1 = Array.from({ length: N }, (_, i) => genRandomSalt());
   const r2 = Array.from({ length: N }, (_, i) => genRandomSalt());
+  const input = {
+    coefficients,
+    r1,
+    r2,
+    public_keys: keypairs.map((key) => key.pubKey.map(F.toBigint))
+  }
 
+  const shares = Array.from({ length: N }, (_, i) => {
+    const share = evalPolynomial(coefficients, BigInt(i + 1))
+    return share
+  })
+  const ciphertexts = shares.map((share, i): ElGamalCiphertext => {
+    return encrypt(share, keypairs[i].pubKey, r1[i], r2[i])
+  })
+  const out = {
+    out: ciphertexts.map((ciphertext) => {
+      return [
+        ciphertext.c1[0], ciphertext.c1[1],
+        ciphertext.c2[0], ciphertext.c2[1],
+        ciphertext.xIncrement].map(F.toBigint)
+    })
+  }
   let circuit: WitnessTester<["coefficients", "r1", "r2", "public_keys"], ["out"]>;
 
   before(async () => {
@@ -58,29 +79,21 @@ describe("pvss", () => {
     }
   })
   it("should distribute encrypted shares", async () => {
-    const shares = Array.from({ length: N }, (_, i) => {
-      const share = evalPolynomial(coefficients, BigInt(i + 1))
-      return share
-    })
-    const ciphertexts = shares.map((share, i): ElGamalCiphertext => {
-      return encrypt(share, keypairs[i].pubKey, r1[i], r2[i])
-    })
-
-    const input = {
-      coefficients,
-      r1,
-      r2,
-      public_keys: keypairs.map((key) => key.pubKey.map(F.toBigint))
-    }
-    const out = {
-      out: ciphertexts.map((ciphertext) => {
-        return [
-          ciphertext.c1[0], ciphertext.c1[1], 
-          ciphertext.c2[0], ciphertext.c2[1],
-          ciphertext.xIncrement].map(F.toBigint)
-      })
-    }
-
     await circuit.expectPass(input, out);
+  });
+
+  it.only("should distribute encrypted shares quickly", async () => {
+    let start = Date.now()
+    const witness = await circuit.calculateWitness(input)
+    let end = Date.now()
+    console.log(`Calculating witness time: ${end - start}ms`)
+    assert.equal(witness.length, await circuit.getConstraintCount() + 12)
+
+    start = Date.now()
+    const result = await circuit.readWitnessSignals(witness, ["out"])
+    end = Date.now()
+    console.log(`Calculating reading witness signals time: ${end - start}ms`)
+    console.log(JSON.stringify(result))
+    console.log(JSON.stringify(out))
   });
 });
