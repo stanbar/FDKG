@@ -9,5 +9,11 @@
     "file": "decrypt",
     "template": "ElGamalDecrypt",
     "pubs": ["c1", "c2", "xIncrement"]
+  },
+  "encrypt_ballot": {
+    "file": "encrypt_ballot",
+    "template": "EncrytedBallot",
+    "pubs": ["votingPublicKey"],
+    "params": [10, 3]
   }
 }
