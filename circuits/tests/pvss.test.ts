@@ -82,18 +82,9 @@ describe("pvss", () => {
     await circuit.expectPass(input, out);
   });
 
-  it.only("should distribute encrypted shares quickly", async () => {
-    let start = Date.now()
+  it.only("should compute witness and read correct output", async () => {
     const witness = await circuit.calculateWitness(input)
-    let end = Date.now()
-    console.log(`Calculating witness time: ${end - start}ms`)
-    assert.equal(witness.length, await circuit.getConstraintCount() + 12)
-
-    start = Date.now()
     const result = await circuit.readWitnessSignals(witness, ["out"])
-    end = Date.now()
-    console.log(`Calculating reading witness signals time: ${end - start}ms`)
-    console.log(JSON.stringify(result))
-    console.log(JSON.stringify(out))
+    assert.deepEqual(result, out)
   });
 });

@@ -13,6 +13,7 @@ describe("test ElGamalDecrypt", () => {
   const pubKey = genPubKey(privKey)
   const ciphertext = encrypt(share, pubKey)
   const encoded = encodeToMessage(share)
+  const out = { out: share }
 
   const input = {
     c1: [F.toBigint(ciphertext.c1[0]), F.toBigint(ciphertext.c1[1])],
@@ -38,20 +39,12 @@ describe("test ElGamalDecrypt", () => {
   });
 
   it("should decrypt correctly", async () => {
-    const out = { out: share }
     await circuit.expectPass(input, out);
   });
 
-  it.only("should decrypt quickly", async () => {
-    let start = Date.now()
+  it.only("should compute witness and read correct output", async () => {
     const witness = await circuit.calculateWitness(input)
-    let end = Date.now()
-    console.log(`Calculating witness time: ${end - start}ms`)
-
-    start = Date.now()
     const result = await circuit.readWitnessSignals(witness, ["out"])
-    console.log({result})
-    end = Date.now()
-    console.log(`Calculating reading witness signals time: ${end - start}ms`)
+    assert.deepEqual(result, out)
   });
 });
