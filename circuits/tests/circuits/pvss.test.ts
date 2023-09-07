@@ -1,12 +1,12 @@
-/// <reference path='../types/types.d.ts'/>
+/// <reference path='../../types/types.d.ts'/>
 
 import assert from 'node:assert';
 import { WitnessTester } from "circomkit";
-import { circomkit } from "./common/index.js";
-import { genKeypair, genRandomSalt, SNARK_FIELD_SIZE } from "../src/babyjub";
-import * as F from "../src/F";
+import { circomkit } from "../common/index.js";
+import { genKeypair, genRandomSalt, SNARK_FIELD_SIZE } from "../../src/babyjub.js";
+import * as F from "../../src/F.js";
 import * as ff from 'ffjavascript';
-import { ElGamalCiphertext, decrypt, encrypt } from '../src/encryption.js';
+import { ElGamalCiphertext, decrypt, encrypt } from '../../src/encryption.js';
 
 const stringifyBigInts: (obj: object) => any = ff.utils.stringifyBigInts
 const unstringifyBigInts: (obj: object) => any = ff.utils.unstringifyBigInts

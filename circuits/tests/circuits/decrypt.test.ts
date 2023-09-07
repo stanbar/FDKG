@@ -1,11 +1,11 @@
-/// <reference path='../types/types.d.ts'/>
+/// <reference path='../../types/types.d.ts'/>
 
 import assert from 'node:assert';
 import { WitnessTester } from "circomkit";
-import { circomkit } from "./common/index.js";
-import {  genPrivKey, genPubKey, formatPrivKeyForBabyJub } from "../src/babyjub";
-import * as F from "../src/F";
-import {  encodeToMessage, encrypt } from '../src/encryption.js';
+import { circomkit } from "../common/index.js";
+import {  genPrivKey, genPubKey, formatPrivKeyForBabyJub } from "../../src/babyjub.js";
+import * as F from "../../src/F.js";
+import {  encodeToMessage, encrypt } from '../../src/encryption.js';
 
 describe("test ElGamalDecrypt", () => {
   const share = BigInt(0)
