@@ -3,26 +3,7 @@ pragma circom 2.1.0;
 include "../lib/circomlib/circuits/babyjub.circom";
 include "../lib/circomlib/circuits/escalarmulany.circom";
 include "../lib/circomlib/circuits/bitify.circom";
-
-template ComputeC1() {
-    signal input rBits[253];
-    signal output xout;
-    signal output yout;
-
-
-    // C1 = G * r1
-    var BASE8[2] = [
-        5299619240641551281634865583518297030282874472190772894086521144482721001553,
-        16950150798460657717958625567821834550301663161624707787222815936182638968203
-    ];
-    component C1 = EscalarMulFix(253, BASE8);
-    for (var j = 0; j < 253; j ++) {
-        C1.e[j] <== rBits[j];
-    }
-
-    xout <== C1.out[0];
-    yout <== C1.out[1];
-}
+include "elGamal_c1.circom";
 
 template ComputeC2() {
     signal input r1Bits[253];
@@ -37,9 +18,7 @@ template ComputeC2() {
     component rP = EscalarMulAny(253);
     rP.p[0] <== recipent_public_key[0];
     rP.p[1] <== recipent_public_key[1];
-    for (var j = 0; j < 253; j ++) {
-        rP.e[j] <== r1Bits[j];
-    }
+    rP.e <== r1Bits;
 
     // M = r2*G
     var BASE8[2] = [
@@ -50,9 +29,7 @@ template ComputeC2() {
     component r2Bits = Num2Bits(253);
     r2Bits.in <== r2;
     component randomPoint = EscalarMulFix(253, BASE8);
-    for (var j = 0; j < 253; j ++) {
-        randomPoint.e[j] <== r2Bits.out[j];
-    }
+    randomPoint.e <== r2Bits.out;
 
     // r * public_key + M
     component C2 = BabyAdd();
@@ -98,8 +75,7 @@ template PVSS(guardian_set_size, threshold) {
         r2Bits[i] = Num2Bits(253);
         r2Bits[i].in <== r2[i];
 
-
-        C1[i] = ComputeC1();
+        C1[i] = ElGamalC1();
         C1[i].rBits <== r1Bits[i].out;
 
         // C2 = r * public_key + share
