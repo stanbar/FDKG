@@ -15,5 +15,10 @@
     "template": "EncrytedBallot",
     "pubs": ["votingPublicKey"],
     "params": [10, 3]
+  },
+  "multiplier": {
+    "file": "multiplier_2",
+    "template": "Multiplier",
+    "pubs": ["a","b"]
   }
 }
