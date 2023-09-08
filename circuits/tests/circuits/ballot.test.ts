@@ -1,96 +1,52 @@
 /// <reference path='../../types/types.d.ts'/>
 
 import assert from 'node:assert';
-import { WitnessTester } from "circomkit";
+import { WitnessTester, ProofTester, Circomkit } from "circomkit";
 import { circomkit } from "../common/index.js";
 import { genPrivKey, genPubKey, formatPrivKeyForBabyJub, genRandomSalt, SNARK_FIELD_SIZE, addPoint, mulPointEscalar, Base8, BabyJubPoint } from "../../src/babyjub.js";
 import * as F from "../../src/F.js";
-import { encodeToMessage, encrypt } from '../../src/encryption.js';
+import { encodeBallot, decryptBallot } from '../../src/ballot';
 import * as ff from 'ffjavascript';
+import { measureTime } from '../common/utils.js';
 const unstringifyBigInts: (obj: object) => any = ff.utils.unstringifyBigInts
-/*
-    We use ballot encoding as defined by Baudron et al. Practical multi-candidate election system
-    Suppose that we have n voters, choose m so that m is the smallest integer such that 2^m > n.
- */
-function findMbits(voters: number): bigint {
-    const n = voters
-    let m = 0n
-    let val = 1n
-    while (val <= n) {
-        val *= 2n
-        m += 1n
-    }
-    return m
+
+const VOTERS = 10 as const;
+const OPTIONS = 3 as const;
+const cast = BigInt(3)
+const r = genRandomSalt()
+
+
+const votingPrivKey = formatPrivKeyForBabyJub(genPrivKey())
+const votingPubKey = genPubKey(votingPrivKey)
+
+const C1: BabyJubPoint = mulPointEscalar(Base8, r)
+const C2: BabyJubPoint = encodeBallot(votingPubKey, cast, r, VOTERS, OPTIONS)
+
+assert.equal(decryptBallot(C1, C2, votingPrivKey, VOTERS, OPTIONS), cast)
+
+const input = {
+    votingPublicKey: [F.toBigint(votingPubKey[0]), F.toBigint(votingPubKey[1])],
+    cast,
+    r,
+}
+const out = {
+    out: [F.toBigint(C1[0]), F.toBigint(C1[1]), F.toBigint(C2[0]), F.toBigint(C2[1])],
 }
 
-const encodeBallot = (votingPubKey: BabyJubPoint, cast: bigint, r: bigint, voters: number, options: number): BabyJubPoint => {
-    assert(1n <= cast);
-    assert(cast <= BigInt(options));
-
-    const mBits = findMbits(voters)
-
-    const exponent = ((cast - 1n) * mBits)
-    const message = (2n ** exponent) % SNARK_FIELD_SIZE
-
-    const mG = mulPointEscalar(Base8, message)
-    const rP = mulPointEscalar(votingPubKey, r)
-    const c2 = addPoint(mG, rP)
-    return c2
+const CIRCUIT_NAME = "encrypt_ballot"
+const CIRCUIT_CONFIG = {
+    file: "encrypt_ballot",
+    template: "EncrytedBallot",
+    dir: "test/encrypt_ballot",
+    pubs: ["votingPublicKey"],
+    params: [VOTERS, OPTIONS],
 }
 
-const decryptBallot = (c1: BabyJubPoint, c2: BabyJubPoint, privKey: bigint, voters: number, options: number): bigint => {
-    const mBits = findMbits(voters)
-    const c1r = mulPointEscalar(c1, privKey)
-    const c1rXNeg = F.neg(c1r[0])
-    const mG = addPoint(c2, [c1rXNeg, c1r[1]])
-    let x = 1n
-    while (x <= options) {
-        const exponent = ((x - 1n) * mBits)
-        const message = (2n ** exponent) % SNARK_FIELD_SIZE
-
-        const decoded = mulPointEscalar(Base8, message)
-        if (F.toBigint(decoded[0]) === F.toBigint(mG[0]) && F.toBigint(decoded[1]) === F.toBigint(mG[1])) {
-            return x
-        }
-        x += 1n
-    }
-    throw Error("Could not decrypt ballot")
-}
-
-describe("test Ballot Encryption", () => {
-    const VOTERS = 10 as const;
-    const OPTIONS = 3 as const;
-    const cast = BigInt(3)
-    const r = genRandomSalt()
-
-
-    const votingPrivKey = formatPrivKeyForBabyJub(genPrivKey())
-    const votingPubKey = genPubKey(votingPrivKey)
-
-    const C1: BabyJubPoint = mulPointEscalar(Base8, r)
-    const C2: BabyJubPoint = encodeBallot(votingPubKey, cast, r, VOTERS, OPTIONS)
-
-    assert.equal(decryptBallot(C1, C2, votingPrivKey, VOTERS, OPTIONS), cast)
-
-    const input = {
-        votingPublicKey: [F.toBigint(votingPubKey[0]), F.toBigint(votingPubKey[1])],
-        cast,
-        r,
-    }
-    const out = {
-        out: [F.toBigint(C1[0]), F.toBigint(C1[1]), F.toBigint(C2[0]), F.toBigint(C2[1])],
-    }
-
+describe(`test ${CIRCUIT_NAME} witness generation`, () => {
     let circuit: WitnessTester<["cast", "r", "votingPublicKey"], ["out"]>;
 
     before(async () => {
-        circuit = await circomkit.WitnessTester("encrypt_ballot", {
-            file: "encrypt_ballot",
-            template: "EncrytedBallot",
-            dir: "test/encrypt_ballot",
-            pubs: ["votingPublicKey"],
-            params: [VOTERS, OPTIONS],
-        });
+        circuit = await circomkit.WitnessTester(CIRCUIT_NAME, CIRCUIT_CONFIG);
     });
 
     it("should have calculate witness", async () => {
@@ -101,13 +57,13 @@ describe("test Ballot Encryption", () => {
         await circuit.expectPass(input, out);
     });
 
-    it.only("should compute witness and read correct output", async () => {
+    it("should compute witness and read correct output", async () => {
         const witness = await circuit.calculateWitness(input)
         const result = await circuit.readWitnessSignals(witness, ["out"])
         assert.deepEqual(result, out)
     });
 
-    it.only("should compute ciphertext which can be decrypted using private key", async () => {
+    it("should compute ciphertext which can be decrypted using private key", async () => {
         const witness = await circuit.calculateWitness(input)
         const result = await circuit.readWitnessSignals(witness, ["out"])
         const out = result as any
@@ -118,5 +74,22 @@ describe("test Ballot Encryption", () => {
             VOTERS,
             OPTIONS)
         assert.equal(x, cast)
+    });
+});
+
+describe(`test ${CIRCUIT_NAME} proof generation`, () => {
+    let circuit: ProofTester<["cast", "r", "votingPublicKey"]>;
+
+    before(async () => {
+        circomkit.instantiate(CIRCUIT_NAME, CIRCUIT_CONFIG)
+        await circomkit.setup(CIRCUIT_NAME, "./ptau/powersOfTau28_hez_final_15.ptau")
+        circuit = await circomkit.ProofTester(CIRCUIT_NAME);
+    });
+
+    it("should verify a proof correctly", async () => {
+        await measureTime("Proof generation", async () => {
+            const { proof, publicSignals } = await circuit.prove(input)
+            await circuit.expectPass(proof, publicSignals)
+        })
     });
 });
