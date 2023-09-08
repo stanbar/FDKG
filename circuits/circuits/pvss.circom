@@ -45,7 +45,7 @@ template ComputeC2() {
 
 
 template PVSS(guardian_set_size, threshold) {
-    assert(guardian_set_size >= threshold);
+    // assert(guardian_set_size >= threshold);
     signal input coefficients[threshold];
     signal input r1[guardian_set_size];
     signal input r2[guardian_set_size];

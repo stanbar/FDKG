@@ -5,8 +5,14 @@
     "pubs": ["public_keys"],
     "params": [4,3]
   },
-  "decrypt": {
-    "file": "decrypt",
+  "pvss_1": {
+    "file": "pvss",
+    "template": "PVSS",
+    "pubs": ["public_keys"],
+    "params": [1,3]
+  },
+  "decrypt_share": {
+    "file": "decrypt_share",
     "template": "ElGamalDecrypt",
     "pubs": ["c1", "c2", "xIncrement"]
   },

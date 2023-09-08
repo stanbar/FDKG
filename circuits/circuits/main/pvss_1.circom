@@ -3,4 +3,4 @@ pragma circom 2.1.0;
 
 include "../pvss.circom";
 
-component main {public[public_keys]} = PVSS(4, 3);
+component main {public[public_keys]} = PVSS(1, 3);
