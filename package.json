@@ -1,0 +1,13 @@
+{
+  "name": "v2v-private-voting",
+  "private": true,
+  "workspaces": [
+    "shared-crypto",
+    "circuits",
+    "app"
+  ],
+  "version": "1.0.0",
+  "repository": "git@github.com:delendum-xyz/private-voting.git",
+  "author": "Stanislaw Baranski <stan@stan.bar>",
+  "license": "MIT"
+}

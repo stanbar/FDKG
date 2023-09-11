@@ -1,0 +1,23 @@
+{
+    "compilerOptions": {
+        "target": "esnext",
+        "lib": [
+            "esnext",
+            "esnext.bigint"
+        ],
+        "moduleResolution": "NodeNext",
+        "module": "NodeNext",
+        "types": [
+            "mocha",
+            "node"
+        ],
+        "allowJs": true,
+        "esModuleInterop": true,
+        "forceConsistentCasingInFileNames": true,
+        "strict": true,
+    },
+    "ts-node": {
+        "esm": true,
+        "experimentalSpecifierResolution": "node"
+    }
+}

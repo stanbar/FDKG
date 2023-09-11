@@ -1,0 +1,13 @@
+{
+  "extension": [
+    "ts"
+  ],
+  "require": "ts-node/register",
+  "spec": "tests/**/*.test.ts",
+  "timeout": 100000,
+  "exit": true,
+  "node-option": [
+    "experimental-specifier-resolution=node",
+    "loader=ts-node/esm"
+  ]
+}
