@@ -1,0 +1,42 @@
+{
+    "name": "app",
+    "version": "0.0.1",
+    "main": "src/index.ts",
+    "private": true,
+    "description": "Voter-to-voter private voting",
+    "type": "module",
+    "scripts": {
+        "start": "npx ts-node ./src/main.ts",
+        "test": "npx mocha"
+    },
+    "repository": "git+https://github.com/delendum-xyz/private-voting.git",
+    "keywords": [
+        "private",
+        "voting",
+        "blockchain",
+        "election"
+    ],
+    "author": "Stanislaw Baranski",
+    "license": "ISC",
+    "bugs": {
+        "url": "https://github.com/delendum-xyz/private-voting/issues"
+    },
+    "dependencies": {
+        "assert": "^2.0.0",
+        "circomkit": "^0.0.18",
+        "circomlib": "^2.0.5",
+        "circomlibjs": "^0.1.7",
+        "lodash": "^4.17.21",
+        "shared-crypto": "0.0.1",
+        "snarkjs": "^0.7.0"
+    },
+    "devDependencies": {
+        "@types/lodash": "^4.14.198",
+        "@types/mocha": "^10.0.1",
+        "@types/node": "^20.3.0",
+        "lerna": "^7.2.0",
+        "mocha": "^10.2.0",
+        "ts-node": "^10.9.1",
+        "typescript": "^5.1.3"
+    }
+}
