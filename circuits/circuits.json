@@ -2,19 +2,24 @@
   "pvss": {
     "file": "pvss",
     "template": "PVSS",
-    "pubs": ["public_keys"],
+    "pubs": ["guardiansPubKeys"],
     "params": [4,3]
   },
   "pvss_1": {
     "file": "pvss",
     "template": "PVSS",
-    "pubs": ["public_keys"],
+    "pubs": ["guardiansPubKeys"],
     "params": [1,3]
   },
   "decrypt_share": {
     "file": "decrypt_share",
     "template": "ElGamalDecrypt",
     "pubs": ["c1", "c2", "xIncrement"]
+  },
+  "partial_decryption": {
+    "file": "partial_decryption",
+    "template": "PartialDecryption",
+    "pubs": ["A", "c1", "c2", "xIncrement"]
   },
   "encrypt_ballot": {
     "file": "encrypt_ballot",

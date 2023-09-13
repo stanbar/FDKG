@@ -15,10 +15,7 @@ template ComputeC2() {
     signal output xDelta;
 
     // r1 * recipent_public_key
-    component rP = EscalarMulAny(253);
-    rP.p[0] <== recipent_public_key[0];
-    rP.p[1] <== recipent_public_key[1];
-    rP.e <== r1Bits;
+    signal rP[2] <== EscalarMulAny(253)(p <== recipent_public_key, e <== r1Bits);
 
     // M = r2*G
     var BASE8[2] = [
@@ -26,21 +23,13 @@ template ComputeC2() {
         16950150798460657717958625567821834550301663161624707787222815936182638968203
     ];
     // encodeToMessage(eval) -> Message
-    component r2Bits = Num2Bits(253);
-    r2Bits.in <== r2;
-    component randomPoint = EscalarMulFix(253, BASE8);
-    randomPoint.e <== r2Bits.out;
+    signal r2Bits[253] <== Num2Bits(253)(r2);
+    signal randomPoint[2] <== EscalarMulFix(253, BASE8)(r2Bits);
 
     // r * public_key + M
-    component C2 = BabyAdd();
-    C2.x1 <== rP.out[0];
-    C2.y1 <== rP.out[1];
-    C2.x2 <== randomPoint.out[0];
-    C2.y2 <== randomPoint.out[1];
+    (xout, yout) <== BabyAdd()(x1 <== rP[0], y1 <== rP[1], x2 <== randomPoint[0], y2 <== randomPoint[1]);
 
-    xout <== C2.xout;
-    yout <== C2.yout;
-    xDelta <== randomPoint.out[0] - share;
+    xDelta <== randomPoint[0] - share;
 }
 
 
@@ -50,9 +39,10 @@ template PVSS(guardian_set_size, threshold) {
     signal input r1[guardian_set_size];
     signal input r2[guardian_set_size];
     // guardian_set_size times [X, Y]
-    signal input public_keys[guardian_set_size][2];
+    signal input guardiansPubKeys[guardian_set_size][2];
     // guardian_set_size times [C1.x, C1.y, C2.x, C2.y, xDelta]
     signal output out[guardian_set_size][5];
+    signal output votingPublicKey[2];
 
     component r1Bits[guardian_set_size];
     component C1[guardian_set_size];
@@ -60,6 +50,16 @@ template PVSS(guardian_set_size, threshold) {
     component r2Bits[guardian_set_size];
     component randomPoint[guardian_set_size];
     component C2[guardian_set_size];
+
+
+    signal privKeyBits[253] <== Num2Bits(253)(coefficients[0]);
+    
+
+    signal (votingPubXout, votingPubYout);
+    (votingPubXout, votingPubYout) <== ElGamalC1()(rBits <== privKeyBits);
+    
+    votingPublicKey[0] <== votingPubXout;
+    votingPublicKey[1] <== votingPubYout;
 
     // create share for each party
     for (var i = 0; i < guardian_set_size; i++) {
@@ -83,7 +83,7 @@ template PVSS(guardian_set_size, threshold) {
         C2[i].r1Bits <== r1Bits[i].out;
         C2[i].r2 <== r2[i];
         C2[i].share <== share;
-        C2[i].recipent_public_key <== public_keys[i];
+        C2[i].recipent_public_key <== guardiansPubKeys[i];
 
 
         out[i][0] <== C1[i].xout; // C1.x

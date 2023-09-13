@@ -136,3 +136,25 @@ yarn test
 # test a specific circuit
 yarn test -g <circuit-name>
 ```
+
+# Benchmark
+
+## Plonk
+PVSS_4 circuit has 129868 Plonk constraints and proof generation took 74.8s
+PVSS_1 circuit has 32467 Plonk constraints and proof generation took 17.2s
+Ballot circuit has 31959 Plonk constraints and proof generation took 17s
+Decrypt share circuit has 6371 Plonk constraints and proof generation took 4.59s
+
+
+## Groth16
+Decrypt share circuit 0.499s
+
+PVSS_4 circuit has 129868 Plonk constraints and proof generation took 74.8s
+PVSS_1 circuit has 32467 Plonk constraints and proof generation took 17.2s
+Ballot circuit has 31959 Plonk constraints and proof generation took 17s
+
+
+PVSSS_4 circuit has 43228 Groth16 constraints and proof generation took 2.935s
+PVSSS_1 circuit has 10807 Groth16 constraints and proof generation took 1.011s
+Decrypt share circuit has 2565 Plonk constraints and proof generation took 0.599s
+Ballot circuit has 10552 Groth16 constraints and proof generation took 0.97s

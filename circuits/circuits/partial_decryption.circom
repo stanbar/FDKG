@@ -3,7 +3,7 @@ pragma circom 2.1.0;
 include "../lib/circomlib/circuits/escalarmulany.circom";
 include "../lib/circomlib/circuits/babyjub.circom";
 include "../lib/circomlib/circuits/bitify.circom";
-
+include "decrypt_share.circom";
 
 /*
  * Decrypts an ElGamal ciphertext.
@@ -20,26 +20,16 @@ include "../lib/circomlib/circuits/bitify.circom";
  * m = ((c1 ** x) ** - 1) * c2
  * out = m.x - xIncrement
  */
-template ElGamalDecrypt() {
+template PartialDecryption() {
+    signal input A[2];
     signal input c1[2];
     signal input c2[2];
     signal input xIncrement;
     signal input privKey;
-    signal output plaintext;
 
-    // Convert the private key to bits
-    signal privKeyBits[253] <== Num2Bits(253)(privKey);
-    
-    // c1 ** x
-    signal c1x[2] <== EscalarMulAny(253)(e <== privKeyBits, p <== c1);
+    signal share <== ElGamalDecrypt()(c1 <== c1, c2 <== c2, xIncrement <== xIncrement, privKey <== privKey);
 
-    // (c1 ** x) ** -1
-    signal c1xInverseX;
-    c1xInverseX <== 0 - c1x[0];
+    signal shareBits[253] <== Num2Bits(253)(in <== share);
 
-    // ((c1 ** x) ** - 1) * c2
-    signal xout, yout;
-    (xout, yout) <== BabyAdd()(x1 <== c1xInverseX, y1 <== c1x[1], x2 <== c2[0], y2 <== c2[1]);
-
-    plaintext <== xout - xIncrement;
+    signal output partialDecryption[2] <== EscalarMulAny(253)(e <== shareBits, p <== A);
 }

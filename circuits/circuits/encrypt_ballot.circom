@@ -24,7 +24,6 @@ function find_m_bit(voters) {
 template EncrytedBallot(voters, options) {
     assert(options > 0);
     var m = find_m_bit(voters);
-    log("For n =",voters,"The smallest m such that 2^m > n is:", m, "Because: ", 2**m, ">", voters);
 
     signal input votingPublicKey[2];
     signal input cast;
