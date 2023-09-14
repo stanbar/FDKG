@@ -3,37 +3,22 @@
 import assert from 'node:assert';
 import { ProofTester, WitnessTester } from "circomkit";
 import { circomkit } from "../common/index.js";
-import { genKeypair, genRandomSalt, SNARK_FIELD_SIZE } from "../../src/babyjub.js";
-import * as F from "../../src/F.js";
-import { ElGamalCiphertext, decrypt, encrypt } from '../../src/encryption.js';
+import { F, genPubKey, genKeypair, genRandomSalt, ElGamalCiphertext, decryptShare, encryptShare, randomPolynomial, evalPolynomial, PVSSCircuitInput } from "shared-crypto";
 import { measureTime } from '../common/utils.js';
-
-const randomPolynomial = (threshold: number): bigint[] => {
-  const coefficients = Array.from({ length: threshold }, (_, i) => genRandomSalt());
-  return coefficients as bigint[];
-}
-
-const evalPolynomial = (coefficients: bigint[], x: bigint): bigint => {
-  let result = coefficients[0];
-  for (let i = 1; i < coefficients.length; i++) {
-    const evals = coefficients[i] * (x ** BigInt(i));
-    result = (result + evals) % SNARK_FIELD_SIZE;
-  }
-  return result % SNARK_FIELD_SIZE;
-}
 
 describe("batch PVSS for 3-of-4 access structure", () => {
   const N = 4;
   const threshold = 3;
   const coefficients = randomPolynomial(threshold);
+  const votingPublicKey = genPubKey(coefficients[0]);
   const keypairs = Array.from({ length: N }, (_, i) => genKeypair());
   const r1 = Array.from({ length: N }, (_, i) => genRandomSalt());
   const r2 = Array.from({ length: N }, (_, i) => genRandomSalt());
-  const input = {
+  const input: PVSSCircuitInput = {
     coefficients,
     r1,
     r2,
-    public_keys: keypairs.map((key) => key.pubKey.map(F.toBigint))
+    guardiansPubKeys: keypairs.map((key) => key.pubKey.map(F.toBigint))
   }
 
   const shares = Array.from({ length: N }, (_, i) => {
@@ -41,9 +26,10 @@ describe("batch PVSS for 3-of-4 access structure", () => {
     return share
   })
   const ciphertexts = shares.map((share, i): ElGamalCiphertext => {
-    return encrypt(share, keypairs[i].pubKey, r1[i], r2[i])
+    return encryptShare(share, keypairs[i].pubKey, r1[i], r2[i])
   })
   const out = {
+    votingPublicKey: [votingPublicKey[0], votingPublicKey[1]].map(F.toBigint),
     out: ciphertexts.map((ciphertext) => {
       return [
         ciphertext.c1[0], ciphertext.c1[1],
@@ -56,12 +42,18 @@ describe("batch PVSS for 3-of-4 access structure", () => {
     file: "pvss",
     template: "PVSS",
     dir: "test/pvss",
-    pubs: ["public_keys"],
+    pubs: ["guardiansPubKeys"],
     params: [N, threshold],
   }
 
+  before(async () => {
+      await circomkit.compile(CIRCUIT_NAME, CIRCUIT_CONFIG)
+      const info = await circomkit.info(CIRCUIT_NAME)
+      console.log({ info })
+  })
+
   describe(`test witness generation ${CIRCUIT_NAME}`, () => {
-    let circuit: WitnessTester<["coefficients", "r1", "r2", "public_keys"], ["out"]>;
+    let circuit: WitnessTester<["coefficients", "r1", "r2", "guardiansPubKeys"], ["out", "votingPublicKey"]>;
 
     before(async () => {
       circuit = await circomkit.WitnessTester(CIRCUIT_NAME, CIRCUIT_CONFIG);
@@ -72,11 +64,11 @@ describe("batch PVSS for 3-of-4 access structure", () => {
     });
     it("should encrypt correctly", async () => {
       for (let i = 0; i < N; i++) {
-        const share = evalPolynomial(coefficients, BigInt(i + 1))
-        const message = encrypt(share, keypairs[i].pubKey)
-        const decoded = decrypt(keypairs[i].privKey, message)
+        const share = shares[i]
+        const message = encryptShare(share, keypairs[i].pubKey, r1[i], r2[i])
+        const decoded = decryptShare(keypairs[i].privKey, message)
 
-        assert(share == decoded)
+        assert(share == decoded, `[${i}] share ${share} != decoded ${decoded}`)
       }
     })
     it("should distribute encrypted shares", async () => {
@@ -85,17 +77,15 @@ describe("batch PVSS for 3-of-4 access structure", () => {
 
     it("should compute witness and read correct output", async () => {
       const witness = await circuit.calculateWitness(input)
-      const result = await circuit.readWitnessSignals(witness, ["out"])
+      const result = await circuit.readWitnessSignals(witness, ["out", "votingPublicKey"])
       assert.deepEqual(result, out)
     });
   });
 
   describe(`test ${CIRCUIT_NAME} proof generation`, () => {
-    let circuit: ProofTester<["coefficients", "r1", "r2", "public_keys"]>;
+    let circuit: ProofTester<["coefficients", "r1", "r2", "guardiansPubKeys"]>;
 
     before(async () => {
-      circomkit.instantiate(CIRCUIT_NAME, CIRCUIT_CONFIG)
-      await circomkit.setup(CIRCUIT_NAME, "./ptau/powersOfTau28_hez_final_17.ptau")
       circuit = await circomkit.ProofTester(CIRCUIT_NAME);
     });
 
@@ -105,21 +95,26 @@ describe("batch PVSS for 3-of-4 access structure", () => {
         await circuit.expectPass(proof, publicSignals)
       })
     });
+    it('should NOT verify a proof with invalid public signals', async () => {
+      const { proof } = await circuit.prove(input);
+      await circuit.expectFail(proof, ['1']);
+    });
   });
 })
 
-describe.only("single PVSS for 3-of-4 access structure", () => {
+describe("single PVSS for 3-of-4 access structure", () => {
   const N = 1;
   const threshold = 3;
   const coefficients = randomPolynomial(threshold);
+  const votingPublicKey = genPubKey(coefficients[0]);
   const keypairs = Array.from({ length: N }, (_, i) => genKeypair());
   const r1 = Array.from({ length: N }, (_, i) => genRandomSalt());
   const r2 = Array.from({ length: N }, (_, i) => genRandomSalt());
-  const input = {
+  const input: PVSSCircuitInput = {
     coefficients,
     r1,
     r2,
-    public_keys: keypairs.map((key) => key.pubKey.map(F.toBigint))
+    guardiansPubKeys: keypairs.map((key) => key.pubKey.map(F.toBigint))
   }
 
   const shares = Array.from({ length: N }, (_, i) => {
@@ -127,9 +122,10 @@ describe.only("single PVSS for 3-of-4 access structure", () => {
     return share
   })
   const ciphertexts = shares.map((share, i): ElGamalCiphertext => {
-    return encrypt(share, keypairs[i].pubKey, r1[i], r2[i])
+    return encryptShare(share, keypairs[i].pubKey, r1[i], r2[i])
   })
   const out = {
+    votingPublicKey: [votingPublicKey[0], votingPublicKey[1]].map(F.toBigint),
     out: ciphertexts.map((ciphertext) => {
       return [
         ciphertext.c1[0], ciphertext.c1[1],
@@ -142,12 +138,13 @@ describe.only("single PVSS for 3-of-4 access structure", () => {
     file: "pvss",
     template: "PVSS",
     dir: "test/pvss",
-    pubs: ["public_keys"],
+    pubs: ["guardiansPubKeys"],
     params: [N, threshold],
   }
 
+
   describe(`test witness generation ${CIRCUIT_NAME}`, () => {
-    let circuit: WitnessTester<["coefficients", "r1", "r2", "public_keys"], ["out"]>;
+    let circuit: WitnessTester<["coefficients", "r1", "r2", "guardiansPubKeys"], ["votingPublicKey","out"]>;
 
     before(async () => {
       circuit = await circomkit.WitnessTester(CIRCUIT_NAME, CIRCUIT_CONFIG);
@@ -158,9 +155,9 @@ describe.only("single PVSS for 3-of-4 access structure", () => {
     });
     it("should encrypt correctly", async () => {
       for (let i = 0; i < N; i++) {
-        const share = evalPolynomial(coefficients, BigInt(i + 1))
-        const message = encrypt(share, keypairs[i].pubKey)
-        const decoded = decrypt(keypairs[i].privKey, message)
+        const share = shares[i]
+        const message = encryptShare(share, keypairs[i].pubKey, r1[i], r2[i])
+        const decoded = decryptShare(keypairs[i].privKey, message)
 
         assert(share == decoded)
       }
@@ -171,17 +168,15 @@ describe.only("single PVSS for 3-of-4 access structure", () => {
 
     it("should compute witness and read correct output", async () => {
       const witness = await circuit.calculateWitness(input)
-      const result = await circuit.readWitnessSignals(witness, ["out"])
+      const result = await circuit.readWitnessSignals(witness, ["votingPublicKey", "out"])
       assert.deepEqual(result, out)
     });
   });
 
   describe(`test ${CIRCUIT_NAME} proof generation`, () => {
-    let circuit: ProofTester<["coefficients", "r1", "r2", "public_keys"]>;
+    let circuit: ProofTester<["coefficients", "r1", "r2", "guardiansPubKeys"]>;
 
     before(async () => {
-      circomkit.instantiate(CIRCUIT_NAME, CIRCUIT_CONFIG)
-      await circomkit.setup(CIRCUIT_NAME, "./ptau/powersOfTau28_hez_final_17.ptau")
       circuit = await circomkit.ProofTester(CIRCUIT_NAME);
     });
 
@@ -190,6 +185,10 @@ describe.only("single PVSS for 3-of-4 access structure", () => {
         const { proof, publicSignals } = await circuit.prove(input)
         await circuit.expectPass(proof, publicSignals)
       })
+    });
+    it('should NOT verify a proof with invalid public signals', async () => {
+      const { proof } = await circuit.prove(input);
+      await circuit.expectFail(proof, ['1']);
     });
   });
 })
