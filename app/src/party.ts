@@ -1,4 +1,4 @@
-import { BabyJubPoint, ElGamalCiphertext, encryptShare, evalPolynomial, genKeypair, genRandomSalt, randomPolynomial, Keypair, F, Proof, PublicSignals, PubKey, encryptBallot, decryptBallot, mulPointEscalar, SNARK_FIELD_SIZE } from "shared-crypto";
+import { BabyJubPoint, ElGamalCiphertext, encryptShare, evalPolynomial, genKeypair, genRandomSalt, randomPolynomial, Keypair, F, Proof, PublicSignals, PubKey, encryptBallot, decryptBallot, mulPointEscalar, SNARK_FIELD_SIZE, decryptShare } from "shared-crypto";
 import { VotingConfig } from "./messageboard";
 import { proveBallot, provePVSS, provePartialDecryption } from "./proofs";
 
@@ -53,7 +53,7 @@ export class LocalParty {
     }
 
     async createBallot(votingPubKey: BabyJubPoint): Promise<{ C1: BabyJubPoint, C2: BabyJubPoint, proof: Proof, publicSignals: PublicSignals }> {
-        const cast = BigInt(this.publicParty.index % this.config.options)
+        const cast = BigInt((this.publicParty.index % this.config.options) + 1)
         const input = {
             votingPublicKey: votingPubKey,
             cast: cast,
@@ -66,35 +66,38 @@ export class LocalParty {
     }
 
     async partialDecryption(A: BabyJubPoint, receivedShares: Array<EncryptedShare & { index: number, sharesSize: number }>): Promise<{ partialDecryption: BabyJubPoint, proof: Proof, publicSignals: PublicSignals }[]> {
-        const lagrangeCoefficient = (index: number, sharesSize: number): bigint => {
+        const lagrangeCoefficient = (index: number, sharesSize: number): Uint8Array => {
             const i = BigInt(index);
-            let prod: bigint = 1n;
-            for (let j = 0n; j < sharesSize; j++) {
+            let prod = F.e("1");
+            for (let j = 1n; j <= sharesSize; j++) {
                 if (i !== j) {
-                    let nominator = j;
-                    let denom = j - i;
+                    let nominator = F.e(j);
+                    let denom = F.sub(F.e(j), F.e(i));
 
-                    let denominator = denom % SNARK_FIELD_SIZE;
 
-                    denominator = F.toBigint(F.inv(F.fromBigint(denominator)))
-                    if (denominator === null) {
-                        throw new Error(`could not find inverse of denominator ${denominator}`);
+                    denom = F.inv(denom)
+                    if (denom === null) {
+                        throw new Error(`could not find inverse of denominator ${denom}`);
                     }
                     // 4. (X[i] - X[j]) * (1 / (X[i] - X[j])) = (val - X[j]) / (X[i] - X[j])
-                    let numDenomInverse = (nominator * denominator) % SNARK_FIELD_SIZE;
+                    let numDenomInverse = F.mul(nominator, denom)
 
                     // 5. prod = prod * (val - X[j]) / (X[i] - X[j])
-                    prod = prod * numDenomInverse % SNARK_FIELD_SIZE
+                    prod = F.mul(prod, numDenomInverse)
                 }
             }
-            return prod % SNARK_FIELD_SIZE;
+            return prod
         }
 
         return await Promise.all(receivedShares.map(async (s) => {
-            const share = decryptBallot(s.encryptedShare.c1, s.encryptedShare.c2, this.keypair.privKey, this.config.size, this.config.options)
+            const share = decryptShare(this.keypair.privKey, s.encryptedShare)
+            const shareTimesLagrangeBasis = F.mul(lagrangeCoefficient(s.index, s.sharesSize), F.e(share))// TODO: decided where to put this computation, on the sender or receiver
+            console.log({ A, shareTimesLagrangeBasis })
+            const partialDecryption = mulPointEscalar(A, F.toBigint(shareTimesLagrangeBasis))
+
+            console.log({ s, share, shareTimesLagrangeBasis, partialDecryption })
             const { proof, publicSignals } = await provePartialDecryption(A, s.encryptedShare.c1, s.encryptedShare.c2, s.encryptedShare.xIncrement, this.keypair.privKey)
-            const shareTimesLagrangeBasis =  (lagrangeCoefficient(s.index, s.sharesSize) * share) % SNARK_FIELD_SIZE; // TODO: decided where to put this computation, on the sender or receiver
-            const partialDecryption = mulPointEscalar(A, shareTimesLagrangeBasis)
+
             return { partialDecryption, proof, publicSignals }
         }))
     }
