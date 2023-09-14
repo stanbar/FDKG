@@ -1,3 +1,5 @@
+import { SignalValueType } from "circomkit/dist/types/circuit";
+import { readFileSync } from "fs";
 import { BabyJubPoint, ElGamalCiphertext, F, PubKey } from "shared-crypto";
 // @ts-ignore
 import * as snarkjs from "snarkjs"
@@ -13,19 +15,25 @@ export type Proof = {
 };
 type PublicSignals = string[]
 
-export interface PVSSCircuitInput {
+export type CircuitSignals<T extends readonly string[] = []> = T extends [] ? {
+    [signal: string]: SignalValueType;
+} : {
+    [signal in T[number]]: SignalValueType;
+};
+
+export interface PVSSCircuitInput extends CircuitSignals {
     coefficients: bigint[];
     r1: bigint[];
     r2: bigint[];
     guardiansPubKeys: bigint[][];
 }
-export interface BallotCircuitInput {
+export interface BallotCircuitInput extends CircuitSignals {
     votingPublicKey: bigint[];
     cast: bigint;
     r: bigint;
 }
 
-export interface PartialDecryptionCircuitInput {
+export interface PartialDecryptionCircuitInput extends CircuitSignals {
     A: bigint[];
     c1: bigint[];
     c2: bigint[];
@@ -33,7 +41,7 @@ export interface PartialDecryptionCircuitInput {
     privKey: bigint;
 }
 
-const fullProve = async (protocol: 'groth16' | 'plonk' | "fflonk", input: PVSSCircuitInput | BallotCircuitInput | PartialDecryptionCircuitInput, wasmPath: string, pkeyPath: string): Promise<{ proof: Proof, publicSignals: PublicSignals }> => {
+const fullProve = async <T extends CircuitSignals>(protocol: 'groth16' | 'plonk' | "fflonk", input: T, wasmPath: string, pkeyPath: string): Promise<{ proof: Proof, publicSignals: PublicSignals }> => { 
     if (protocol == "groth16") {
         return snarkjs.groth16.fullProve(input, wasmPath, pkeyPath)
     } else if (protocol == "plonk") {
@@ -89,16 +97,16 @@ const verify = async (protocol: 'groth16' | 'plonk' | "fflonk", proof: Proof, pu
 }
 
 export const verifyPVSS = async (proof: Proof, publicSignals: PublicSignals): Promise<boolean> => {
-    const vkey = await import("../build/pvss/groth16_vkey.json")
+    const vkey = JSON.parse(readFileSync("./build/pvss/groth16_vkey.json").toString())
     return verify(PROTOCOL, proof, publicSignals, vkey)
 }
 
 export const verifyBallot = async (proof: Proof, publicSignals: PublicSignals): Promise<boolean> => {
-    const vkey = await import("../build/encrypt_ballot/groth16_vkey.json")
+    const vkey = JSON.parse(readFileSync("./build/encrypt_ballot/groth16_vkey.json").toString())
     return verify(PROTOCOL, proof, publicSignals, vkey)
 }
 
 export const verifyPartialDecryption = async (proof: Proof, publicSignals: PublicSignals): Promise<boolean> => {
-    const vkey = await import("../build/partial_decryption/groth16_vkey.json")
+    const vkey = JSON.parse(readFileSync("./build/partial_decryption/groth16_vkey.json").toString())
     return verify(PROTOCOL, proof, publicSignals, vkey)
 }

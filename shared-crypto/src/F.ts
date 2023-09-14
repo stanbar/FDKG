@@ -21,6 +21,10 @@ export function sub(a: Uint8Array, b: Uint8Array): Uint8Array {
     return F.sub(a, b)
 }
 
+export function mul(a: Uint8Array, b: Uint8Array): Uint8Array {
+    return F.mul(a, b)
+}
+
 export function inv(a: Uint8Array): Uint8Array {
     return F.inv(a)
 }
