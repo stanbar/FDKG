@@ -43,7 +43,6 @@ export function MessageBoard(config: VotingConfig) {
     const aggregatedBallots = async (): Promise<BabyJubPoint> => {
         return votes.slice(1).map(vote => vote[0]).reduce((acc, vote) => {
             const sum = addPoint(acc, vote)
-            console.log({ acc, vote, sum })
             return sum
         }, votes[0][0])
     }

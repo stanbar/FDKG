@@ -25,7 +25,7 @@ template ElGamalDecrypt() {
     signal input c2[2];
     signal input xIncrement;
     signal input privKey;
-    signal output plaintext;
+    signal output plaintext; // TODO: rename out or outScalar
 
     // Convert the private key to bits
     signal privKeyBits[253] <== Num2Bits(253)(privKey);

@@ -74,7 +74,6 @@ export class LocalParty {
                     let nominator = F.e(j);
                     let denom = F.sub(F.e(j), F.e(i));
 
-
                     denom = F.inv(denom)
                     if (denom === null) {
                         throw new Error(`could not find inverse of denominator ${denom}`);
@@ -92,13 +91,17 @@ export class LocalParty {
         return await Promise.all(receivedShares.map(async (s) => {
             const share = decryptShare(this.keypair.privKey, s.encryptedShare)
             const shareTimesLagrangeBasis = F.mul(lagrangeCoefficient(s.index, s.sharesSize), F.e(share))// TODO: decided where to put this computation, on the sender or receiver
-            console.log({ A, shareTimesLagrangeBasis })
             const partialDecryption = mulPointEscalar(A, F.toBigint(shareTimesLagrangeBasis))
 
-            console.log({ s, share, shareTimesLagrangeBasis, partialDecryption })
-            const { proof, publicSignals } = await provePartialDecryption(A, s.encryptedShare.c1, s.encryptedShare.c2, s.encryptedShare.xIncrement, this.keypair.privKey)
-
-            return { partialDecryption, proof, publicSignals }
+            console.log(`Generating proof for share[${s.index}]`, { s, share, shareTimesLagrangeBasis: F.toBigint(shareTimesLagrangeBasis), partialDecryption: partialDecryption.map(F.toBigint) })
+            try {
+                const { proof, publicSignals } = await provePartialDecryption(A, s.encryptedShare.c1, s.encryptedShare.c2, s.encryptedShare.xIncrement, this.keypair.privKey)
+                console.log(`Successfully generated PartialDecryption proof for share[${s.index}] = ${share}`)
+                return { partialDecryption, proof, publicSignals }
+            } catch (e) {
+                console.error(`Failed to generate PartialDecryption proof for share[${s.index}] = ${share}`, e)
+                throw e;
+            }
         }))
     }
 }
