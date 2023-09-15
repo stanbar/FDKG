@@ -30,7 +30,7 @@ template PartialDecryption() {
     signal share <== ElGamalDecrypt()(c1 <== c1, c2 <== c2, xIncrement <== xIncrement, privKey <== privKey);
     log("Decrypted share is", share);
 
-    signal shareBits[253] <== Num2Bits(253)(in <== share);
+    signal shareBits[254] <== Num2Bits(254)(in <== share);
 
-    signal output partialDecryption[2] <== EscalarMulAny(253)(e <== shareBits, p <== A);
+    signal output partialDecryption[2] <== EscalarMulAny(254)(e <== shareBits, p <== A);
 }

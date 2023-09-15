@@ -33,7 +33,7 @@ export const randomPolynomial = (threshold: number, secret?: PrivKey): bigint[] 
 export const evalPolynomial = (coefficients: bigint[], x: bigint): bigint => {
   let result = coefficients[0];
   for (let i = 1; i < coefficients.length; i++) {
-    result += coefficients[i] * (x ** BigInt(i)) % SNARK_FIELD_SIZE;
+    result = (result + coefficients[i] * (x ** BigInt(i))) % SNARK_FIELD_SIZE;
   }
-  return result % SNARK_FIELD_SIZE;
+  return result
 }

@@ -1,6 +1,6 @@
 import { BabyJubPoint, F, Proof, PubKey, PublicSignals, addPoint, decryptResults } from "shared-crypto";
 import { EncryptedShare, LocalParty, PublicParty } from "./party";
-import { verifyBallot, verifyPVSS } from "./proofs";
+import { verifyBallot, verifyPVSS, verifyPartialDecryption } from "./proofs";
 
 export interface VotingConfig {
     size: number;
@@ -54,7 +54,8 @@ export function MessageBoard(config: VotingConfig) {
     }[]) => {
         console.log(`published partial decryption from node ${node.index}`)
         partialDecryption.forEach(async (partialDecryption) => {
-            const valid = await verifyBallot(partialDecryption.proof, partialDecryption.publicSignals)
+            const valid = await verifyPartialDecryption(partialDecryption.proof, partialDecryption.publicSignals)
+            // TODO: add lagrange coefficient verification inside circuit
             if (!valid) {
                 throw new Error("Invalid proof")
             }

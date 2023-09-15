@@ -4,7 +4,7 @@ import assert from 'node:assert';
 import { ProofTester, WitnessTester } from "circomkit";
 import { circomkit } from "../common/index.js";
 import { measureTime } from "../common/utils.js";
-import { F, mulPointEscalar, scalarToPoint, encryptShare, genKeypair, PartialDecryptionCircuitInput } from "shared-crypto";
+import { F, mulPointEscalar, scalarToPoint, encryptShare, genKeypair, PartialDecryptionCircuitInput, randomPolynomial, evalPolynomial, genRandomSalt } from "shared-crypto";
 
 const CIRCUIT_NAME = "partial_decryption"
 const CIRCUIT_CONFIG = {
@@ -12,8 +12,12 @@ const CIRCUIT_CONFIG = {
     template: "PartialDecryption",
     pubs: ["A", "c1", "c2", "xIncrement"]
 }
+const PRIME = 21888242871839275222246405745257275088548364400416034343698204186575808495617n
+const poly = randomPolynomial(3, 123n)
+const share = evalPolynomial(poly, 1n)
 
-const share = BigInt(1)
+
+// const share = 16154370910695209727612948424788872470556569337076176694032478573591482539789n
 const { privKey, pubKey } = genKeypair()
 const ciphertext = encryptShare(share, pubKey)
 const encoded = scalarToPoint(share)
@@ -32,11 +36,12 @@ const input: PartialDecryptionCircuitInput = {
     privKey: privKey,
 }
 
-describe(`test ${CIRCUIT_NAME}`, () => {
+describe.only(`test ${CIRCUIT_NAME}`, () => {
     before(async () => {
         circomkit.compile(CIRCUIT_NAME, CIRCUIT_CONFIG)
         const info = await circomkit.info(CIRCUIT_NAME)
         console.log({ info })
+        console.log({share, randomSalt: genRandomSalt()})
     });
 
     describe(`test witness generation ${CIRCUIT_NAME}`, () => {

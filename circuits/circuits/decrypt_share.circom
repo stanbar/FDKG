@@ -28,10 +28,10 @@ template ElGamalDecrypt() {
     signal output plaintext; // TODO: rename out or outScalar
 
     // Convert the private key to bits
-    signal privKeyBits[253] <== Num2Bits(253)(privKey);
+    signal privKeyBits[254] <== Num2Bits(254)(privKey);
     
     // c1 ** x
-    signal c1x[2] <== EscalarMulAny(253)(e <== privKeyBits, p <== c1);
+    signal c1x[2] <== EscalarMulAny(254)(e <== privKeyBits, p <== c1);
 
     // (c1 ** x) ** -1
     signal c1xInverseX;
