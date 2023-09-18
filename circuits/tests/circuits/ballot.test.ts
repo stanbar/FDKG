@@ -6,7 +6,6 @@ import { circomkit } from "../common/index.js";
 import { F, genPrivKey, genPubKey, formatPrivKeyForBabyJub, genRandomSalt, decryptBallot, BallotCircuitInput } from "shared-crypto";
 import { measureTime } from '../common/utils.js';
 import { encryptBallot } from 'shared-crypto/src/ballot.js';
-import { expect } from 'chai';
 
 const VOTERS = 10 as const;
 const OPTIONS = 3 as const;

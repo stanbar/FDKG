@@ -1,13 +1,10 @@
 /// <reference path='../src/types.d.ts'/>
 
 import assert from 'assert';
-import * as babyjub from "../src/babyjub";
-import { BabyJubPoint } from "../src/babyjub";
-import * as F from "../src/F";
-
 import { Scalar } from "ffjavascript";
 import { pointToScalar, decryptShare, scalarToPoint, encryptShare } from '../src/encryption';
-import { evalPolynomial, randomPolynomial } from '../src';
+import { BabyJubPoint, Base8, F, addPoint, genPrivKey, genRandomSalt, inCurve, mulPointEscalar } from '../src';
+import { Generator } from '../src/babyjub';
 
 describe('ElGamal encryption and decryption', () => {
 
@@ -16,28 +13,28 @@ describe('ElGamal encryption and decryption', () => {
         const randomVal = Scalar.fromString("321123456789")
 
         const aliceSk = Scalar.fromString("14035240266687799601661095864649209771790948434046947201833777492504781204499")
-        const alicePub = babyjub.mulPointEscalar(babyjub.Base8, aliceSk)
-        assert(babyjub.inCurve(alicePub));
+        const alicePub = mulPointEscalar(Base8, aliceSk)
+        assert(inCurve(alicePub));
 
         const bobSk = Scalar.fromString("14035240266687799601661095864127364721649872314987129834789237476544781204499")
-        const bobPub = babyjub.mulPointEscalar(babyjub.Base8, bobSk)
-        assert(babyjub.inCurve(bobPub));
+        const bobPub = mulPointEscalar(Base8, bobSk)
+        assert(inCurve(bobPub));
 
         // encrypt
-        const message = babyjub.mulPointEscalar(babyjub.Generator, plaintext)
-        const c1Point = babyjub.mulPointEscalar(babyjub.Base8, randomVal)
+        const message = mulPointEscalar(Generator, plaintext)
+        const c1Point = mulPointEscalar(Base8, randomVal)
 
-        const pky = babyjub.mulPointEscalar(bobPub, randomVal)
-        const c2Point = babyjub.addPoint(
+        const pky = mulPointEscalar(bobPub, randomVal)
+        const c2Point = addPoint(
             message,
             pky,
         )
 
-        assert(babyjub.inCurve(c1Point));
-        assert(babyjub.inCurve(c2Point));
+        assert(inCurve(c1Point));
+        assert(inCurve(c2Point));
 
         // decrypt
-        const c1x = babyjub.mulPointEscalar(
+        const c1x = mulPointEscalar(
             c1Point,
             bobSk,
         )
@@ -45,7 +42,7 @@ describe('ElGamal encryption and decryption', () => {
             F.neg(c1x[0]),
             c1x[1],
         ]
-        const decrypted = babyjub.addPoint(
+        const decrypted = addPoint(
             c1xInverse,
             c2Point
         )
@@ -61,11 +58,11 @@ describe('ElGamal encryption and decryption', () => {
         assert(secret == decoded)
     })
     it("should encrypt and decrypt 123", async () => {
-        const aliceSk = babyjub.genPrivKey()
-        const alicePub = babyjub.mulPointEscalar(babyjub.Base8, aliceSk)
+        const aliceSk = genPrivKey()
+        const alicePub = mulPointEscalar(Base8, aliceSk)
 
-        const bobSk = babyjub.genPrivKey()
-        const bobPub = babyjub.mulPointEscalar(babyjub.Base8, bobSk)
+        const bobSk = genPrivKey()
+        const bobPub = mulPointEscalar(Base8, bobSk)
 
         const secret = 123n
 
@@ -75,11 +72,10 @@ describe('ElGamal encryption and decryption', () => {
         assert(secret == decoded)
     })
     it("should encrypt and decrypt large values", async () => {
-        const poly = randomPolynomial(10)
         for (let i = 0; i < 100; i++) {
-            const share = evalPolynomial(poly, BigInt(i))
-            const bobSk = babyjub.genPrivKey()
-            const bobPub = babyjub.mulPointEscalar(babyjub.Base8, bobSk)
+            const share = genRandomSalt()
+            const bobSk = genPrivKey()
+            const bobPub = mulPointEscalar(Base8, bobSk)
 
             const message = encryptShare(share, bobPub)
             const decoded = decryptShare(bobSk, message)
