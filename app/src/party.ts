@@ -1,4 +1,4 @@
-import { BabyJubPoint, ElGamalCiphertext, encryptShare, evalPolynomial, genKeypair, genRandomSalt, randomPolynomial, Keypair, F, Proof, PublicSignals, PubKey, encryptBallot, decryptBallot, mulPointEscalar, SNARK_FIELD_SIZE, decryptShare } from "shared-crypto";
+import { BabyJubPoint, ElGamalCiphertext, encryptShare, genRandomSalt, Keypair, F, Proof, PublicSignals, PubKey, encryptBallot, mulPointEscalar, decryptShare, PrivKey } from "shared-crypto";
 import { VotingConfig } from "./messageboard";
 import { proveBallot, provePVSS, provePartialDecryption } from "./proofs";
 
@@ -19,15 +19,22 @@ export class LocalParty {
     readonly publicParty: PublicParty;
     readonly config: VotingConfig;
 
-    constructor(index: number, keypair: Keypair, config: VotingConfig) {
+    constructor(index: number, keypair: Keypair, votingKeypair: Keypair, config: VotingConfig, coefficients?: bigint[]) {
         if (index <= 0) {
             throw new Error("Index must be greater than 0")
         }
-        const votingKeypair = genKeypair();
+        if (coefficients) {
+            if (coefficients.length !== config.guardiansThreshold) {
+                throw new Error("Coefficients must be of size guardiansThreshold")
+            }
+            if (coefficients[0] !== BigInt(keypair.privKey)) {
+                throw new Error("Coefficients must start with the secret")
+            }
+        }
         this.keypair = keypair;
         this.votingKeypair = votingKeypair;
         this.config = config;
-        this.polynomial = randomPolynomial(config.guardiansThreshold, votingKeypair.privKey);
+        this.polynomial = coefficients ? coefficients : randomPolynomial(config.guardiansThreshold, votingKeypair.privKey);
         this.publicParty = {
             index,
             publicKey: keypair.pubKey,
@@ -52,56 +59,46 @@ export class LocalParty {
         return { proof, publicSignals, encryptedShares, votingPublicKey: this.votingKeypair.pubKey }
     }
 
-    async createBallot(votingPubKey: BabyJubPoint): Promise<{ C1: BabyJubPoint, C2: BabyJubPoint, proof: Proof, publicSignals: PublicSignals }> {
-        const cast = BigInt((this.publicParty.index % this.config.options) + 1)
-        const input = {
-            votingPublicKey: votingPubKey,
-            cast: cast,
-            r: genRandomSalt(),
-        }
-        const [C1, C2] = encryptBallot(input.votingPublicKey, input.cast, input.r, this.config.size, this.config.options)
+    prepareBallot(votingPublicKey: BabyJubPoint, r: PrivKey): { C1: BabyJubPoint, C2: BabyJubPoint, cast: number } {
+        const cast = (this.publicParty.index % this.config.options) + 1
+        const [C1, C2] = encryptBallot(votingPublicKey, BigInt(cast), r, this.config.size, this.config.options)
+        return {C1, C2, cast}
+    }
 
-        const { proof, publicSignals } = await proveBallot(input.votingPublicKey, input.cast, input.r)
+    async createBallot(votingPublicKey: BabyJubPoint): Promise<{ C1: BabyJubPoint, C2: BabyJubPoint, proof: Proof, publicSignals: PublicSignals }> {
+        const r = genRandomSalt()
+        const { C1, C2, cast } = this.prepareBallot(votingPublicKey, r)
+        const { proof, publicSignals } = await proveBallot(votingPublicKey, BigInt(cast), r)
         return { C1, C2, proof, publicSignals }
     }
 
-    async partialDecryption(A: BabyJubPoint, receivedShares: Array<EncryptedShare & { index: number, sharesSize: number }>): Promise<{ partialDecryption: BabyJubPoint, proof: Proof, publicSignals: PublicSignals }[]> {
-        const lagrangeCoefficient = (index: number, sharesSize: number): Uint8Array => {
-            const i = BigInt(index);
-            let prod = F.e("1");
-            for (let j = 1n; j <= sharesSize; j++) {
-                if (i !== j) {
-                    let nominator = F.e(j);
-                    let denom = F.sub(F.e(j), F.e(i));
-
-                    denom = F.inv(denom)
-                    if (denom === null) {
-                        throw new Error(`could not find inverse of denominator ${denom}`);
-                    }
-                    // 4. (X[i] - X[j]) * (1 / (X[i] - X[j])) = (val - X[j]) / (X[i] - X[j])
-                    let numDenomInverse = F.mul(nominator, denom)
-
-                    // 5. prod = prod * (val - X[j]) / (X[i] - X[j])
-                    prod = F.mul(prod, numDenomInverse)
-                }
-            }
-            return prod
-        }
-
-        return await Promise.all(receivedShares.map(async (s) => {
+    partialDecryptionForEncryptedShare(A: BabyJubPoint, s: EncryptedShare & { index: number, sharesSize: number }): BabyJubPoint {
             const share = decryptShare(this.keypair.privKey, s.encryptedShare)
-            const shareTimesLagrangeBasis = F.mul(lagrangeCoefficient(s.index, s.sharesSize), F.e(share))// TODO: decided where to put this computation, on the sender or receiver
-            const partialDecryption = mulPointEscalar(A, F.toBigint(shareTimesLagrangeBasis))
+            return this.partialDecryptionForShare(A, share, s.index, s.sharesSize)
+    }
 
-            console.log(`Generating proof for share[${s.index}]`, { s, share, shareTimesLagrangeBasis: F.toBigint(shareTimesLagrangeBasis), partialDecryption: partialDecryption.map(F.toBigint) })
+    partialDecryptionForShare(A: BabyJubPoint, s: bigint, shareIndex: number, shareSize: number): BabyJubPoint {
+        const lagrangeBasis = lagrangeCoefficient(shareIndex, shareSize)
+            const shareTimesLagrangeBasis = Z.mul(lagrangeBasis, F.fromBigint(s))// TODO: decided where to put this computation, on the sender or receiver
+            const partialDecryption = mulPointEscalar(A, F.toBigint(shareTimesLagrangeBasis))
+            return partialDecryption
+    }
+
+    async partialDecryption(A: BabyJubPoint, receivedShares: Array<EncryptedShare & { index: number, sharesSize: number }>): Promise<{ partialDecryption: BabyJubPoint, proof: Proof, publicSignals: PublicSignals }[]> {
+        return await Promise.all(receivedShares.map(async (s) => {
+            const partialDecryption = this.partialDecryptionForEncryptedShare(A, s)
+
             try {
                 const { proof, publicSignals } = await provePartialDecryption(A, s.encryptedShare.c1, s.encryptedShare.c2, s.encryptedShare.xIncrement, this.keypair.privKey)
-                console.log(`Successfully generated PartialDecryption proof for share[${s.index}] = ${share}`)
                 return { partialDecryption, proof, publicSignals }
             } catch (e) {
-                console.error(`Failed to generate PartialDecryption proof for share[${s.index}] = ${share}`, e)
+                console.error(`Failed to generate PartialDecryption proof for share[${s.index}]`, e)
                 throw e;
             }
         }))
     }
+}
+
+function lagrangeCoefficient(shareIndex: number, shareSize: number) {
+    throw new Error("Function not implemented.");
 }

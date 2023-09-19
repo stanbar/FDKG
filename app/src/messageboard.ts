@@ -1,5 +1,5 @@
-import { BabyJubPoint, F, Proof, PubKey, PublicSignals, addPoint, decryptResults } from "shared-crypto";
-import { EncryptedShare, LocalParty, PublicParty } from "./party";
+import { BabyJubPoint, Proof, PubKey, PublicSignals, addPoint, decryptResults } from "shared-crypto";
+import { EncryptedShare, PublicParty } from "./party";
 import { verifyBallot, verifyPVSS, verifyPartialDecryption } from "./proofs";
 
 export interface VotingConfig {
@@ -7,6 +7,7 @@ export interface VotingConfig {
     options: number;
     guardiansSize: number;
     guardiansThreshold: number;
+    skipProofs: boolean;
 }
 
 export function MessageBoard(config: VotingConfig) {
@@ -22,22 +23,26 @@ export function MessageBoard(config: VotingConfig) {
     }
 
     const contributeDkg = async (node: PublicParty, proof: Proof, publicSignals: PublicSignals, shares: EncryptedShare[], votingPublicKey: PubKey) => {
-        const valid = await verifyPVSS(proof, publicSignals)
-        if (!valid) {
-            throw new Error("Invalid proof")
+        if (!config.skipProofs) {
+            const valid = await verifyPVSS(proof, publicSignals)
+            if (!valid) {
+                throw new Error("Invalid proof")
+            }
         }
-        console.log(`contributed dkg from node ${node.index}`)
         votingPublicKeys.push(votingPublicKey)
         sharesFrom.set(node.publicKey, shares)
+        console.log(`contributed dkg from node ${node.index}`)
     }
 
     const publishVote = async (node: PublicParty, encryptedBallot: { C1: BabyJubPoint, C2: BabyJubPoint, proof: Proof, publicSignals: PublicSignals }) => {
-        const valid = await verifyBallot(encryptedBallot.proof, encryptedBallot.publicSignals)
-        if (!valid) {
-            throw new Error("Invalid proof")
+        if (!config.skipProofs) {
+            const valid = await verifyBallot(encryptedBallot.proof, encryptedBallot.publicSignals)
+            if (!valid) {
+                throw new Error("Invalid proof")
+            }
         }
-        console.log(`published vote from node ${node.index}`)
         votes.push([encryptedBallot.C1, encryptedBallot.C2])
+        console.log(`published vote from node ${node.index}`)
     }
 
     const aggregatedBallots = async (): Promise<BabyJubPoint> => {
@@ -54,10 +59,12 @@ export function MessageBoard(config: VotingConfig) {
     }[]) => {
         console.log(`published partial decryption from node ${node.index}`)
         partialDecryption.forEach(async (partialDecryption) => {
-            const valid = await verifyPartialDecryption(partialDecryption.proof, partialDecryption.publicSignals)
-            // TODO: add lagrange coefficient verification inside circuit
-            if (!valid) {
-                throw new Error("Invalid proof")
+            if (!config.skipProofs) {
+                const valid = await verifyPartialDecryption(partialDecryption.proof, partialDecryption.publicSignals)
+                // TODO: add lagrange coefficient verification inside circuit
+                if (!valid) {
+                    throw new Error("Invalid proof")
+                }
             }
 
             partialDecryptions.push(partialDecryption.partialDecryption)
@@ -69,7 +76,7 @@ export function MessageBoard(config: VotingConfig) {
         for (let [from, tos] of sharesFrom) {
             const index = tos.findIndex(to => to.guardianPubKey === node.publicKey)
             if (index != -1) {
-                sharesForNode.push({ index : index + 1, sharesSize: tos.length, ...tos[index] })
+                sharesForNode.push({ index: index + 1, sharesSize: tos.length, ...tos[index] })
             }
         }
         return sharesForNode
