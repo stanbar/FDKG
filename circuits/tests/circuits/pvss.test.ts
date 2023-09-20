@@ -3,13 +3,13 @@
 import assert from 'node:assert';
 import { ProofTester, WitnessTester } from "circomkit";
 import { circomkit } from "../common/index.js";
-import { F, genPubKey, genKeypair, genRandomSalt, ElGamalCiphertext, decryptShare, encryptShare, randomPolynomial, evalPolynomial, PVSSCircuitInput } from "shared-crypto";
+import { F, genPubKey, genKeypair, genRandomSalt, ElGamalCiphertext, decryptShare, encryptShare, PVSSCircuitInput, sss } from "shared-crypto";
 import { measureTime } from '../common/utils.js';
 
 describe("batch PVSS for 3-of-4 access structure", () => {
   const N = 4;
   const threshold = 3;
-  const coefficients = randomPolynomial(threshold);
+  const coefficients = sss.randomPolynomial(threshold);
   const votingPublicKey = genPubKey(coefficients[0]);
   const keypairs = Array.from({ length: N }, (_, i) => genKeypair());
   const r1 = Array.from({ length: N }, (_, i) => genRandomSalt());
@@ -22,7 +22,7 @@ describe("batch PVSS for 3-of-4 access structure", () => {
   }
 
   const shares = Array.from({ length: N }, (_, i) => {
-    const share = evalPolynomial(coefficients, BigInt(i + 1))
+    const share = sss.evalPolynomial(coefficients, BigInt(i + 1))
     return share
   })
   const ciphertexts = shares.map((share, i): ElGamalCiphertext => {
@@ -105,7 +105,7 @@ describe("batch PVSS for 3-of-4 access structure", () => {
 describe("single PVSS for 3-of-4 access structure", () => {
   const N = 1;
   const threshold = 3;
-  const coefficients = randomPolynomial(threshold);
+  const coefficients = sss.randomPolynomial(threshold);
   const votingPublicKey = genPubKey(coefficients[0]);
   const keypairs = Array.from({ length: N }, (_, i) => genKeypair());
   const r1 = Array.from({ length: N }, (_, i) => genRandomSalt());
@@ -118,7 +118,7 @@ describe("single PVSS for 3-of-4 access structure", () => {
   }
 
   const shares = Array.from({ length: N }, (_, i) => {
-    const share = evalPolynomial(coefficients, BigInt(i + 1))
+    const share = sss.evalPolynomial(coefficients, BigInt(i + 1))
     return share
   })
   const ciphertexts = shares.map((share, i): ElGamalCiphertext => {

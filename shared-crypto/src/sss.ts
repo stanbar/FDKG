@@ -24,7 +24,7 @@ export const recoverZ = (shares: bigint[], sharesSize: number): bigint => {
     let sum = F_Base8.zero
     for (let i = 1; i <= sharesSize; i++) {
         const lagrangeBasis = interpolateOneZ(i, sharesSize)
-        const share = shares[i-1]
+        const share = shares[i - 1]
         sum = F_Base8.add(sum, F_Base8.mul(lagrangeBasis, share))
     }
     return sum
@@ -36,27 +36,27 @@ export const generateSharesZ = (polynomial: ZFieldElement[], sharesSize: number)
     })
 }
 export const randomPolynomialZ = (threshold: number, secret?: ZFieldElement): ZFieldElement[] => {
-  const coefficients = Array.from({ length: threshold }, (_, i) => F_Base8.random());
-  if (secret) coefficients[0] = secret;
-  return coefficients;
+    const coefficients = Array.from({ length: threshold }, (_, i) => F_Base8.random());
+    if (secret) coefficients[0] = secret;
+    return coefficients;
 }
 
 
 export const evalPolynomialZ = (coefficients: ZFieldElement[], x: ZFieldElement): ZFieldElement => {
-  let result = coefficients[0];
-  for (let i = 1; i < coefficients.length; i++) {
-    // result = (result + coefficients[i] * (x ** BigInt(i))) % SNARK_FIELD_SIZE;
-    const exp = F_Base8.exp(x, i)
-    const mul = F_Base8.mul(coefficients[i], exp)
-    result = F_Base8.add(result, mul)
-  }
-  return result; // F.toBigint(result)
+    let result = coefficients[0];
+    for (let i = 1; i < coefficients.length; i++) {
+        // result = (result + coefficients[i] * (x ** BigInt(i))) % SNARK_FIELD_SIZE;
+        const exp = F_Base8.exp(x, i)
+        const mul = F_Base8.mul(coefficients[i], exp)
+        result = F_Base8.add(result, mul)
+    }
+    return result; // F.toBigint(result)
 }
 
 export const randomPolynomial = (threshold: number, secret?: PrivKey): bigint[] => {
-  const coefficients = Array.from({ length: threshold }, (_, i) => genRandomSalt());
-  if (secret) coefficients[0] = secret;
-  return coefficients;
+    const coefficients = Array.from({ length: threshold }, (_, i) => genRandomSalt());
+    if (secret) coefficients[0] = secret;
+    return coefficients;
 }
 
 export const generateShares = (polynomial: bigint[], sharesSize: number): bigint[] => {
@@ -69,7 +69,7 @@ export const recover = (shares: bigint[], sharesSize: number): bigint => {
     let sum = 0n
     for (let i = 1; i <= sharesSize; i++) {
         const lagrangeBasis = interpolateOneBigInt(i, sharesSize)
-        const share = shares[i-1]
+        const share = shares[i - 1]
         sum += (lagrangeBasis * share) % SNARK_FIELD_SIZE
     }
     return sum % SNARK_FIELD_SIZE
@@ -78,16 +78,16 @@ export const recover = (shares: bigint[], sharesSize: number): bigint => {
 
 
 export const evalPolynomial = (coefficients: bigint[], x: bigint): bigint => {
-  let result = coefficients[0];
-  for (let i = 1; i < coefficients.length; i++) {
-    const exp = x ** BigInt(i)
-    result = result + (coefficients[i] * exp) % SNARK_FIELD_SIZE
+    let result = coefficients[0];
+    for (let i = 1; i < coefficients.length; i++) {
+        const exp = x ** BigInt(i)
+        result = (result + (coefficients[i] * exp) % SNARK_FIELD_SIZE) % SNARK_FIELD_SIZE
 
-    // const exp = F.exp(F.fromBigint(x), F.fromBigint(BigInt(i)))
-    // const mul = F.mul(coefficients[i], exp)
-    // result = F.add(result, mul)
-  }
-  return result; // F.toBigint(result)
+        // const exp = F.exp(F.fromBigint(x), F.fromBigint(BigInt(i)))
+        // const mul = F.mul(coefficients[i], exp)
+        // result = F.add(result, mul)
+    }
+    return result; // F.toBigint(result)
 }
 
 // Extended Euclidean Algorithm
