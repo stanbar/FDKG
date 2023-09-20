@@ -1,10 +1,9 @@
 /// <reference path='../src/types.d.ts'/>
-
+// https://eips.ethereum.org/EIPS/eip-2494
 import assert from "node:assert"
-import * as F from "../src/F";
-import { BabyJubPoint }  from "../src/babyjub";
 import * as babyjub from "../src/babyjub";
 import { Scalar } from "ffjavascript";
+import { BabyJubPoint, F } from "../src";
 
 describe("babyjub", () => {
 
@@ -43,6 +42,34 @@ describe("babyjub", () => {
         assert(F.eq(res[0], babyjub.Base8[0]));
         assert(F.eq(res[1], babyjub.Base8[1]));
     });
+    it("Should Base8 be of order l = n/8", ()=>{
+        const l = 2736030358979909402780800718157159386076813972158567259200215660948447373041n
+        const res = babyjub.mulPointEscalar(babyjub.Base8, l)
+
+        assert(F.eq(res[0], F.zero));
+        assert(F.eq(res[1], F.one));
+    })
+    it("Should Generator be of order n but not l = n / 8", ()=>{
+        const n = 21888242871839275222246405745257275088614511777268538073601725287587578984328n
+        const res = babyjub.mulPointEscalar(babyjub.Generator, n)
+
+        assert(F.eq(res[0], F.zero));
+        assert(F.eq(res[1], F.one));
+
+        const l = 21888242871839275222246405745257275088614511777268538073601725287587578984328n / 8n
+        const res2 = babyjub.mulPointEscalar(babyjub.Generator, l)
+
+        assert.notDeepEqual(res2[0], F.zero);
+        assert.notDeepEqual(res2[1], F.one);
+    })
+    it("Should Base8 also be of order l", ()=>{
+        const l = 21888242871839275222246405745257275088614511777268538073601725287587578984328n
+        const res = babyjub.mulPointEscalar(babyjub.Base8, l)
+
+        assert(F.eq(res[0], F.zero));
+        assert(F.eq(res[1], F.one));
+    })
+
     it("Should add 2 same numbers", () => {
 
         const p1: BabyJubPoint = [
@@ -98,9 +125,8 @@ describe("babyjub", () => {
         assert(babyjub.inCurve(p));
     });
 
-
     it("calculate shared keys", () => {
-        const aliceSk = Scalar.fromString("14035240266687799601661095864649209771790948434046947201833777492504781204499") 
+        const aliceSk = Scalar.fromString("6350874878119819312338956282401532410528162663560392320966563075034087161851") 
         const alicePub = babyjub.mulPointEscalar(babyjub.Base8, aliceSk)
         assert(babyjub.inCurve(alicePub));
 

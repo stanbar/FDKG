@@ -1,18 +1,17 @@
 import assert from 'node:assert';
-import * as babyjub from './babyjub'
 import * as F from './F'
-import { PubKey, SNARK_FIELD_SIZE } from './babyjub';
-import { BabyJubPoint } from './babyjub';
+import { PubKey, SNARK_FIELD_SIZE, genRandomSalt, mulPointEscalar, Base8, addPoint, genPubKey, inSubgroup  } from './babyjub';
+import { BabyJubPoint, FFieldElement } from './types';
 
 export interface Message {
     point: BabyJubPoint,
-    xIncrement: Uint8Array,
+    xIncrement: FFieldElement,
 }
 
 export interface ElGamalCiphertext {
     c1: BabyJubPoint;
     c2: BabyJubPoint;
-    xIncrement: Uint8Array;
+    xIncrement: FFieldElement;
 }
 
 /*
@@ -26,15 +25,15 @@ export interface ElGamalCiphertext {
 export const encryptShare = (
     plaintext: bigint,
     pubKey: PubKey,
-    randomVal: bigint = babyjub.genRandomSalt(),
-    randomVal2: bigint = babyjub.genRandomSalt(),
+    randomVal: bigint = genRandomSalt(),
+    randomVal2: bigint = genRandomSalt(),
 ): ElGamalCiphertext => {
     const message: Message = scalarToPoint(plaintext, randomVal2)
 
-    const c1Point = babyjub.mulPointEscalar(babyjub.Base8, randomVal)
+    const c1Point = mulPointEscalar(Base8, randomVal)
 
-    const pky = babyjub.mulPointEscalar(pubKey, randomVal)
-    const c2Point = babyjub.addPoint(message.point, pky)
+    const pky = mulPointEscalar(pubKey, randomVal)
+    const c2Point = addPoint(message.point, pky)
 
     return {
         c1: c1Point,
@@ -53,11 +52,11 @@ export const encryptShare = (
  */
 export const scalarToPoint = (
     original: bigint,
-    randomVal: bigint = babyjub.genRandomSalt(),
+    randomVal: bigint = genRandomSalt(),
 ): Message => {
-    const randomPoint = babyjub.genPubKey(randomVal)
+    const randomPoint = genPubKey(randomVal)
 
-    assert(babyjub.inSubgroup(randomPoint))
+    assert(inSubgroup(randomPoint))
 
     const xIncrement = F.sub(randomPoint[0], F.e(original.toString()))
 
@@ -71,7 +70,7 @@ export const scalarToPoint = (
  * @param ciphertext The ciphertext to decrypt
  */
 export const decryptShare = (privKey: bigint, ciphertext: ElGamalCiphertext): bigint => {
-    const c1x: BabyJubPoint = babyjub.mulPointEscalar(
+    const c1x: BabyJubPoint = mulPointEscalar(
         ciphertext.c1,
         privKey
     )
@@ -81,7 +80,7 @@ export const decryptShare = (privKey: bigint, ciphertext: ElGamalCiphertext): bi
         c1x[1],
     ]
 
-    const decrypted: BabyJubPoint = babyjub.addPoint(
+    const decrypted: BabyJubPoint = addPoint(
         c1xInverse,
         ciphertext.c2
     )

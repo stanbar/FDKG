@@ -2,14 +2,14 @@ import * as circomlibjs from 'circomlibjs';
 import assert from 'node:assert';
 import * as crypto from 'crypto'
 import createBlakeHash from 'blake-hash'
+import * as ff from 'ffjavascript';
+import { BabyJubPoint } from './types.js';
 
-// https://github.com/iden3/circomlibjs/blob/main/src/babyjub.js
+// Curve https://eips.ethereum.org/EIPS/eip-2494
+// Implementation https://github.com/iden3/circomlibjs/blob/main/src/babyjub.js
+
 export const babyjub = await circomlibjs.buildBabyjub()
 const eddsa = await circomlibjs.buildEddsa()
-
-import * as ff from 'ffjavascript';
-
-export type BabyJubPoint = [Uint8Array, Uint8Array]
 
 export const Generator: BabyJubPoint = babyjub.Generator
 export const Base8: BabyJubPoint = babyjub.Base8
@@ -26,7 +26,7 @@ export interface Keypair {
 }
 
 // The BN254 group order p
-export const SNARK_FIELD_SIZE = 21888242871839275222246405745257275088548364400416034343698204186575808495617n;
+export const SNARK_FIELD_SIZE: bigint = 21888242871839275222246405745257275088548364400416034343698204186575808495617n;
 
 export function mulPointEscalar(p: BabyJubPoint, scalar: bigint|number): BabyJubPoint {
     return babyjub.mulPointEscalar(p, scalar)
@@ -72,6 +72,7 @@ export const formatPrivKeyForBabyJub = (privKey: PrivKey): bigint => {
 export const genRandomBabyJubScalar = (): bigint => {
 
     // Prevent modulo bias
+    // 2^256 % SNARK_FIELD_SIZE == SNARK_FIELD_SIZE - 1
     //const lim = BigInt('0x10000000000000000000000000000000000000000000000000000000000000000')
     //const min = (lim - SNARK_FIELD_SIZE) % SNARK_FIELD_SIZE
     const min = BigInt('6350874878119819312338956282401532410528162663560392320966563075034087161851')
