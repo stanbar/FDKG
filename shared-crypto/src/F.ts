@@ -2,50 +2,56 @@
 // wrapper around untyped 
 // https://github.com/iden3/ffjavascript/blob/master/src/wasm_field1.js
 
-import { babyjub, genRandomBabyJubScalar } from './babyjub';
+import { babyjub } from './babyjub';
+import { BabyJubPoint, FFieldElement } from './types';
 
 const F = babyjub.F;
 
-export const zero: Uint8Array = F.zero
-export const one: Uint8Array = F.one
+export const PointZero: BabyJubPoint = [F.zero, F.one];
+export const zero: FFieldElement = F.zero
+export const one: FFieldElement = F.one
 
-export function e(value: bigint | string | number): Uint8Array {
+export function e(value: bigint | string | number): FFieldElement {
     return F.e(value)
 }
 
-export function neg(value: Uint8Array): Uint8Array {
+export function neg(value: FFieldElement): FFieldElement {
     return F.neg(value)
 }
 
-export function sub(a: Uint8Array, b: Uint8Array): Uint8Array {
+export function add(a: FFieldElement, b: FFieldElement): FFieldElement {
+    return F.add(a, b)
+}
+
+export function sub(a: FFieldElement|bigint, b: FFieldElement|bigint): FFieldElement {
     return F.sub(a, b)
 }
 
-export function mul(a: Uint8Array, b: Uint8Array): Uint8Array {
+export function mul(a: FFieldElement, b: FFieldElement | number): FFieldElement {
     return F.mul(a, b)
 }
 
-export function inv(a: Uint8Array): Uint8Array {
+export function exp(a: FFieldElement, b: FFieldElement | number): FFieldElement {
+    return F.exp(a, b)
+}
+
+export function inv(a: FFieldElement): FFieldElement {
     return F.inv(a)
 }
 
-export function eq(a: Uint8Array, b: Uint8Array): boolean {
+export function eq(a: FFieldElement, b: FFieldElement): boolean {
     return F.eq(a, b)
 }
 
-export const getRandomEscalar = (): Uint8Array => {
-    const scalar = genRandomBabyJubScalar()
-    return F.e(scalar.toString())
-}
 
-export const random = (): Uint8Array => {
+export const random = (): FFieldElement => {
     return F.random()
 }
 
-export const toBigint = (a: Uint8Array): bigint => {
+export const toBigint = (a: FFieldElement): bigint => {
     return F.toObject(a)
 }
 
-export const fromBigint = (a: bigint): Uint8Array => {
+export const fromBigint = (a: bigint): FFieldElement => {
     return F.fromObject(a)
 }
