@@ -22,7 +22,7 @@ describe("batch PVSS for 3-of-4 access structure", () => {
   }
 
   const shares = Array.from({ length: N }, (_, i) => {
-    const share = sss.evalPolynomial(coefficients, BigInt(i + 1))
+    const share = sss.evalPolynomialZ(coefficients, BigInt(i + 1))
     return share
   })
   const ciphertexts = shares.map((share, i): ElGamalCiphertext => {
@@ -118,7 +118,7 @@ describe("single PVSS for 3-of-4 access structure", () => {
   }
 
   const shares = Array.from({ length: N }, (_, i) => {
-    const share = sss.evalPolynomial(coefficients, BigInt(i + 1))
+    const share = sss.evalPolynomialZ(coefficients, BigInt(i + 1))
     return share
   })
   const ciphertexts = shares.map((share, i): ElGamalCiphertext => {

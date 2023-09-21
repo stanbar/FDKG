@@ -34,7 +34,7 @@ export class LocalParty {
         this.keypair = keypair;
         this.votingKeypair = votingKeypair;
         this.config = config;
-        this.polynomial = coefficients ? coefficients : sss.randomPolynomial(config.guardiansThreshold, votingKeypair.privKey);
+        this.polynomial = coefficients ? coefficients : sss.randomPolynomialZ(config.guardiansThreshold, votingKeypair.privKey);
         this.publicParty = {
             index,
             publicKey: keypair.pubKey,
@@ -48,7 +48,7 @@ export class LocalParty {
         const r2 = guardians.map((_) => genRandomSalt());
 
         const shares = guardians.map((_, i) => {
-            const share = sss.evalPolynomial(this.polynomial, BigInt(i + 1))
+            const share = sss.evalPolynomialZ(this.polynomial, BigInt(i + 1))
             return share
         })
         const encryptedShares = shares.map((share, i): EncryptedShare => {

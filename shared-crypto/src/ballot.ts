@@ -113,7 +113,7 @@ const exhoustiveSearch = (M: BabyJubPoint, voters: number, options: number): [bi
                     rounds += 1n
                     const decoded = mulPointEscalar(Base8, sum)
                     if (F.toBigint(decoded[0]) === F.toBigint(M[0]) && F.toBigint(decoded[1]) === F.toBigint(M[1])) {
-                        console.log(`Found results after ${rounds} rounds, ${[x_1, x_2, x_3, x_4]}`)
+                        console.log(`✅ Successfully decrypted results after ${rounds} rounds, ${[x_1, x_2, x_3, x_4]}`)
                         return [x_1, x_2, x_3, x_4]
                     }
                 }

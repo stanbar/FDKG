@@ -1,11 +1,12 @@
 import assert from 'assert';
-import { BabyJubPoint, F, PubKey, inCurve, addPoint, decryptResults, encryptShare, genKeypair, genPubKey, genRandomSalt, sss } from "shared-crypto";
+import { BabyJubPoint, PubKey, inCurve, addPoint, decryptResults, encryptShare, genKeypair, genPubKey, genRandomSalt, sss } from "shared-crypto";
 import { VotingConfig } from '../src/messageboard';
 import { EncryptedShare, LocalParty } from '../src/party';
-import { randomPolynomialZ, evalPolynomialZ, generateSharesZ, recoverZ } from 'shared-crypto/src/sss';
+import { randomPolynomialZ, evalPolynomialZ } from 'shared-crypto/src/sss';
+import { PointZero } from 'shared-crypto/src/F';
 
 describe("fdkg", () => {
-    it.only("should encrypt and decrypt aggregated encrypted votes", () => {
+    it("should perform fdkg without proofs", () => {
         // const nodeIndicies = [1, 2, 3, 4, 5]
         // const guardianSets = [
         //     [1, nodeIndicies.filter(i => i != 1)],
@@ -70,7 +71,7 @@ describe("fdkg", () => {
             sharesFrom.set(node.publicParty.publicKey, encryptedShares)
         })
 
-        const votingPublicKey = votingPublicKeys.slice(1).reduce(addPoint, votingPublicKeys[0])
+        const votingPublicKey = votingPublicKeys.reduce(addPoint, PointZero)
 
         const casts = Array.from({ length: 4 }, (_, i) => 0n);
 
@@ -84,7 +85,7 @@ describe("fdkg", () => {
         })
 
         // tally
-        const C1 = votes.slice(1).map(v => v.C1).reduce(addPoint, votes[0].C1)
+        const C1 = votes.map(v => v.C1).reduce(addPoint, PointZero)
 
         nodeIndicies.forEach((nodeIndex) => {
             const node = localParties[nodeIndex - 1]
@@ -106,16 +107,15 @@ describe("fdkg", () => {
 
         })
 
-        const Z = partialDecryptions.slice(1).reduce(addPoint, partialDecryptions[0])
+        const Z = partialDecryptions.reduce(addPoint, PointZero)
         assert(inCurve(Z))
 
-        const C2 = votes.slice(1).map(v => v.C2).reduce(addPoint, votes[0].C2)
+        const C2 = votes.map(v => v.C2).reduce(addPoint, PointZero)
         assert(inCurve(C2))
 
         try {
             const decryptedCasts = decryptResults(Z, C2, config.size, config.options)
             assert.deepEqual(decryptedCasts, casts)
-            console.error("✅ Successfully decrypted results")
         } catch (e) {
             console.error("😩 Could not decrypt results")
         }
