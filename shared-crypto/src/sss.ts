@@ -1,5 +1,6 @@
-import { F, FFieldElement, PrivKey, SNARK_FIELD_SIZE, ZFieldElement, genRandomSalt } from "shared-crypto";
+import { F, FFieldElement, PrivKey, ZFieldElement, genRandomSalt } from "shared-crypto";
 import * as F_Base8 from "./FBase8";
+import assert from "node:assert";
 
 export const interpolateOneZ = (shareIndex: number, sharesSize: number): bigint => {
     let prod = F_Base8.one;
@@ -37,10 +38,12 @@ export const generateSharesZ = (polynomial: ZFieldElement[], sharesSize: number)
 }
 export const randomPolynomialZ = (threshold: number, secret?: ZFieldElement): ZFieldElement[] => {
     const coefficients = Array.from({ length: threshold }, (_, i) => F_Base8.random());
-    if (secret) coefficients[0] = secret;
+    if (secret) {
+        assert(secret < F_Base8.BABYJUB_BASE8_ORDER, "secret must be less than field size")
+        coefficients[0] = secret;
+    }
     return coefficients;
 }
-
 
 export const evalPolynomialZ = (coefficients: ZFieldElement[], x: ZFieldElement): ZFieldElement => {
     let result = coefficients[0];
@@ -53,86 +56,82 @@ export const evalPolynomialZ = (coefficients: ZFieldElement[], x: ZFieldElement)
     return result; // F.toBigint(result)
 }
 
-export const randomPolynomial = (threshold: number, secret?: PrivKey): bigint[] => {
-    const coefficients = Array.from({ length: threshold }, (_, i) => genRandomSalt());
-    if (secret) coefficients[0] = secret;
-    return coefficients;
-}
+// export const randomPolynomial = (threshold: number, secret?: PrivKey): bigint[] => {
+//     const coefficients = Array.from({ length: threshold }, (_, i) => genRandomSalt());
+//     if (secret) coefficients[0] = secret;
+//     return coefficients;
+// }
 
-export const generateShares = (polynomial: bigint[], sharesSize: number): bigint[] => {
-    return Array.from({ length: sharesSize }, (_, i) => {
-        return evalPolynomial(polynomial, BigInt(i + 1))
-    })
-}
+// export const generateShares = (polynomial: bigint[], sharesSize: number): bigint[] => {
+//     return Array.from({ length: sharesSize }, (_, i) => {
+//         return evalPolynomial(polynomial, BigInt(i + 1))
+//     })
+// }
 
-export const recover = (shares: bigint[], sharesSize: number): bigint => {
-    let sum = 0n
-    for (let i = 1; i <= sharesSize; i++) {
-        const lagrangeBasis = interpolateOneBigInt(i, sharesSize)
-        const share = shares[i - 1]
-        sum += (lagrangeBasis * share) % SNARK_FIELD_SIZE
-    }
-    return sum % SNARK_FIELD_SIZE
-}
+// export const recover = (shares: bigint[], sharesSize: number): bigint => {
+//     let sum = 0n
+//     for (let i = 1; i <= sharesSize; i++) {
+//         const lagrangeBasis = interpolateOneBigInt(i, sharesSize)
+//         const share = shares[i - 1]
+//         sum += (lagrangeBasis * share) % SNARK_FIELD_SIZE
+//     }
+//     return sum % SNARK_FIELD_SIZE
+// }
 
 
 
-export const evalPolynomial = (coefficients: bigint[], x: bigint): bigint => {
-    let result = coefficients[0];
-    for (let i = 1; i < coefficients.length; i++) {
-        const exp = x ** BigInt(i)
-        result = (result + (coefficients[i] * exp) % SNARK_FIELD_SIZE) % SNARK_FIELD_SIZE
+// export const evalPolynomial = (coefficients: bigint[], x: bigint): bigint => {
+//     let result = coefficients[0];
+//     for (let i = 1; i < coefficients.length; i++) {
+//         const exp = x ** BigInt(i)
+//         result = (result + (coefficients[i] * exp) % SNARK_FIELD_SIZE) % SNARK_FIELD_SIZE
+//     }
+//     return result;
+// }
 
-        // const exp = F.exp(F.fromBigint(x), F.fromBigint(BigInt(i)))
-        // const mul = F.mul(coefficients[i], exp)
-        // result = F.add(result, mul)
-    }
-    return result; // F.toBigint(result)
-}
+// // Extended Euclidean Algorithm
+// const extendedGCD = (a: bigint, b: bigint): [bigint, bigint, bigint] => {
+//     if (a === 0n) {
+//         return [b, 0n, 1n];
+//     }
+//     let [gcd, x1, y1] = extendedGCD(b % a, a);
+//     let x = y1 - (b / a) * x1;
+//     let y = x1;
+//     return [gcd, x, y];
+// };
 
-// Extended Euclidean Algorithm
-const extendedGCD = (a: bigint, b: bigint): [bigint, bigint, bigint] => {
-    if (a === 0n) {
-        return [b, 0n, 1n];
-    }
-    let [gcd, x1, y1] = extendedGCD(b % a, a);
-    let x = y1 - (b / a) * x1;
-    let y = x1;
-    return [gcd, x, y];
-};
+// // Function to calculate modular inverse using Extended Euclidean Algorithm
+// const modInverse = (a: bigint, m: bigint): bigint => {
+//     let [gcd, x, _] = extendedGCD(a, m);
+//     if (gcd !== BigInt(1)) {
+//         throw new Error(`Modular inverse does not exist for ${a} mod ${m}`);
+//     }
+//     return (x % m + m) % m;
+// };
 
-// Function to calculate modular inverse using Extended Euclidean Algorithm
-const modInverse = (a: bigint, m: bigint): bigint => {
-    let [gcd, x, _] = extendedGCD(a, m);
-    if (gcd !== BigInt(1)) {
-        throw new Error(`Modular inverse does not exist for ${a} mod ${m}`);
-    }
-    return (x % m + m) % m;
-};
+// export const interpolateOneBigInt = (shareIndex: number, sharesSize: number): bigint => {
+//     const i = BigInt(shareIndex);
+//     const n = BigInt(sharesSize)
+//     let prod = 1n;
+//     for (let j = 1n; j <= n; j++) {
+//         if (i !== j) {
+//             const sj = BigInt(j);
+//             const si = BigInt(shareIndex);
+//             let denominator: bigint = (sj - si + SNARK_FIELD_SIZE) % SNARK_FIELD_SIZE; // Adding fieldOrder to ensure the result is positive
 
-export const interpolateOneBigInt = (shareIndex: number, sharesSize: number): bigint => {
-    const i = BigInt(shareIndex);
-    const n = BigInt(sharesSize)
-    let prod = 1n;
-    for (let j = 1n; j <= n; j++) {
-        if (i !== j) {
-            const sj = BigInt(j);
-            const si = BigInt(shareIndex);
-            let denominator: bigint = (sj - si + SNARK_FIELD_SIZE) % SNARK_FIELD_SIZE; // Adding fieldOrder to ensure the result is positive
+//             // Calculate modular inverse of the denominator
+//             try {
+//                 denominator = modInverse(denominator, SNARK_FIELD_SIZE);
+//             } catch (e) {
+//                 throw new Error(`Could not find inverse of denominator ${denominator}`);
+//             }
 
-            // Calculate modular inverse of the denominator
-            try {
-                denominator = modInverse(denominator, SNARK_FIELD_SIZE);
-            } catch (e) {
-                throw new Error(`Could not find inverse of denominator ${denominator}`);
-            }
-
-            const e = (sj * denominator) % SNARK_FIELD_SIZE;
-            prod = (prod * e) % SNARK_FIELD_SIZE;
-        }
-    }
-    return prod;
-};
+//             const e = (sj * denominator) % SNARK_FIELD_SIZE;
+//             prod = (prod * e) % SNARK_FIELD_SIZE;
+//         }
+//     }
+//     return prod;
+// };
 
 
 export const interpolateOneF = (shareIndex: number, sharesSize: number): FFieldElement => {

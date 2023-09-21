@@ -1,4 +1,4 @@
-import { Base8, F, BabyJubPoint, inCurve, addPoint, decryptResults, encryptBallot, genRandomSalt, mulPointEscalar  } from "shared-crypto";
+import { Base8, F, BabyJubPoint, inCurve, addPoint, decryptResults, encryptBallot, genRandomSalt, mulPointEscalar, fkdg, genPrivKey } from "shared-crypto";
 import { evalPolynomialZ, generateSharesZ, interpolateOneZ, randomPolynomialZ, recoverZ } from "../src/sss";
 import assert from "node:assert";
 import { PointZero } from "../src/F";
@@ -146,5 +146,72 @@ describe('Shamir Secret Sharing', () => {
 
         const decryptedCasts = decryptResults(sC1, C2, VOTERS, OPTIONS)
         assert.deepEqual(decryptedCasts, casts)
+    })
+
+    it("encrypt two dealers many votes and three dkgs with poly and secrets in F_r", async () => {
+        const VOTERS = 10 as const;
+        const OPTIONS = 4 as const;
+        const THRESHOLD = 3;
+        const SHARES_SIZE = 4;
+
+        assert(SHARES_SIZE >= THRESHOLD, `SHARES_SIZE ${SHARES_SIZE} should be equal or greater than THRESHOLD ${THRESHOLD}`)
+
+
+        for (let i = 1; i < 10; i++) {
+            let casts = Array.from({ length: OPTIONS }, (_, i) => 0n);
+            const secret1 = genPrivKey() % F_Base8.BABYJUB_BASE8_ORDER
+            const poly1 = randomPolynomialZ(THRESHOLD, secret1)
+            assert.deepEqual(secret1, evalPolynomialZ(poly1, 0n))
+            const shares1 = generateSharesZ(poly1, SHARES_SIZE)
+
+            assert.deepEqual(recoverZ(shares1, SHARES_SIZE), secret1)
+
+            const secret2 = genPrivKey() % F_Base8.BABYJUB_BASE8_ORDER
+            const poly2 = randomPolynomialZ(THRESHOLD, secret2)
+            assert.deepEqual(secret2, evalPolynomialZ(poly2, 0n))
+            const shares2 = generateSharesZ(poly2, SHARES_SIZE)
+            assert.deepEqual(recoverZ(shares2, SHARES_SIZE), secret2)
+
+            const votingPrivKey = F.toBigint(F.add(F.fromBigint(secret1), F.fromBigint(secret2)))
+            const votingPubKey = mulPointEscalar(Base8, votingPrivKey)
+
+            const C1s: BabyJubPoint[] = []
+            const C2s: BabyJubPoint[] = []
+
+            for (let voter = 0; voter < VOTERS; voter++) {
+                const cast = (voter % OPTIONS) + 1
+                casts[cast - 1] += 1n
+
+                const r = genRandomSalt()
+
+                const [C1, C2] = encryptBallot(votingPubKey, BigInt(cast), r, VOTERS, OPTIONS)
+                C1s.push(C1)
+                C2s.push(C2)
+            }
+
+            const C1 = C1s.reduce(addPoint, PointZero)
+            const C2 = C2s.reduce(addPoint, PointZero)
+
+
+            const partialDecryptions = Array.from({ length: SHARES_SIZE }, (_, dkgPartyIndex) => {
+                const sharesForDkgParty = [shares1[dkgPartyIndex], shares2[dkgPartyIndex]]
+
+                const dkgVotingPrivKeyShare = sharesForDkgParty.reduce((acc, share) => {
+                    const lagrangeBasis = interpolateOneZ(dkgPartyIndex + 1, SHARES_SIZE)
+                    const lagrangeWithShare = F_Base8.mul(lagrangeBasis, share)
+                    return F_Base8.add(acc, lagrangeWithShare)
+                }, F_Base8.zero)
+
+                return mulPointEscalar(C1, dkgVotingPrivKeyShare)
+            })
+
+            const sC1 = partialDecryptions.reduce(addPoint, PointZero)
+            assert(inCurve(sC1))
+
+            assert.deepEqual(sC1, mulPointEscalar(C1, votingPrivKey))
+
+            const decryptedCasts = decryptResults(sC1, C2, VOTERS, OPTIONS)
+            assert.deepEqual(decryptedCasts, casts)
+        }
     })
 });
