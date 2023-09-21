@@ -4,7 +4,7 @@ import assert from "node:assert";
 import { PointZero } from "../src/F";
 import * as F_Base8 from "../src/FBase8";
 
-describe.only('Shamir Secret Sharing', () => {
+describe('Shamir Secret Sharing', () => {
     it("should split and recover", async () => {
         for (let i = 1; i < 10; i++) {
             const secret = F_Base8.e(i)
