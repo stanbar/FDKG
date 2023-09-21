@@ -4,6 +4,7 @@ import { VotingConfig } from '../src/messageboard';
 import { EncryptedShare, LocalParty } from '../src/party';
 import { randomPolynomialZ, evalPolynomialZ } from 'shared-crypto/src/sss';
 import { PointZero } from 'shared-crypto/src/F';
+import { generateSetOfNodes } from '../src/utils';
 
 describe("fdkg", () => {
     it("should perform fdkg without proofs", () => {
@@ -34,39 +35,18 @@ describe("fdkg", () => {
             throw new Error("Guardians threshold must be less than size-1 otherwise it's impossible to reconstruct the secret")
         }
 
-        const localParties = Array.from({ length: config.size }, (_, i) => {
-            const poly = randomPolynomialZ(config.guardiansThreshold)
-            const votingPrivKey = evalPolynomialZ(poly, 0n)
-            const votingPubKey = genPubKey(votingPrivKey)
-            const votingKeypair = { privKey: votingPrivKey, pubKey: votingPubKey }
-
-            const keypair = genKeypair()
-            return new LocalParty(i + 1, keypair, votingKeypair, config, poly)
-        });
+        const localParties = generateSetOfNodes(config)
 
         const votingPublicKeys: BabyJubPoint[] = []
         const votes: { C1: BabyJubPoint, C2: BabyJubPoint }[] = []
         const sharesFrom: Map<PubKey, Array<EncryptedShare>> = new Map()
         const partialDecryptions: Array<BabyJubPoint> = []
 
-        let aggregatedShares: bigint[] = []
         guardianSets.forEach(([nodeIndex, guardiansIndexes]) => {
             const node = localParties[nodeIndex as number - 1];
             const guardians = (guardiansIndexes as number[]).map((index) => localParties[index - 1].publicParty);
-            const r1 = guardians.map(genRandomSalt);
-            const r2 = guardians.map(genRandomSalt);
 
-            const shares = guardians.map((_, i) => {
-                return sss.evalPolynomialZ(node.polynomial, BigInt(i + 1))
-            })
-
-            aggregatedShares = aggregatedShares.concat(shares)
-            const encryptedShares = shares.map((share, i): EncryptedShare => {
-                return {
-                    guardianPubKey: guardians[i].publicKey,
-                    encryptedShare: encryptShare(share, guardians[i].publicKey, r1[i], r2[i])
-                }
-            })
+            const { encryptedShares } = node.createSharesWithoutProofs(guardians)
             votingPublicKeys.push(node.publicParty.votingPublicKey)
             sharesFrom.set(node.publicParty.publicKey, encryptedShares)
         })
@@ -78,7 +58,7 @@ describe("fdkg", () => {
         // voting
         nodeIndicies.map((nodeIndex) => {
             const node = localParties[nodeIndex - 1]
-            const r = BigInt(nodeIndex)
+            const r = genRandomSalt()
             const { C1, C2, cast } = node.prepareBallot(votingPublicKey, r)
             casts[cast - 1] += 1n
             votes.push({ C1, C2 })
@@ -99,6 +79,7 @@ describe("fdkg", () => {
                 }
             }
 
+            console.log({ tallerIndex: nodeIndex, shares: sharesForNode.length })
             // console.log(`Taller ${nodeIndex} received ${sharesForNode.length} shares`)
             sharesForNode.forEach(share => {
                 const partialDecryption = node.partialDecryptionForEncryptedShare(C1, share)

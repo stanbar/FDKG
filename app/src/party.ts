@@ -43,20 +43,32 @@ export class LocalParty {
     }
 
 
-    async createShares(guardians: PublicParty[]): Promise<{ proof: Proof, publicSignals: PublicSignals, encryptedShares: EncryptedShare[], votingPublicKey: BabyJubPoint }> {
-        const r1 = guardians.map((_) => genRandomSalt());
-        const r2 = guardians.map((_) => genRandomSalt());
+    createPlaintextShares(guardians: PublicParty[]): bigint[] {
+        const shares = guardians.map((_, i) =>
+            sss.evalPolynomialZ(this.polynomial, BigInt(i + 1))
+        )
+        return shares
+    }
+    createSharesWithoutProofs(guardians: PublicParty[]): { encryptedShares: EncryptedShare[], votingPublicKey: BabyJubPoint, r1: bigint[], r2: bigint[]} {
+        const shares = this.createPlaintextShares(guardians)
 
-        const shares = guardians.map((_, i) => {
-            const share = sss.evalPolynomialZ(this.polynomial, BigInt(i + 1))
-            return share
-        })
+        const r1 = guardians.map(genRandomSalt);
+        const r2 = guardians.map(genRandomSalt);
+
         const encryptedShares = shares.map((share, i): EncryptedShare => {
-            return { guardianPubKey: guardians[i].publicKey, encryptedShare: encryptShare(share, guardians[i].publicKey, r1[i], r2[i]) }
+            return {
+                guardianPubKey: guardians[i].publicKey,
+                encryptedShare: encryptShare(share, guardians[i].publicKey, r1[i], r2[i])
+            }
         })
+        return {encryptedShares, votingPublicKey: this.votingKeypair.pubKey, r1, r2 }
+    }
+
+    async createShares(guardians: PublicParty[]): Promise<{ proof: Proof, publicSignals: PublicSignals, encryptedShares: EncryptedShare[], votingPublicKey: BabyJubPoint }> {
+        const { encryptedShares, votingPublicKey, r1, r2 } = this.createSharesWithoutProofs(guardians)
 
         const { proof, publicSignals } = await provePVSS(this.polynomial, r1, r2, guardians.map(g => g.publicKey))
-        return { proof, publicSignals, encryptedShares, votingPublicKey: this.votingKeypair.pubKey }
+        return { proof, publicSignals, encryptedShares, votingPublicKey }
     }
 
     prepareBallot(votingPublicKey: BabyJubPoint, r: PrivKey): { C1: BabyJubPoint, C2: BabyJubPoint, cast: number } {
@@ -71,12 +83,13 @@ export class LocalParty {
         const { proof, publicSignals } = await proveBallot(votingPublicKey, BigInt(cast), r)
         return { C1, C2, proof, publicSignals }
     }
-    async partialDecryption(A: BabyJubPoint, receivedShares: Array<EncryptedShare & { index: number, sharesSize: number }>): Promise<{ partialDecryption: BabyJubPoint, proof: Proof, publicSignals: PublicSignals }[]> {
-        return await Promise.all(receivedShares.map(async (s) => {
-            const partialDecryption = this.partialDecryptionForEncryptedShare(A, s)
+
+    partialDecryption(C1: BabyJubPoint, receivedShares: Array<EncryptedShare & { index: number, sharesSize: number }>): Promise<{ partialDecryption: BabyJubPoint, proof: Proof, publicSignals: PublicSignals }[]> {
+        return Promise.all(receivedShares.map(async (s) => {
+            const partialDecryption = this.partialDecryptionForEncryptedShare(C1, s)
 
             try {
-                const { proof, publicSignals } = await provePartialDecryption(A, s.encryptedShare.c1, s.encryptedShare.c2, s.encryptedShare.xIncrement, this.keypair.privKey)
+                const { proof, publicSignals } = await provePartialDecryption(C1, s.encryptedShare.c1, s.encryptedShare.c2, s.encryptedShare.xIncrement, this.keypair.privKey)
                 return { partialDecryption, proof, publicSignals }
             } catch (e) {
                 console.error(`Failed to generate PartialDecryption proof for share[${s.index}]`, e)
