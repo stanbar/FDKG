@@ -8,12 +8,13 @@ import { scalarToPoint, encryptShare, pointToScalar, decryptShare, ElGamalCipher
 import { Proof, PublicSignals, PVSSCircuitInput, BallotCircuitInput, PartialDecryptionCircuitInput } from "./proof.js"
 import type { BabyJubPoint, FFieldElement, ZFieldElement } from "./types.js";
 import * as sss from "./sss.js";
+import * as fkdg from "./fdkg.js"
 
 
 // const BABYJUB_BASE_ORDER = Z.BABYJUB_BASE_ORDER
 
 // export { Z, BABYJUB_BASE_ORDER }
-export { sss }
+export { sss, fkdg }
 export { F, babyjub, genPrivKey, genPubKey, genKeypair, inCurve, formatPrivKeyForBabyJub, genRandomSalt, SNARK_FIELD_SIZE, addPoint, mulPointEscalar, Base8 };
 export { scalarToPoint, decryptBallotMpc, encryptShare, pointToScalar, decryptShare };
 export { decryptBallot, encryptBallot, decryptResults };
