@@ -14,7 +14,7 @@ describe('Shamir Secret Sharing', () => {
             assert.equal(l_1, 1n)
         }
         {
-            const Q = [1,2]
+            const Q = [1, 2]
             const l_1 = LagrangeCoefficient(1, Q)
             assert.equal(l_1, 2n)
 
@@ -42,7 +42,7 @@ describe('Shamir Secret Sharing', () => {
             assert.equal(l_3, F_Base8.mul(p2p3Inv, 2n))
         }
         {
-            const Q = [2,3]
+            const Q = [2, 3]
             const l_2 = LagrangeCoefficient(2, Q)
             assert.equal(l_2, 3n)
 
@@ -72,7 +72,7 @@ describe('Shamir Secret Sharing', () => {
             const poly = randomPolynomialZ(THRESHOLD, secret)
             const SHARES_SIZE = i + 2;
             const shares = generateSharesZ(poly, SHARES_SIZE)
-            const collectedShares = _.sampleSize(shares, THRESHOLD + 1)
+            const collectedShares = _.sampleSize(shares, THRESHOLD)
             const recovered = recoverZ(collectedShares, SHARES_SIZE, THRESHOLD)
             assert.equal(secret, recovered, `[${i}] secret ${secret} should be equal to recovered ${recovered}`)
             assert.deepEqual(secret, recovered)
@@ -80,8 +80,8 @@ describe('Shamir Secret Sharing', () => {
     })
 
     it("adding scalars and multplying by point", async () => {
-        const factor1 = F_Base8.mul(F_Base8.e(3), LagrangeCoefficient(1, [1,2]))
-        const factor2 = F_Base8.mul(F_Base8.e(4), LagrangeCoefficient(2, [1,2]))
+        const factor1 = F_Base8.mul(F_Base8.e(3), LagrangeCoefficient(1, [1, 2]))
+        const factor2 = F_Base8.mul(F_Base8.e(4), LagrangeCoefficient(2, [1, 2]))
         assert.deepEqual(F_Base8.add(factor1, factor2), F_Base8.e(2))
 
         const g1 = mulPointEscalar(Base8, F_Base8.toBigint(factor1))
@@ -92,7 +92,7 @@ describe('Shamir Secret Sharing', () => {
         const VOTERS = 10 as const;
         const OPTIONS = 4 as const;
         const THRESHOLD = 2;
-        const SHARES_SIZE = 3;
+        const SHARES_SIZE = 5;
 
         assert(SHARES_SIZE >= THRESHOLD, `SHARES_SIZE ${SHARES_SIZE} should be equal or greater than THRESHOLD ${THRESHOLD}`)
 
@@ -217,11 +217,18 @@ describe('Shamir Secret Sharing', () => {
     it("encrypt two dealers many votes and three dkgs with poly and secrets in F_r", async () => {
         const VOTERS = 10 as const;
         const OPTIONS = 4 as const;
-        const THRESHOLD = 3;
-        const SHARES_SIZE = 4;
 
-        assert(SHARES_SIZE >= THRESHOLD, `SHARES_SIZE ${SHARES_SIZE} should be equal or greater than THRESHOLD ${THRESHOLD}`)
+        [
+            { THRESHOLD: 3, SHARES_SIZE: 4, COLLECTED_SHARES_SIZE: 3, SHOULD_PASS: true },
+            { THRESHOLD: 3, SHARES_SIZE: 4, COLLECTED_SHARES_SIZE: 2, SHOULD_PASS: false },
+            { THRESHOLD: 3, SHARES_SIZE: 4, COLLECTED_SHARES_SIZE: 1, SHOULD_PASS: false },
+            { THRESHOLD: 4, SHARES_SIZE: 4, COLLECTED_SHARES_SIZE: 3, SHOULD_PASS: false },
+            { THRESHOLD: 3, SHARES_SIZE: 4, COLLECTED_SHARES_SIZE: 4, SHOULD_PASS: true },
+            { THRESHOLD: 2, SHARES_SIZE: 4, COLLECTED_SHARES_SIZE: 2, SHOULD_PASS: true },
+            { THRESHOLD: 3, SHARES_SIZE: 4, COLLECTED_SHARES_SIZE: 4, SHOULD_PASS: true },
+        ].forEach(({ THRESHOLD, SHARES_SIZE, COLLECTED_SHARES_SIZE, SHOULD_PASS }) => {
 
+            assert(SHARES_SIZE >= THRESHOLD, `SHARES_SIZE ${SHARES_SIZE} should be equal or greater than THRESHOLD ${THRESHOLD}`)
 
             let casts = Array.from({ length: OPTIONS }, (_, i) => 0n);
             const secret1 = genPrivKey() % F_Base8.BABYJUB_BASE8_ORDER
@@ -258,10 +265,10 @@ describe('Shamir Secret Sharing', () => {
             const C2 = C2s.reduce(addPoint, PointZero)
 
 
-            const partialDecryptions = Array.from({ length: SHARES_SIZE }, (_, dkgPartyIndex) => {
+            const partialDecryptions = Array.from({ length: COLLECTED_SHARES_SIZE }, (_, dkgPartyIndex) => {
                 const sharesForDkgParty = [shares1[dkgPartyIndex], shares2[dkgPartyIndex]]
-                const dkgVotingPrivKeyShare = sharesForDkgParty.reduce((acc, share, i) => {
-                    const lagrangeBasis = LagrangeCoefficient(share.x, Array.from({ length: SHARES_SIZE }, (_, i) => i + 1))
+                const dkgVotingPrivKeyShare = sharesForDkgParty.reduce((acc, share) => {
+                    const lagrangeBasis = LagrangeCoefficient(share.x, Array.from({ length: COLLECTED_SHARES_SIZE }, (_, i) => i + 1))
                     const lagrangeWithShare = F_Base8.mul(lagrangeBasis, share.y)
                     return F_Base8.add(acc, lagrangeWithShare)
                 }, F_Base8.zero)
@@ -272,9 +279,16 @@ describe('Shamir Secret Sharing', () => {
             const sC1 = partialDecryptions.reduce(addPoint, PointZero)
             assert(inCurve(sC1))
 
-            assert.deepEqual(sC1, mulPointEscalar(C1, votingPrivKey))
 
-            const decryptedCasts = decryptResults(sC1, C2, VOTERS, OPTIONS)
-            assert.deepEqual(decryptedCasts, casts)
+            try {
+                assert.deepEqual(sC1, mulPointEscalar(C1, votingPrivKey))
+                const decryptedCasts = decryptResults(sC1, C2, VOTERS, OPTIONS)
+                assert.deepEqual(decryptedCasts, casts)
+                assert(SHOULD_PASS && decryptedCasts)
+            } catch (error) {
+                assert(!SHOULD_PASS && error)
+            }
+
+        })
     })
 });
