@@ -1,41 +1,50 @@
 import { F, FFieldElement, PrivKey, ZFieldElement, genRandomSalt } from "shared-crypto";
 import * as F_Base8 from "./FBase8";
 import assert from "node:assert";
+import _ from "lodash";
 
-export const interpolateOneZ = (shareIndex: number, sharesSize: number): bigint => {
+// in goldwasserLectureNotesCryptography1996 the formula for Lagrange coefficients is:
+// \lambda_{Q,i} = \Prod_{j \in Q, j \neq i} \frac{j}{j-i}
+export const LagrangeCoefficient = (i: number, Q: number[]): bigint => {
     let prod = F_Base8.one;
-    for (let j = 1; j <= sharesSize; j++) {
-        if (shareIndex !== j) {
-            const sj = F_Base8.e(j);
-            const si = F_Base8.e(shareIndex);
-            let denominator = F_Base8.sub(sj, si);
-            denominator = F_Base8.inv(denominator)
+    for (let j = 0; j < Q.length; j++) {
+        if (i !== Q[j]) {
+            const nominator = BigInt(Q[j])
+            const denom = F_Base8.sub(nominator, BigInt(i));
+            const denominator = F_Base8.inv(denom);
 
             if (denominator === null || denominator === F_Base8.zero) {
                 throw new Error(`could not find inverse of denominator ${denominator}`);
             }
 
-            const e = F_Base8.mul(sj, denominator)
+            const e = F_Base8.mul(nominator, denominator)
             prod = F_Base8.mul(prod, e)
         }
     }
     return prod
 }
-export const recoverZ = (shares: bigint[], sharesSize: number): bigint => {
-    let sum = F_Base8.zero
-    for (let i = 1; i <= sharesSize; i++) {
-        const lagrangeBasis = interpolateOneZ(i, sharesSize)
-        const share = shares[i - 1]
-        sum = F_Base8.add(sum, F_Base8.mul(lagrangeBasis, share))
+
+export const recoverZ = (shares: {y: bigint, x: number }[], sharesSize: number, threshold: number): bigint => {
+    if (threshold > sharesSize) {
+        throw new Error(`threshold ${threshold} should be less than sharesSize ${sharesSize}`)
     }
+
+    const sum = shares.reduce((acc, share, i) => {
+        const lagrangeBasis = LagrangeCoefficient(share.x, shares.map(s => s.x))
+        const lagrangeWithShare = F_Base8.mul(lagrangeBasis, share.y)
+        return F_Base8.add(acc, lagrangeWithShare)
+    }, F_Base8.zero)
+
     return sum
 }
 
-export const generateSharesZ = (polynomial: ZFieldElement[], sharesSize: number): ZFieldElement[] => {
+export const generateSharesZ = (polynomial: ZFieldElement[], sharesSize: number): { x: number, y: ZFieldElement}[] => {
     return Array.from({ length: sharesSize }, (_, i) => {
-        return evalPolynomialZ(polynomial, F_Base8.e(i + 1))
+        const x = i + 1;
+        return { x , y: evalPolynomialZ(polynomial, F_Base8.e(x))}
     })
 }
+
 export const randomPolynomialZ = (threshold: number, secret?: ZFieldElement): ZFieldElement[] => {
     const coefficients = Array.from({ length: threshold }, (_, i) => F_Base8.random());
     if (secret) {
