@@ -1,15 +1,19 @@
 import { BabyJubPoint, ElGamalCiphertext, encryptShare, genRandomSalt, Keypair, F, Proof, PublicSignals, PubKey, encryptBallot, mulPointEscalar, decryptShare, PrivKey, sss, fkdg } from "shared-crypto";
 import { VotingConfig } from "./messageboard";
 import { proveBallot, provePVSS, provePartialDecryption } from "./proofs";
+import { CollectedShare, Share } from "shared-crypto/src/fdkg";
 
 export interface PublicParty {
     index: number;
     publicKey: BabyJubPoint;
     votingPublicKey: BabyJubPoint;
 }
-export interface EncryptedShare {
+export interface EncryptedShare extends Omit<Share, "y"> {
     guardianPubKey: PubKey;
     encryptedShare: ElGamalCiphertext;
+}
+export interface CollectedEncryptedShare extends EncryptedShare {
+    nodes: number[];
 }
 
 export class LocalParty {
@@ -42,26 +46,27 @@ export class LocalParty {
         }
     }
 
-
-    createPlaintextShares(guardians: PublicParty[]): bigint[] {
-        const shares = guardians.map((_, i) =>
-            sss.evalPolynomialZ(this.polynomial, BigInt(i + 1))
-        )
+    createPlaintextShares(guardians: PublicParty[]): { x: number, y: bigint }[] {
+        const shares = guardians.map((_, i) => {
+            const x = i + 1;
+            const y = sss.evalPolynomialZ(this.polynomial, BigInt(x))
+            return { x, y }
+        })
         return shares
     }
-    createSharesWithoutProofs(guardians: PublicParty[]): { encryptedShares: EncryptedShare[], votingPublicKey: BabyJubPoint, r1: bigint[], r2: bigint[]} {
+
+    createSharesWithoutProofs(guardians: PublicParty[]): { shares: Share[], encryptedShares: EncryptedShare[], votingPublicKey: BabyJubPoint, r1: bigint[], r2: bigint[] } {
         const shares = this.createPlaintextShares(guardians)
 
         const r1 = guardians.map(genRandomSalt);
         const r2 = guardians.map(genRandomSalt);
 
-        const encryptedShares = shares.map((share, i): EncryptedShare => {
-            return {
-                guardianPubKey: guardians[i].publicKey,
-                encryptedShare: encryptShare(share, guardians[i].publicKey, r1[i], r2[i])
-            }
-        })
-        return {encryptedShares, votingPublicKey: this.votingKeypair.pubKey, r1, r2 }
+        const encryptedShares: EncryptedShare[] = shares.map((share, i) => ({
+            guardianPubKey: guardians[i].publicKey,
+            encryptedShare: encryptShare(share.y, guardians[i].publicKey, r1[i], r2[i]),
+            x: share.x,
+        }))
+        return { shares, encryptedShares, votingPublicKey: this.votingKeypair.pubKey, r1, r2 }
     }
 
     async createShares(guardians: PublicParty[]): Promise<{ proof: Proof, publicSignals: PublicSignals, encryptedShares: EncryptedShare[], votingPublicKey: BabyJubPoint }> {
@@ -71,41 +76,52 @@ export class LocalParty {
         return { proof, publicSignals, encryptedShares, votingPublicKey }
     }
 
-    prepareBallot(votingPublicKey: BabyJubPoint, r: PrivKey): { C1: BabyJubPoint, C2: BabyJubPoint, cast: number } {
+    prepareBallot(votingPublicKey: BabyJubPoint): { C1: BabyJubPoint, C2: BabyJubPoint, cast: number, r: PrivKey } {
+        const r = genRandomSalt()
         const cast = (this.publicParty.index % this.config.options) + 1
         const [C1, C2] = encryptBallot(votingPublicKey, BigInt(cast), r, this.config.size, this.config.options)
-        return { C1, C2, cast }
+        return { C1, C2, cast, r }
     }
 
     async createBallot(votingPublicKey: BabyJubPoint): Promise<{ C1: BabyJubPoint, C2: BabyJubPoint, proof: Proof, publicSignals: PublicSignals }> {
-        const r = genRandomSalt()
-        const { C1, C2, cast } = this.prepareBallot(votingPublicKey, r)
+        const { C1, C2, cast, r } = this.prepareBallot(votingPublicKey)
         const { proof, publicSignals } = await proveBallot(votingPublicKey, BigInt(cast), r)
         return { C1, C2, proof, publicSignals }
     }
 
-    partialDecryption(C1: BabyJubPoint, receivedShares: Array<EncryptedShare & { index: number, sharesSize: number }>): Promise<{ partialDecryption: BabyJubPoint, proof: Proof, publicSignals: PublicSignals }[]> {
+    partialDecryption(C1: BabyJubPoint, receivedShares: {
+        share: EncryptedShare;
+        from: BabyJubPoint;
+    }[], config: VotingConfig)
+        : Promise<{
+            pd: BabyJubPoint,
+            from: PubKey
+            proof?: Proof,
+            publicSignals?: PublicSignals,
+        }[]> {
         return Promise.all(receivedShares.map(async (s) => {
-            const partialDecryption = this.partialDecryptionForEncryptedShare(C1, s)
-
-            try {
-                const { proof, publicSignals } = await provePartialDecryption(C1, s.encryptedShare.c1, s.encryptedShare.c2, s.encryptedShare.xIncrement, this.keypair.privKey)
-                return { partialDecryption, proof, publicSignals }
-            } catch (e) {
-                console.error(`Failed to generate PartialDecryption proof for share[${s.index}]`, e)
-                throw e;
+            const partialDecryption = this.partialDecryptionForEncryptedShare(C1, s.share)
+            if (config.skipProofs) {
+                return { pd: partialDecryption, from: s.from  }
+            } else {
+                try {
+                    const eShare = s.share.encryptedShare;
+                    const { proof, publicSignals } = await provePartialDecryption(C1, eShare.c1, eShare.c2, eShare.xIncrement, this.keypair.privKey)
+                    return { pd: partialDecryption, from: s.from, proof, publicSignals }
+                } catch (e) {
+                    console.error(`Failed to generate PartialDecryption proof for share[${s.share.x}]`, e)
+                    throw e;
+                }
             }
         }))
     }
 
-    partialDecryptionForEncryptedShare(A: BabyJubPoint, s: EncryptedShare & { index: number, sharesSize: number }): BabyJubPoint {
-        const share = decryptShare(this.keypair.privKey, s.encryptedShare)
-        return this.partialDecryptionForShare(A, share, s.index, s.sharesSize)
+    partialDecryptionForEncryptedShare(C1: BabyJubPoint, s: EncryptedShare): BabyJubPoint {
+        const y = decryptShare(this.keypair.privKey, s.encryptedShare)
+        return this.partialDecryptionForShare(C1, { x: s.x, y })
     }
 
-    partialDecryptionForShare(A: BabyJubPoint, s: bigint, shareIndex: number, sharesSize: number): BabyJubPoint {
-        const shareWithLagrange = fkdg.shareWithLagrange({ share: s, shareIndex, sharesSize })
-        return mulPointEscalar(A, shareWithLagrange)
+    partialDecryptionForShare(C1: BabyJubPoint, share: Share): BabyJubPoint {
+        return mulPointEscalar(C1, share.y)
     }
-
 }

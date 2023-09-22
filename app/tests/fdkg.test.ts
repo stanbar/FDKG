@@ -5,7 +5,7 @@ import { EncryptedShare } from '../src/party';
 import { PointZero } from 'shared-crypto/src/F';
 import { generateSetOfNodes } from '../src/utils';
 import { LagrangeCoefficient, recoverZ } from 'shared-crypto/src/sss';
-import _ from 'lodash';
+import _, { partial } from 'lodash';
 
 describe("fdkg", () => {
     it("should perform fdkg without proofs", () => {
@@ -76,18 +76,23 @@ describe("fdkg", () => {
                 throw new Error(`Node ${nodeIndex - 1} not found in ${localParties}`)
             }
 
+            // collect shares
+            const shares: Array<{share: EncryptedShare, from: PubKey}> = []
             for (let [from, tos] of sharesFrom) {
                 const index = tos.findIndex(to => to.guardianPubKey === node.publicParty.publicKey)
                 if (index != -1) {
                     console.log(`node ${nodeIndex} found share from ${localParties.findIndex(p => p.publicParty.publicKey == from) + 1}`)
                     const share = tos[index]
-                    const partialDecryption = node.partialDecryptionForEncryptedShare(C1, share)
-
-                    partialDecryptionFor.has(from) ?
-                        partialDecryptionFor.get(from)?.push({ senderPubKey: node.publicParty.publicKey, pd: partialDecryption }) :
-                        partialDecryptionFor.set(from, [{ senderPubKey: node.publicParty.publicKey, pd: partialDecryption }])
+                    shares.push({ share, from})
                 }
             }
+            // publish partial decryptions
+            shares.forEach(({ share, from }) => {
+                const pd = node.partialDecryptionForEncryptedShare(C1, share)
+                partialDecryptionFor.has(from) ?
+                    partialDecryptionFor.get(from)?.push({ senderPubKey: node.publicParty.publicKey, pd }) :
+                    partialDecryptionFor.set(from, [{ senderPubKey: node.publicParty.publicKey, pd }])
+            })
         })
 
 

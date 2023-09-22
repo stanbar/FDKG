@@ -1,4 +1,4 @@
-import { BabyJubPoint, Proof, PublicSignals } from "shared-crypto"
+import { BabyJubPoint, Proof, PubKey, PublicSignals } from "shared-crypto"
 import { MessageBoard, VotingConfig } from "./messageboard";
 import { generateSetOfNodes } from "./utils";
 import _ from "lodash";
@@ -10,12 +10,14 @@ const guardianSets = [
     [8, [8, 5, 6, 7]],
     [10, [10, 7, 8, 9]]
 ]
+const tallers = [6, 7]
+
 const config: VotingConfig = {
     size: nodeIndicies.length,
     options: 4,
     guardiansSize: 4,
-    guardiansThreshold: 3,
-    skipProofs: false,
+    guardiansThreshold: 1,
+    skipProofs: true,
 }
 
 const localParties = generateSetOfNodes(config)
@@ -27,9 +29,13 @@ await Promise.all(
         const node = localParties[nodeIndex as number - 1];
         const guardians = (guardiansIndexes as number[])
             .map((index) => localParties[index - 1].publicParty);
-        const { proof, publicSignals, encryptedShares } = await node.createShares(guardians);
-
-        await messageBoard.contributeDkg(node.publicParty, proof, publicSignals, encryptedShares, node.votingKeypair.pubKey)
+        if (config.skipProofs) {
+            const { encryptedShares } = node.createSharesWithoutProofs(guardians);
+            await messageBoard.contributeDkg(node.publicParty, encryptedShares, node.votingKeypair.pubKey)
+        } else {
+            const { proof, publicSignals, encryptedShares } = await node.createShares(guardians);
+            await messageBoard.contributeDkg(node.publicParty, encryptedShares, node.votingKeypair.pubKey, proof, publicSignals)
+        }
     })
 )
 
@@ -38,13 +44,17 @@ await Promise.all(
     nodeIndicies.map(async (nodeIndex) => {
         const node = localParties[nodeIndex - 1]
         const votingPubKey = messageBoard.votingPubKey()
-        const encryptedBallot = await node.createBallot(votingPubKey)
-        await messageBoard.publishVote(node.publicParty, encryptedBallot)
+        if (config.skipProofs) {
+            const {C1, C2 } = node.prepareBallot(votingPubKey)
+            await messageBoard.publishVote(node.publicParty, {C1, C2})
+        } else {
+            const encryptedBallot = await node.createBallot(votingPubKey)
+            await messageBoard.publishVote(node.publicParty, encryptedBallot)
+        }
     })
 )
 
 // tally
-const tallers = _.sampleSize(nodeIndicies, 10)
 console.log({ tallers })
 
 await Promise.all(
@@ -54,13 +64,15 @@ await Promise.all(
         const shares = messageBoard.sharesFor(node.publicParty)
         console.log({ tallerIndex: nodeIndex, shares: shares.length })
 
-        const partialDecryption: {
-            partialDecryption: BabyJubPoint,
-            proof: Proof,
-            publicSignals: PublicSignals,
-        }[] = await node.partialDecryption(C1, shares)
 
-        await messageBoard.publishPartialDecryption(node.publicParty, partialDecryption)
+        const partialDecryptions: {
+            pd: BabyJubPoint,
+            from: PubKey
+            proof?: Proof,
+            publicSignals?: PublicSignals,
+        }[] = await node.partialDecryption(C1, shares, config)
+
+        await messageBoard.publishPartialDecryption(node.publicParty, partialDecryptions)
     })
 )
 
