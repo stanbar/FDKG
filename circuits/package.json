@@ -2,7 +2,8 @@
   "description": "Circomkit examples",
   "scripts": {
     "start": "npx ts-node ./src/index.ts",
-    "test": "npx mocha"
+    "test": "npx mocha",
+    "setup": "npx ts-node ./src/setup.ts"
   },
   "type": "module",
   "dependencies": {

@@ -1,10 +1,61 @@
 {
-  "pvss": {
+  "pvss_4_of_4": {
+    "file": "pvss",
+    "template": "PVSS",
+    "pubs": ["guardiansPubKeys"],
+    "params": [4,4]
+  },
+  "pvss_3_of_4": {
     "file": "pvss",
     "template": "PVSS",
     "pubs": ["guardiansPubKeys"],
     "params": [4,3]
   },
+  "pvss_2_of_4": {
+    "file": "pvss",
+    "template": "PVSS",
+    "pubs": ["guardiansPubKeys"],
+    "params": [4,2]
+  },
+  "pvss_1_of_4": {
+    "file": "pvss",
+    "template": "PVSS",
+    "pubs": ["guardiansPubKeys"],
+    "params": [4,1]
+  },
+
+  "pvss_3_of_3": {
+    "file": "pvss",
+    "template": "PVSS",
+    "pubs": ["guardiansPubKeys"],
+    "params": [3,3]
+  },
+  "pvss_2_of_3": {
+    "file": "pvss",
+    "template": "PVSS",
+    "pubs": ["guardiansPubKeys"],
+    "params": [3,2]
+  },
+  "pvss_1_of_3": {
+    "file": "pvss",
+    "template": "PVSS",
+    "pubs": ["guardiansPubKeys"],
+    "params": [3,1]
+  },
+
+  "pvss_2_of_2": {
+    "file": "pvss",
+    "template": "PVSS",
+    "pubs": ["guardiansPubKeys"],
+    "params": [2,2]
+  },
+  "pvss_1_of_2": {
+    "file": "pvss",
+    "template": "PVSS",
+    "pubs": ["guardiansPubKeys"],
+    "params": [2,1]
+  },
+
   "pvss_1": {
     "file": "pvss",
     "template": "PVSS",
@@ -26,10 +77,5 @@
     "template": "EncrytedBallot",
     "pubs": ["votingPublicKey"],
     "params": [10, 3]
-  },
-  "multiplier": {
-    "file": "multiplier_2",
-    "template": "Multiplier",
-    "pubs": ["a","b"]
   }
 }
