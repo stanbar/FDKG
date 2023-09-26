@@ -17,7 +17,7 @@ const config: VotingConfig = {
     options: 4,
     guardiansSize: 4,
     guardiansThreshold: 1,
-    skipProofs: true,
+    skipProofs: false,
 }
 
 const localParties = generateSetOfNodes(config)
