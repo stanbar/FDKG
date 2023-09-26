@@ -24,7 +24,7 @@ export function MessageBoard(config: VotingConfig) {
 
     const contributeDkg = async (node: PublicParty, encryptedShares: EncryptedShare[], votingPublicKey: PubKey, proof?: Proof, publicSignals?: PublicSignals) => {
         if (!config.skipProofs && proof && publicSignals) {
-            const valid = await verifyPVSS(proof, publicSignals)
+            const valid = await verifyPVSS(proof, publicSignals, config.guardiansThreshold, config.guardiansSize)
             if (!valid) {
                 throw new Error("Invalid proof")
             }

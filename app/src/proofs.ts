@@ -3,8 +3,19 @@ import { readFileSync } from "fs";
 import { BabyJubPoint, F, PubKey } from "shared-crypto";
 // @ts-ignore
 import * as snarkjs from "snarkjs"
+import { measureTime } from "./utils";
 
-const PROTOCOL = "groth16"
+if (!process.env.PROVER) {
+    console.log("PROVER env variable is not set, defaulting to groth16")
+    process.env.PROVER="groth16"
+}
+
+const provers = ["groth16", "plonk", "fflonk"]
+if (!provers.includes(process.env.PROVER)) {
+    throw new Error(`Using invalid PROVER env variable ${process.env.PROVER} should be one of ${provers.join(", ")}`)
+}
+
+const PROVER: 'groth16' | 'plonk' | "fflonk" = process.env.PROVER as 'groth16' | 'plonk' | 'fflonk';
 
 export type Proof = {
     pi_a: [string, string, string]
@@ -41,18 +52,6 @@ export interface PartialDecryptionCircuitInput extends CircuitSignals {
     privKey: bigint;
 }
 
-const fullProve = async <T extends CircuitSignals>(protocol: 'groth16' | 'plonk' | "fflonk", input: T, wasmPath: string, pkeyPath: string): Promise<{ proof: Proof, publicSignals: PublicSignals }> => { 
-    if (protocol == "groth16") {
-        return snarkjs.groth16.fullProve(input, wasmPath, pkeyPath)
-    } else if (protocol == "plonk") {
-        return snarkjs.plonk.fullProve(input, wasmPath, pkeyPath)
-    } else if (protocol == "fflonk") {
-        return snarkjs.fflonk.fullProve(input, wasmPath, pkeyPath)
-    } else {
-        throw new Error("Unknown protocol")
-    }
-}
-
 const PVSSVariantName = (name: string, guardiansThreshold: number, guardiansCount: number) => `${name}_${guardiansThreshold}_of_${guardiansCount}`
 
 export const provePVSS = (coefficients: bigint[], r1: bigint[], r2: bigint[], guardiansPubKeys: PubKey[]) => {
@@ -64,7 +63,7 @@ export const provePVSS = (coefficients: bigint[], r1: bigint[], r2: bigint[], gu
     }
 
     const name = PVSSVariantName("pvss", coefficients.length, guardiansPubKeys.length)
-    return fullProve(PROTOCOL, snarkyInput, `./build/${name}/${name}_js/${name}.wasm`, `./build/${name}/groth16_pkey.zkey`)
+    return fullProve(name, PROVER, snarkyInput, `./build/${name}/${name}_js/${name}.wasm`, `./build/${name}/groth16_pkey.zkey`)
 }
 
 export const proveBallot = (votingPublicKey: BabyJubPoint, cast: bigint, r: bigint) => {
@@ -75,7 +74,7 @@ export const proveBallot = (votingPublicKey: BabyJubPoint, cast: bigint, r: bigi
     }
 
     const name = "encrypt_ballot"
-    return fullProve(PROTOCOL, snarkyInput, `./build/${name}/${name}_js/${name}.wasm`, `./build/${name}/groth16_pkey.zkey`)
+    return fullProve(name, PROVER, snarkyInput, `./build/${name}/${name}_js/${name}.wasm`, `./build/${name}/groth16_pkey.zkey`)
 }
 
 export const provePartialDecryption = (A: BabyJubPoint, c1: BabyJubPoint, c2: BabyJubPoint, xIncrement: Uint8Array, privKey: bigint): Promise<{ proof: Proof, publicSignals: PublicSignals }> => {
@@ -87,11 +86,27 @@ export const provePartialDecryption = (A: BabyJubPoint, c1: BabyJubPoint, c2: Ba
         privKey,
     }
     const name = "partial_decryption"
-    return fullProve(PROTOCOL, snarkyInput, `./build/${name}/${name}_js/${name}.wasm`, `./build/${name}/groth16_pkey.zkey`)
+    return fullProve(name, PROVER, snarkyInput, `./build/${name}/${name}_js/${name}.wasm`, `./build/${name}/groth16_pkey.zkey`)
 }
+
+const fullProve = async <T extends CircuitSignals>(circuitName: string, protocol: 'groth16' | 'plonk' | "fflonk", input: T, wasmPath: string, pkeyPath: string): Promise<{ proof: Proof, publicSignals: PublicSignals }> => { 
+    return measureTime(circuitName, () => snarkjs[protocol].fullProve(input, wasmPath, pkeyPath))
+}
+
+export const verifyPVSS = (proof: Proof, publicSignals: PublicSignals, guardiansThreshold: number, guardiansSize: number) => {
+    const name = PVSSVariantName("pvss", guardiansThreshold, guardiansSize)
+    return verify(name, PROVER, proof, publicSignals)
+}
+
+export const verifyBallot = (proof: Proof, publicSignals: PublicSignals) =>
+    verify("encrypt_ballot", PROVER, proof, publicSignals)
+
+export const verifyPartialDecryption = (proof: Proof, publicSignals: PublicSignals) =>
+    verify("partial_decryption", PROVER, proof, publicSignals)
 
 const verify = (circuitName: string, protocol: 'groth16' | 'plonk' | "fflonk", proof: Proof, publicSignals: PublicSignals): Promise<boolean> => {
     const vkey = JSON.parse(readFileSync(`./build/${circuitName}/${protocol}_vkey.json`).toString())
+
     if (protocol == "groth16") {
         return snarkjs.groth16.verify(vkey, publicSignals, proof)
     } else if (protocol == "plonk") {
@@ -102,14 +117,3 @@ const verify = (circuitName: string, protocol: 'groth16' | 'plonk' | "fflonk", p
         throw new Error("Unknown protocol")
     }
 }
-
-export const verifyPVSS = (proof: Proof, publicSignals: PublicSignals, guardiansThreshold: number, guardiansSize: number) => {
-    const name = PVSSVariantName("pvss", guardiansThreshold, guardiansSize)
-    return verify(name, PROTOCOL, proof, publicSignals)
-}
-
-export const verifyBallot = (proof: Proof, publicSignals: PublicSignals) =>
-    verify("encrypt_ballot", PROTOCOL, proof, publicSignals)
-
-export const verifyPartialDecryption = (proof: Proof, publicSignals: PublicSignals) =>
-    verify("partial_decryption", PROTOCOL, proof, publicSignals)
