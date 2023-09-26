@@ -205,3 +205,18 @@ func doClient2(encodedContact string) {
 	fmt.Println("Sending message...")
 	time.Sleep(time.Second * 5)
 }
+
+//export BroadcastContributeDkg
+func BroadcastContributeDkg() {
+	// TODO
+}
+
+//export BroadcastPublishVote
+func BroadcastPublishVote() {
+	// TODO
+}
+
+//export BroadcastPublishPartialDecryption
+func BroadcastPublishPartialDecryption() {
+	// TODO
+}
