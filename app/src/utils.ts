@@ -17,3 +17,12 @@ export const generateSetOfNodes = (config: VotingConfig): Array<LocalParty> => {
             return new LocalParty(i + 1, keypair, votingKeypair, config, poly)
     });
 }
+
+export const measureTime = async <T>(name: string, fn: () => Promise<T>): Promise<T> => {
+    const start = new Date().getTime()
+    const result = await fn()
+    const end = new Date().getTime()
+    const seconds = (end - start) / 1000
+    console.log(`${name} took ${seconds}s`)
+    return result
+}

@@ -2,6 +2,10 @@ import { BabyJubPoint, Proof, PubKey, PublicSignals } from "shared-crypto"
 import { MessageBoard, VotingConfig } from "./messageboard";
 import { generateSetOfNodes } from "./utils";
 import _ from "lodash";
+const start = new Date().getTime()
+
+const prover = process.env.PROVER
+console.log({ prover })
 
 const nodeIndicies = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
 const guardianSets = [
@@ -10,13 +14,13 @@ const guardianSets = [
     [8, [8, 5, 6, 7]],
     [10, [10, 7, 8, 9]]
 ]
-const tallers = [6, 7]
+const tallers = [6, 7, 3, 8]
 
 const config: VotingConfig = {
     size: nodeIndicies.length,
     options: 4,
     guardiansSize: 4,
-    guardiansThreshold: 1,
+    guardiansThreshold: 3,
     skipProofs: false,
 }
 
@@ -45,8 +49,8 @@ await Promise.all(
         const node = localParties[nodeIndex - 1]
         const votingPubKey = messageBoard.votingPubKey()
         if (config.skipProofs) {
-            const {C1, C2 } = node.prepareBallot(votingPubKey)
-            await messageBoard.publishVote(node.publicParty, {C1, C2})
+            const { C1, C2 } = node.prepareBallot(votingPubKey)
+            await messageBoard.publishVote(node.publicParty, { C1, C2 })
         } else {
             const encryptedBallot = await node.createBallot(votingPubKey)
             await messageBoard.publishVote(node.publicParty, encryptedBallot)
@@ -64,7 +68,6 @@ await Promise.all(
         const shares = messageBoard.sharesFor(node.publicParty)
         console.log({ tallerIndex: nodeIndex, shares: shares.length })
 
-
         const partialDecryptions: {
             pd: BabyJubPoint,
             from: PubKey
@@ -78,3 +81,6 @@ await Promise.all(
 
 const results = messageBoard.offlineTally()
 console.log({ results })
+const end = new Date().getTime()
+const seconds = (end - start) / 1000
+console.log(`Simulation took ${seconds}s`)
