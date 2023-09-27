@@ -31,6 +31,7 @@ describe("fdkg", () => {
             guardiansSize: 4,
             guardiansThreshold: 2,
             skipProofs: true,
+            sequential: false,
         }
 
         if (config.guardiansThreshold > config.size - 1) {

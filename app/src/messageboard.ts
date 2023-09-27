@@ -4,6 +4,7 @@ import { verifyBallot, verifyPVSS, verifyPartialDecryption } from "./proofs";
 import { PointZero } from "shared-crypto/src/F";
 import assert from "node:assert";
 import { LagrangeCoefficient } from "shared-crypto/src/sss";
+import * as weshnet from "./weshnet";
 
 export interface VotingConfig {
     size: number;
@@ -11,6 +12,7 @@ export interface VotingConfig {
     guardiansSize: number;
     guardiansThreshold: number;
     skipProofs: boolean;
+    sequential: boolean;
 }
 
 export function MessageBoard(config: VotingConfig) {
@@ -32,6 +34,7 @@ export function MessageBoard(config: VotingConfig) {
         votingPublicKeys.push(votingPublicKey)
         sharesFrom.set(node.publicKey, encryptedShares.map((encryptedShare, i) => ({ ...encryptedShare, index: i, sharesSize: encryptedShares.length })))
         console.log(`contributed dkg from node ${node.index}`)
+        weshnet.broadcastContributeDkg(node, encryptedShares, votingPublicKey, proof, publicSignals)
     }
 
     const publishVote = async (node: PublicParty, encryptedBallot: { C1: BabyJubPoint, C2: BabyJubPoint, proof?: Proof, publicSignals?: PublicSignals }) => {
@@ -43,6 +46,7 @@ export function MessageBoard(config: VotingConfig) {
         }
         votes.push({ C1: encryptedBallot.C1, C2: encryptedBallot.C2 })
         console.log(`published vote from node ${node.index}`)
+        weshnet.broadcastPublishVote(node, encryptedBallot)
     }
 
     const aggregatedBallots = () => votes.map(vote => vote.C1).reduce(addPoint, PointZero)
@@ -66,6 +70,7 @@ export function MessageBoard(config: VotingConfig) {
                 partialDecryptionFor.get(pd.from)?.push({ senderPubKey: node.publicKey, pd: pd.pd }) :
                 partialDecryptionFor.set(pd.from, [{ senderPubKey: node.publicKey, pd: pd.pd }])
             console.log(`published partial decryption from node ${node.index}`)
+            weshnet.broadcastPublishPartialDecryption(node, partialDecryption)
         }))
     }
 

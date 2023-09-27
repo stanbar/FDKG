@@ -63,7 +63,7 @@ export const provePVSS = (coefficients: bigint[], r1: bigint[], r2: bigint[], gu
     }
 
     const name = PVSSVariantName("pvss", coefficients.length, guardiansPubKeys.length)
-    return fullProve(name, PROVER, snarkyInput, `./build/${name}/${name}_js/${name}.wasm`, `./build/${name}/groth16_pkey.zkey`)
+    return fullProve(name, PROVER, snarkyInput, `./build/${name}/${name}_js/${name}.wasm`, `./build/${name}/${PROVER}_pkey.zkey`)
 }
 
 export const proveBallot = (votingPublicKey: BabyJubPoint, cast: bigint, r: bigint) => {
@@ -74,7 +74,7 @@ export const proveBallot = (votingPublicKey: BabyJubPoint, cast: bigint, r: bigi
     }
 
     const name = "encrypt_ballot"
-    return fullProve(name, PROVER, snarkyInput, `./build/${name}/${name}_js/${name}.wasm`, `./build/${name}/groth16_pkey.zkey`)
+    return fullProve(name, PROVER, snarkyInput, `./build/${name}/${name}_js/${name}.wasm`, `./build/${name}/${PROVER}_pkey.zkey`)
 }
 
 export const provePartialDecryption = (A: BabyJubPoint, c1: BabyJubPoint, c2: BabyJubPoint, xIncrement: Uint8Array, privKey: bigint): Promise<{ proof: Proof, publicSignals: PublicSignals }> => {
@@ -86,7 +86,7 @@ export const provePartialDecryption = (A: BabyJubPoint, c1: BabyJubPoint, c2: Ba
         privKey,
     }
     const name = "partial_decryption"
-    return fullProve(name, PROVER, snarkyInput, `./build/${name}/${name}_js/${name}.wasm`, `./build/${name}/groth16_pkey.zkey`)
+    return fullProve(name, PROVER, snarkyInput, `./build/${name}/${name}_js/${name}.wasm`, `./build/${name}/${PROVER}_pkey.zkey`)
 }
 
 const fullProve = async <T extends CircuitSignals>(circuitName: string, protocol: 'groth16' | 'plonk' | "fflonk", input: T, wasmPath: string, pkeyPath: string): Promise<{ proof: Proof, publicSignals: PublicSignals }> => { 
