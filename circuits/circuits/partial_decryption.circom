@@ -28,7 +28,6 @@ template PartialDecryption() {
     signal input privKey;
 
     signal share <== ElGamalDecrypt()(c1 <== c1, c2 <== c2, xIncrement <== xIncrement, privKey <== privKey);
-    log("Decrypted share is", share);
 
     signal shareBits[254] <== Num2Bits(254)(in <== share);
 

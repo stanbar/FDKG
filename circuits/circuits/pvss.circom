@@ -47,7 +47,6 @@ template PVSS(guardian_set_size, threshold) {
     component r1Bits[guardian_set_size];
     component C1[guardian_set_size];
     component rP[guardian_set_size];
-    component r2Bits[guardian_set_size];
     component randomPoint[guardian_set_size];
     component C2[guardian_set_size];
 
@@ -71,9 +70,6 @@ template PVSS(guardian_set_size, threshold) {
         // Convert randomVal to bits
         r1Bits[i] = Num2Bits(253);
         r1Bits[i].in <== r1[i];
-
-        r2Bits[i] = Num2Bits(253);
-        r2Bits[i].in <== r2[i];
 
         C1[i] = ElGamalC1();
         C1[i].rBits <== r1Bits[i].out;
