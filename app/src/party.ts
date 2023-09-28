@@ -1,7 +1,7 @@
 import { BabyJubPoint, ElGamalCiphertext, encryptShare, genRandomSalt, Keypair, F, Proof, PublicSignals, PubKey, encryptBallot, mulPointEscalar, decryptShare, PrivKey, sss, fkdg } from "shared-crypto";
 import { VotingConfig } from "./messageboard";
 import { proveBallot, provePVSS, provePartialDecryption } from "./proofs";
-import { CollectedShare, Share } from "shared-crypto/src/fdkg";
+import { Share } from "shared-crypto/src/fdkg";
 
 export interface PublicParty {
     index: number;
