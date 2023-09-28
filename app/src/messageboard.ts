@@ -13,6 +13,7 @@ export interface VotingConfig {
     guardiansThreshold: number;
     skipProofs: boolean;
     sequential: boolean;
+    weshnet: boolean;
 }
 
 export function MessageBoard(config: VotingConfig) {
