@@ -12,3 +12,4 @@ go.sum
 data*/
 
 .DS_Store
+bin
