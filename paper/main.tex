@@ -1,0 +1,207 @@
+\documentclass{article}
+\usepackage{graphicx} % Required for inserting images
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{algorithmic}
+\usepackage{textcomp}
+\usepackage{float}
+\usepackage{etoolbox}
+\usepackage{hyperref}
+\usepackage{tikz}
+\usepackage{fontawesome}
+\usepackage{caption}
+\usepackage{url}
+\usepackage{listings}
+\usepackage{pdfpages}
+\usepackage[english]{babel}
+\usepackage{scalerel}
+\usepackage{xcolor,colortbl}
+
+\title{A Voter-to-Voter Internet Voting System}
+\author{Stanislaw Baranski and Lev Soukhanov}
+\date{May 2023}
+
+\begin{document}
+
+\maketitle
+
+\section{Introduction}
+
+Voting is one of the most popular mechanisms for collective decision-making, prevalent in all types of communities including: non-government organizations, boardrooms, housing associations, regional contests and plebiscites, domestic presidential elections, as well as all forms of global voting that take place on the internet.
+
+The act of vote can occur in different ways including paper-based precinct voting, mail-in ballots, electronically using direct-recording electronic (DRE) voting machine, and internet voting~\cite{parkGoingBadWorse2021}.
+
+As proposed by Vitalik Buterin\cite{buterinBlockchainVotingOverrated2021} each voting (or more broadly, each collective decision-making) method faces a trilemma allowing it to choose only two out of three properties:
+
+\begin{itemize}
+    \item \textbf{Democratic}, means that the method ensures easy and equal (egalitarian) decision input for all eligible voters;
+    \item \textbf{Secure}, means that the voting is confident, fair, transparent, private, and resistant to attack vectors;
+    \item \textbf{Efficient}, means that the method is easy, fast, and cheap.
+\end{itemize}
+
+In traditional political elections, security and democracy are essential factors, thus efficiency is sacrificed. Social media votings are democratic and efficient, thus security is sacrificed. An example of an efficient and secure collective decision-making mechanism is the market, where users express their preferences by purchases, increasing the lobbying power of such a company. Markets, however, are not democratic, making them a poor fit for decisions regarding public goods. 
+
+The inefficiency of traditional voting makes them costly and thus limits their frequency usually to a single vote once every one to six years~\cite{buterinBlockchainVotingOverrated2021}.
+
+Voting over the internet (i-voting) seems to be an ideal solution especially when online banking is so prevalent nowadays. Arguably, internet voting is the most conventional, cheapest, fastest, and safest (e.g., during the outbreak of COVID-19), and hence, a preferred method for conducting voting.
+
+Internet voting can increase turnout and the frequency of votings, but most importantly, it can catalyze the further development of modern democracy. Enabling practical applications of direct democracy, liquid democracy, and all other sorts of voting methods like Quadratic Voting, Approval voting, Alternative vote, Score voting, and many others \cite{laslierLoserPluralityVoting2011}.
+
+Moreover, visions of smart cities, crypto cities \cite{buterinCryptoCities2021}, Decentralised Autonomous Organisations (DAO)~\cite{wangDecentralizedAutonomousOrganizations2019}, and other forms of algorithmic governance~\cite{GovernmentAlgorithm2022} rely heavily on the existence of electronic voting, so there is a high need for such systems, as they would enable further development of modern democracy.
+
+Undoubtedly, there is a high demand for internet voting protocol. However, except a minor cases like Switzerland and Estonia, the progress of introducing modern democracy tools is still slow comparing to e.g., online banking.
+
+Internet voting has been researched for many years, especially in domains such as cryptography, which is an inevitable part of system security. Many of them doubt the possibility of conducting public voting over the internet \cite{parkGoingBadWorse2021, mearianWhyBlockchainbasedVoting2019, shanklandNoBlockchainIsn2018, leeBlockchainbasedElectionsWould2018, schneierBlockchainVoting2020, schneierBlockchainTrust2019}. The resistance lies—among others—in insufficient confidence in the technology and a need for trust in the authorities controlling the voting process.
+
+The criticism against internet voting comes down to two arguments:
+
+\begin{enumerate}
+    \item No software is flawless, therefore it can not be trusted.
+    \item There is too strong a trust assumption in authorities controlling the voting process.
+\end{enumerate}
+
+A recent paper from MIT researchers~\cite{parkGoingBadWorse2021} argues that any paperless voting is a bad design. High-quality software (at the 90th percentile for the software industry) contains on average one defect in every ten thousand lines of code~\cite{llaguno2017CoverityScan2017}. Some errors lead to malfunctioning, and some are "exploitable vulnerabilities", which allow an adversary to take control over the computer and install fraudulent software.
+
+The argument is that an undetected change or error in a system's software should not cause an undetectable change in the election outcome, and since every software is flawed, there is no such guarantee.
+
+However, recent advances in cryptography can guarantee correct program execution using zero-knowledge proofs~\cite{parnoPinocchioNearlyPractical2013}. Using such a publicly available proving system, anyone can verify the correctness of the voting process. Because the proofs of correctness are just cryptographic materials, everyone can write their implementation of a verifier program, achieving the software independence requirement stated by the authors of~\cite{parkGoingBadWorse2021}.
+
+Even if the software can be trusted, another argument is that the hardware (voters' devices) can not be trusted. They argue that "internet voting protocols' security relies upon voters' devices being uncompromised and functioning as intended, an unrealistic assumption~\cite{parkGoingBadWorse2021}.
+
+Although hardware (even the Trusted Hardware~\cite{sionTrustedHardware2009} like Intel® Software Guard Extensions~\cite{mckeenIntelSoftwareGuard2016}) keeps getting broken~\cite{goodinIntelSGXVulnerable2020, IntelSGXBroken2019, bulckForeshadowExtractingKeys}, there is a constant improvement in the security of the hardware. Especially, smartphones are being equipped with a secure area on their main processors called Trusted Execution Environment (TEE). For example, Apple's Secure Enclaves~\cite{SecureEnclave}, Samsung's Knox~\cite{kanonovSecureContainersAndroid2016}, HTC's Zion~\cite{exodusZION}, and ARM's TrustZone~\cite{ARMSecurityTechnology}. Generally, it is believed that cybersecurity is getting better, not worst~\cite{golombBelieveItCybersecurity2018}.
+
+Moreover, the authors of~\cite{appelEvidenceBasedElectionsCreate2019} claim that "there is no perfect, infallible way to count votes. All methods including optical scan, touchscreen, and hand counting—are subject to errors, procedural lapses, and deliberate manipulation." Therefore, the argument is not about security or lack of it, but how much secure it is, and what are the trust assumptions.
+
+The second biggest critique against internet voting is the required trust in authorities controlling the voting process. Concretely, the servers act like a pooling station where voters cast their votes. While in the real world the pooling station is located in a neutral place and the whole process is transparent to all voters, the digital pooling stations — servers — do not offer this evidence-based trust property~\cite{starkEvidenceBasedElections2012}.
+
+According to the principle of the evidence-based election ~\cite{starkEvidenceBasedElections2012}, authorities that control the voting "should not only find the true winner but also provide the electorate convincing evidence that they did"~\cite{appelEvidenceBasedElectionsCreate2019}. Convincing evidence, according to the authors of~\cite{starkEvidenceBasedElections2012}, is achieved when the voting is both auditable and audited. The process is auditable when it provides a trustworthy audit trail that can ensure voting accuracy. The voting is audited when the electoral executed the trustworthy audit trail as a routine of casting a vote.
+
+\textbf{Ideally, the whole voting process should be completely trustless, meaning that, there should be no trust assumptions other than in our perception.}
+
+In practice, we rarely monitor the whole process of elections. Rather, we delegate that duty to staff responsible for conducting voting. We believe that at least one person is an honest observer who will alarm if something goes wrong.
+
+So the evidence-based election~\cite{appelEvidenceBasedElectionsCreate2019}, in practice uses $1 \textrm{ of } N$ trust model~\cite{buterinTrustModels2020}, which means that the system is trusted as long as at least one person out of $N$ observers is honest, and in case of a fraud will reveal it.
+
+However, if at some point, the group of observers drops to a few people, the chance of finding at least one honest observer reduces, and with it the trustworthiness of the whole election. Therefore, a voting process should involve a large number of observers — the larger the $N$, the more trusted the setup is.
+
+The critique against internet voting system run by centralised authorities is that it requires the strongest assumption on $1\textrm{ of }1$ trust model as there is no way to provide the electorate convincing evidence that the running software is correct. This means that there is a single point of failure, an authority, which if compromised, breaks the trust.
+
+There are two counterarguments to that critique. 
+First, even if the organizers are not trusted, by enforcing them to produce the cryptographic proof of tallying, they can not produce incorrect results as this incident would come to light during the proof verification (TODO:ref to section on SNARKs or cite SNARK paper).
+The second is that the traditional centralized authority can be decentralised with the usage of distributed systems and consensus mechanisms, changing the trust model from $1 \textrm{ of } 1$ to either $N \textrm{ of } N$ where all actors have to work as expected, or $Few \textrm{ of } N$ where a few fixed set of nodes has to work correctly, or $\frac{N}{2} \textrm{ of } N$ where the system works correctly as long as the majority of nodes are working correctly. 
+
+When the trust assumption is violated some of the properties of the system fail. Depending on the system, the properties are liveness failure, or safety failure. Other times it's censorship-resistance, privacy, and/or correctness.
+
+A particularly successful technology for decentralising trust is blockchain which natively guarantees immutability, verifiability, integrity, and censorship resistance. And hence blockchain become a popular platform for building trust-minimising platforms such as internet-voting protocols.
+
+Even if Blockchain is not used, and instead distributed set of authorities (called Guardians) are running the voting system like Helios~\cite{adidaHeliosWebbasedOpenAudit2008} or ElectionGuard~\cite{ElectionGuard}. The burden of involving an external organiser still exists.
+
+
+In this paper we propose an alternative architecture which generalises the trust model and allows to freely chose who becomes the trustee in the system. 
+
+Figure ~\ref{fig:trust-models} presents the shift from internet votings based on trusted third party, to internet votings based on distributed third parties, to voter-to-voter protocols, and finally more realistic model delegated voter-to-voter protocol which we will discuss in this paper.
+
+\begin{figure}
+    \centering
+    \includegraphics[width=\textwidth]{trust-models-voting.pdf}
+    \caption{Four trust models: trusted third party, distributed authorities, peer-to-peer, delegated voter-to-voter}
+    \label{fig:trust-models}
+\end{figure}
+
+
+
+
+\section{Related work}
+
+Most Internet protocols rely on a trusted third party. They differ in what the server can or cannot do. The honesty of the trusted third party determines either anonymity, privacy or coercion resistance properties.
+
+
+
+Most of the current reserach on internet voting protocols uses some kind of blockchain for integral and transparent storage. 
+Voatz~\cite{mooreWestVirginiaMobile2019}, 
+Polys~\cite{PolysOnlineVoting}, 
+OpenVoteNetwork~\cite{haoAnonymousVotingTworound2010}, MACI~\cite{ethereumfoundationMinimalAntiCollusionInfrastructure2022}.
+
+However some projects achieve similar properties without using blockchain. Projects like Civitas, Swisspost/Scytl, iVoting, or ElectionGuard use some kind of distributed authorities to run the voting process. The trust model usually is $N \textrm{ of } N$ where all authorities have to work as expected. All the computation is done using some kind of Multi-Party Computation (MPC) protocol~\cite{boweMultipartyProtocolConstructing2018}.
+These systems are not fully decentralised as they are based on a closed set of trusted entities called Guardians. In practice they are "Election Officials, Trustees Canvass Board Members, Government Officials or other trusted authorities who are responsible and accountable for conducting the election"~\cite{ElectionGuardWhoGuardian}.
+
+
+Solutions built on public blockchains require voters to pay transaction fees.
+
+Solutions built on private blockchains still need to be hosted somewhere, which costs money or creates a high entry point for non-technical people.
+
+Compared to other public-blockchain-based solutions, our solution is free, which is arguably a big deal—paying for a vote must reduce the turnout.
+
+Compared to private-blockchain-based solutions or ElectionGuard-like systems, in our system, there is no need to run the software on any centralised server(s), which is also arguably a big deal, especially in the case of small, informal voting. Someone has to run this server. For larger organisations like universities, it's not a problem as an IT department is responsible for hosting it. But for small organizations, it can be a problem. For example, small informal teams, NGOs, open-source projects, student projects, start-up teams, student communities, boardrooms, housing associations, or even teams like Delendum. Running the software in a SaaS model, brings us back to the question of "who runs the message board and tallying software and can we trust them?" or even "who pays for it?".
+
+In our solution, voters are running the software, so the question of “who runs the message board and tallying software and can we trust them?” changes to “do we trust that the majority (more concretely m-of-n voters) are honest?” Moreover, as the network is private p2p there is no problem of "who pays for it?". And because it's a private blockchain there are no transaction fees.
+
+Below is a comparison table.
+
+\newcommand{\fullmoon}{\tikz\filldraw[fill=black] (0,0) circle (0.5em);}
+\newcommand{\newmoon}{\tikz\draw (0,0) circle (0.5em);}
+\newcommand{\rightmoon}{\tikz\draw (0,0) circle (0.5em); \filldraw[fill=black] (0,0) arc (90:270:0.5em) -- cycle;}
+\newcommand{\leftmoon}{\tikz\draw (0,0) circle (0.5em); \filldraw[fill=black] (0,0) arc (270:90:0.5em) -- cycle;}
+\newcommand{\halfmoon}{\tikz\draw (0,0) circle (0.5em); \filldraw[fill=black] (0,-0.5em) rectangle (0,0.5em);}
+
+
+\begin{table*}
+\centering
+\newcommand{\YES}{\cellcolor{red!50}Yes}
+\newcommand{\NO}{\cellcolor{green!50}No}
+\caption{A comparative analysis of three types of internet voting systems: Public Blockchain-based, Private Infrastructure-based, and Voter-to-Voter Network-based, highlighting their differences in transaction fees, service costs, user-friendliness, and trust dynamics.}
+\begin{tabular}{p{0.2\textwidth}p{0.2\textwidth}p{0.19\textwidth}p{0.17\textwidth}p{0.2\textwidth}}
+\noalign{\smallskip}\hline\noalign{\smallskip}
+\textbf{Property} & \textbf{Centralised server} & \textbf{Private infrastructure} & \textbf{Public blockchain} & \textbf{Voter-to-Voter network} \\
+\noalign{\smallskip}\hline\noalign{\smallskip}
+Transaction fees & \NO & \NO & \YES & \NO \\
+\hline
+Service costs\footnote{The cost of service includes all costs related to implementation, maintenance, and fees} & \cellcolor{yellow!50} Medium & \cellcolor{red!50} High & \cellcolor{green!50} No  & \cellcolor{green!50} No \\
+\hline
+User-Friendliness & \cellcolor{green!50} High & \cellcolor{green!50}High & \cellcolor{red!50} Low & \cellcolor{yellow!50} Medium \\
+\hline
+Trust to\footnote{Trust is a broad term that refers to different properties of the system, but most of the time it answers the question of who holds the properties of censorship-resistance, privacy, and/or correctness.} & \cellcolor{red!50} Central authority & \cellcolor{yellow!50} Authorities\footnote{Examples of authorities are: "Election Officials, Trustees Canvass Board Members, Government Officials or other trusted authorities who are responsible and accountable for conducting the election", \href{http://www.electionguard.vote/basics/steps/1_Key_Ceremony/}{source}.} & \cellcolor{yellow!50} Miners & \cellcolor{yellow!50} Voters  \\
+\noalign{\smallskip}\hline
+
+\hline
+\end{tabular}
+\end{table*}
+
+\section{System Architecture}
+Designig a user application that is intended to work in peer-to-peer model is a complex task. The main challenge is to overcome the networking problems, weak availability and limited resources of end-devices such as smartphones and laptops.
+
+
+\section{Voting Protocol}
+Our voting protocol is a combination of 3-round voting scheme proposed in~\cite{schoenmakersLectureNotesCryptographic2018}, multi-candidate encoding proposed in~\cite{haoAnonymousVotingTworound2010}, and Federated DKG that we propose in this paper. 
+
+We use Threshold ElGamal Cryptosystem which guarantees the decryptiability even in case of unavaiable guardians.
+
+
+\subsection{Federated Distributed Key Generation}
+
+\subsection{Casting votes}
+
+\subsection{Tally}
+
+\subsubsection{Online Tally}
+
+\subsubsection{Offline Tally}
+
+\section{zkSNARKs for Protocol Adherence}
+
+\section{Privacy and Availability Considerations}
+
+\section{System Implementation}
+
+\section{Experimental Results}
+
+\section{Discussion}
+
+\section{Conclusion and Future Work}
+
+\section{Acknowledgments}
+
+
+\bibliographystyle{IEEEtran}
+\bibliography{bibliography}
+
+\end{document}
