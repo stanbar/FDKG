@@ -9,6 +9,7 @@
         "start": "npx ts-node ./src/main.ts",
         "start:groth16": "PROVER=groth16 npx ts-node ./src/main.ts",
         "start:plonk": "PROVER=plonk npx ts-node ./src/main.ts",
+        "start:fflonk": "PROVER=fflonk npx ts-node ./src/main.ts",
         "test": "npx mocha",
         "lint": "ts-standard"
     },
