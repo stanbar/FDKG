@@ -18,8 +18,9 @@
 \usepackage[ruled,vlined]{algorithm2e}
 \usepackage{amsmath}
 \usepackage{amssymb}
+\usepackage{multirow}
 
-\title{A Voter-to-Voter Internet Voting System}
+\title{A Voter-to-Voter Internet Voting Protocol}
 \author{Stanislaw Baranski and Lev Soukhanov}
 \date{May 2023}
 
@@ -139,7 +140,7 @@ Below is a comparison table.
 \newcommand{\halfmoon}{\tikz\draw (0,0) circle (0.5em); \filldraw[fill=black] (0,-0.5em) rectangle (0,0.5em);}
 
 
-\begin{table*}
+\begin{table*}[!h]
 \centering
 \newcommand{\YES}{\cellcolor{red!50}Yes}
 \newcommand{\NO}{\cellcolor{green!50}No}
@@ -368,6 +369,39 @@ Anyone can calculate the voting results:
 
 \section{Experimental Results}
 
+\begin{table}
+\centering
+\caption{Execution time of the PLONK prover in seconds.}
+\begin{tabular}{|c|c|c|c|c|}
+    \hline
+    \multicolumn{5}{|c|}{PLONK} \\
+    \hline
+    \multicolumn{3}{|c|}{PVSS} & \multirow{2}{*}{Encrypt ballot} & \multirow{2}{*}{Partial decryption} \\
+    \cline{1-3}
+    1 of 2 & 2 of 3 & 3 of 4 & & \\
+    \hline
+    232.972 & 249.835 & 622.324 & 59.709 & 27.363\\
+    \hline
+\end{tabular}
+\end{table}
+
+\begin{table}
+\centering
+\caption{Execution time of the Groth16 prover in seconds.}
+\begin{tabular}{|c|c|c|c|c|}
+    \hline
+    \multicolumn{5}{|c|}{Groth16} \\
+    \hline
+    \multicolumn{3}{|c|}{PVSS} & \multirow{2}{*}{Encrypt ballot} & \multirow{2}{*}{Partial decryption} \\
+    \cline{1-3}
+    1 of 2 & 2 of 3 & 3 of 4 & & \\
+    \hline
+    3.026 & 5.002 & 5.274 & 1.583 & 1.089\\
+    \hline
+\end{tabular}
+\end{table}
+
+%TODO: 
 \section{Discussion}
 
 \section{Conclusion and Future Work}
