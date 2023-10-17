@@ -1,7 +1,7 @@
 import { BabyJubPoint, ElGamalCiphertext, encryptShare, genRandomSalt, Keypair, F, Proof, PublicSignals, PubKey, encryptBallot, mulPointEscalar, decryptShare, PrivKey, sss, fkdg } from 'shared-crypto'
-import { VotingConfig } from './messageboard'
 import { proveBallot, provePVSS, provePartialDecryption } from './proofs'
 import { Share } from 'shared-crypto/src/fdkg'
+import { VotingConfig } from './configs'
 
 export interface PublicParty {
   index: number
@@ -44,6 +44,7 @@ export class LocalParty {
       publicKey: keypair.pubKey,
       votingPublicKey: votingKeypair.pubKey
     }
+
   }
 
   createPlaintextShares (guardians: PublicParty[]): Array<{ x: number, y: bigint }> {
