@@ -1,17 +1,22 @@
-# npx circomkit compile pvss_1_of_2
-# snarkjs groth16 setup build/pvss_1_of_2/pvss_1_of_2.r1cs ptau/powersOfTau28_hez_final_16.ptau groth16_pkey.zkey
-# mv groth16_pkey.zkey build/pvss_1_of_2/
-# snarkjs zkey export verificationkey build/pvss_1_of_2/groth16_pkey.zkey build/pvss_1_of_2/groth16_vkey.json
+npx circomkit compile pvss_1_of_2
+snarkjs groth16 setup build/pvss_1_of_2/pvss_1_of_2.r1cs ptau/powersOfTau28_hez_final_16.ptau groth16_pkey.zkey
+mv groth16_pkey.zkey build/pvss_1_of_2/
+snarkjs zkey export verificationkey build/pvss_1_of_2/groth16_pkey.zkey build/pvss_1_of_2/groth16_vkey.json
 
-# npx circomkit compile pvss_2_of_3
-# snarkjs groth16 setup build/pvss_2_of_3/pvss_2_of_3.r1cs ptau/powersOfTau28_hez_final_17.ptau groth16_pkey.zkey
-# mv groth16_pkey.zkey build/pvss_2_of_3/
-# snarkjs zkey export verificationkey build/pvss_2_of_3/groth16_pkey.zkey build/pvss_2_of_3/groth16_vkey.json
+npx circomkit compile pvss_2_of_3
+snarkjs groth16 setup build/pvss_2_of_3/pvss_2_of_3.r1cs ptau/powersOfTau28_hez_final_17.ptau groth16_pkey.zkey
+mv groth16_pkey.zkey build/pvss_2_of_3/
+snarkjs zkey export verificationkey build/pvss_2_of_3/groth16_pkey.zkey build/pvss_2_of_3/groth16_vkey.json
 
-# npx circomkit compile pvss_3_of_4
-# snarkjs groth16 setup build/pvss_3_of_4/pvss_3_of_4.r1cs ptau/powersOfTau28_hez_final_16.ptau groth16_pkey.zkey
-# mv groth16_pkey.zkey build/pvss_3_of_4/
-# snarkjs zkey export verificationkey build/pvss_3_of_4/groth16_pkey.zkey build/pvss_3_of_4/groth16_vkey.json
+npx circomkit compile pvss_3_of_4
+snarkjs groth16 setup build/pvss_3_of_4/pvss_3_of_4.r1cs ptau/powersOfTau28_hez_final_16.ptau groth16_pkey.zkey
+mv groth16_pkey.zkey build/pvss_3_of_4/
+snarkjs zkey export verificationkey build/pvss_3_of_4/groth16_pkey.zkey build/pvss_3_of_4/groth16_vkey.json
+
+npx circomkit compile pvss_1
+snarkjs groth16 setup build/pvss_1/pvss_1.r1cs ptau/powersOfTau28_hez_final_16.ptau groth16_pkey.zkey
+mv groth16_pkey.zkey build/pvss_1/
+snarkjs zkey export verificationkey build/pvss_1/groth16_pkey.zkey build/pvss_1/groth16_vkey.json
 
 # npx circomkit compile encrypt_ballot
 # snarkjs groth16 setup build/encrypt_ballot/encrypt_ballot.r1cs ptau/powersOfTau28_hez_final_14.ptau groth16_pkey.zkey
