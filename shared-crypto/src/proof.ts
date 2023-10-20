@@ -1,3 +1,5 @@
+import { SignalValueType } from 'circomkit/dist/types/circuit'
+
 export type Proof = {
     pi_a: [string, string, string]
     pi_b: [string, string, string]
@@ -7,22 +9,30 @@ export type Proof = {
 };
 export type PublicSignals = string[]
 
-export interface PVSSCircuitInput {
-    coefficients: bigint[];
-    r1: bigint[];
-    r2: bigint[];
-    guardiansPubKeys: bigint[][];
-}
-export interface BallotCircuitInput {
-    votingPublicKey: bigint[];
-    cast: bigint;
-    r: bigint;
+export type CircuitSignals<T extends readonly string[] = []> = T extends [] ? {
+  [signal: string]: SignalValueType
+} : {
+  [signal in T[number]]: SignalValueType;
 }
 
-export interface PartialDecryptionCircuitInput {
-    A: bigint[];
-    c1: bigint[];
-    c2: bigint[];
-    xIncrement: bigint;
-    privKey: bigint;
+export interface PVSSCircuitInput extends CircuitSignals {
+  coefficients: bigint[]
+  r1: bigint[]
+  r2: bigint[]
+  guardiansPubKeys: bigint[][]
+  votingPublicKey: bigint[]
+  encryptedShares: bigint[][]
+}
+export interface BallotCircuitInput extends CircuitSignals {
+  votingPublicKey: bigint[]
+  cast: bigint
+  r: bigint
+}
+
+export interface PartialDecryptionCircuitInput extends CircuitSignals {
+  A: bigint[]
+  c1: bigint[]
+  c2: bigint[]
+  xIncrement: bigint
+  privKey: bigint
 }

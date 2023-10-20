@@ -1,9 +1,10 @@
-import { SignalValueType } from 'circomkit/dist/types/circuit'
 import { readFileSync } from 'fs'
-import { BabyJubPoint, F, PubKey } from 'shared-crypto'
+import { BabyJubPoint, BallotCircuitInput, F, PVSSCircuitInput, PartialDecryptionCircuitInput, Proof, PubKey, PublicSignals } from 'shared-crypto'
 // @ts-expect-error
 import * as snarkjs from 'snarkjs'
 import { measureTime } from './utils'
+import { EncryptedShare } from './party'
+import { CircuitSignals } from 'circomkit'
 
 if (!process.env.PROVER) {
   console.log('PROVER env variable is not set, defaulting to groth16')
@@ -17,49 +18,21 @@ if (!provers.includes(process.env.PROVER)) {
 
 const PROVER: 'groth16' | 'plonk' | 'fflonk' = process.env.PROVER as 'groth16' | 'plonk' | 'fflonk'
 
-export interface Proof {
-  pi_a: [string, string, string]
-  pi_b: [string, string, string]
-  pi_c: [string, string, string]
-  protocol: 'groth16' | 'plonk' | 'fflonk'
-  curve: 'bn128'
-}
-type PublicSignals = string[]
-
-export type CircuitSignals<T extends readonly string[] = []> = T extends [] ? {
-  [signal: string]: SignalValueType
-} : {
-  [signal in T[number]]: SignalValueType;
-}
-
-export interface PVSSCircuitInput extends CircuitSignals {
-  coefficients: bigint[]
-  r1: bigint[]
-  r2: bigint[]
-  guardiansPubKeys: bigint[][]
-}
-export interface BallotCircuitInput extends CircuitSignals {
-  votingPublicKey: bigint[]
-  cast: bigint
-  r: bigint
-}
-
-export interface PartialDecryptionCircuitInput extends CircuitSignals {
-  A: bigint[]
-  c1: bigint[]
-  c2: bigint[]
-  xIncrement: bigint
-  privKey: bigint
-}
-
 const PVSSVariantName = (name: string, guardiansThreshold: number, guardiansCount: number) => `${name}_${guardiansThreshold}_of_${guardiansCount}`
 
-export const provePVSS = async (coefficients: bigint[], r1: bigint[], r2: bigint[], guardiansPubKeys: PubKey[]) => {
+export const provePVSS = async (coefficients: bigint[], r1: bigint[], r2: bigint[], guardiansPubKeys: PubKey[], votingPublicKey: BabyJubPoint, encryptedShares: EncryptedShare[]) => {
   const snarkyInput: PVSSCircuitInput = {
     coefficients,
     r1,
     r2,
-    guardiansPubKeys: guardiansPubKeys.map((pubKey) => pubKey.map(F.toBigint))
+    guardiansPubKeys: guardiansPubKeys.map((pubKey) => pubKey.map(F.toBigint)),
+    votingPublicKey: votingPublicKey.map(F.toBigint),
+    encryptedShares: encryptedShares.map((encryptedShare) => {
+      return [
+        encryptedShare.encryptedShare.c1[0], encryptedShare.encryptedShare.c1[1],
+        encryptedShare.encryptedShare.c2[0], encryptedShare.encryptedShare.c2[1],
+        encryptedShare.encryptedShare.xIncrement].map(F.toBigint)
+    })
   }
 
   const name = PVSSVariantName('pvss', coefficients.length, guardiansPubKeys.length)

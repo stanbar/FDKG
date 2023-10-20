@@ -27,6 +27,7 @@ export interface Keypair {
 
 // The BN254 group order p
 export const SNARK_FIELD_SIZE: bigint = 21888242871839275222246405745257275088548364400416034343698204186575808495617n;
+export const SQRT_P: bigint = 147946756881789319005730692170996259609n;
 
 export function mulPointEscalar(p: BabyJubPoint, scalar: bigint|number): BabyJubPoint {
     return babyjub.mulPointEscalar(p, scalar)
