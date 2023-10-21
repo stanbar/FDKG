@@ -12,7 +12,7 @@
 %%% YOUR PACKAGES HERE %%%
 \usepackage{comment}
 \usepackage{hyperref}
-
+\usepackage{xcolor,colortbl}
 
 % polish language
 %\usepackage[polish]{babel}
@@ -53,6 +53,121 @@
 
 \section{Motivation}
 
+\begin{frame}
+	\frametitle{Introduction}
+	\begin{itemize}
+		\item Voting: Essential mechanism for collective decision-making.
+		\item Methods: Paper-based, mail-in, electronic, internet.
+		\item Internet voting: Cost-effective, safe, and efficient.
+		\item Potential: Direct democracy, liquid democracy, alternative voting methods.
+	\end{itemize}
+\end{frame}
+
+\begin{frame}
+	\frametitle{The Voting Trilemma}
+	\begin{itemize}
+		\item \textbf{Democratic}: Equal decision input for all voters.
+		\item \textbf{Secure}: Fair, transparent, private, resistant to attacks.
+		\item \textbf{Efficient}: Easy, fast, and cheap.
+	\end{itemize}
+	Trade-offs exist between these properties.
+\end{frame}
+
+\begin{frame}
+	\frametitle{Challenges of Internet Voting}
+	\begin{itemize}
+		\item Software flaws and trust issues.
+		\item Hardware vulnerabilities.
+		\item Centralized vs. decentralized trust.
+		\item Need for evidence-based elections.
+	\end{itemize}
+\end{frame}
+
+\begin{frame}
+	\frametitle{Trust Models in Voting}
+	\includegraphics[width=\textwidth]{../paper/trust-models-voting.pdf}
+\end{frame}
+
+\begin{frame}
+	\frametitle{Our Contributions}
+	\begin{enumerate}
+		\item Novel technique: Federated DKG (FDKG).
+		\item Practicality with YOSO approach.
+		\item Robustness through zkSNARKs.
+		\item Privacy based on honest majority.
+		\item Robust against faulty nodes.
+		\item Cost-free for users.
+	\end{enumerate}
+\end{frame}
+
+\begin{frame}
+	\frametitle{Related Work: Trust in Internet Voting Protocols}
+	\begin{itemize}
+		\item Most rely on a trusted third party.
+		\item Trust determines properties: anonymity, privacy, coercion resistance.
+	\end{itemize}
+\end{frame}
+
+\begin{frame}
+	\frametitle{Blockchain in Voting Protocols}
+	\begin{itemize}
+		\item Blockchain provides integral and transparent storage.
+		\item Examples: Voatz, Polys, OpenVoteNetwork, MACI.
+	\end{itemize}
+\end{frame}
+
+
+\begin{frame}
+	\frametitle{Non-Blockchain Voting Protocols}
+	\begin{itemize}
+		\item Use distributed authorities for voting process (e.g., Civitas, Swisspost/Scytl, iVoting, ElectionGuard).
+		\item Trust model: $N \textrm{ of } N$.
+		\item Computation via Multi-Party Computation (MPC) protocol.
+		\item Trusted entities called Guardians.
+	\end{itemize}
+\end{frame}
+
+\begin{frame}
+	\frametitle{Cost Implications in Voting Solutions}
+	\begin{itemize}
+		\item Public blockchains: Voters pay transaction fees.
+		\item Private blockchains: Hosting costs or high entry for non-technical users.
+		\item Voter-to-Voter network: No centralized server or transaction fees.
+	\end{itemize}
+\end{frame}
+
+\begin{frame}
+	\frametitle{Comparative Analysis}
+	\begin{table}
+	\centering
+	\newcommand{\YES}{\cellcolor{red!50}Yes}
+	\newcommand{\NO}{\cellcolor{green!50}No}
+	\caption{Comparative analysis of internet voting systems.}
+	\begin{tabular}{|l|l|l|l|l|}
+	\hline
+	\textbf{Property} & \textbf{Centralised} & \textbf{Private Infra.} & \textbf{Public Blockchain} & \textbf{Voter-to-Voter} \\
+	\hline
+	Transaction fees & \NO & \NO & \YES & \NO \\
+	\hline
+	Service costs & Medium & High & No  & No \\
+	\hline
+	User-Friendliness & High & High & Low & Medium \\
+	\hline
+	Trust to & Central authority & Authorities & Miners & Voters  \\
+	\hline
+	\end{tabular}
+	\end{table}
+\end{frame}
+
+\begin{frame}
+	\frametitle{Conclusion of Related Work}
+	\begin{itemize}
+		\item Trust remains a pivotal concern in internet voting protocols.
+		\item Blockchain presents both opportunities and challenges.
+		\item Need to weigh between cost, user-friendliness, and trust dynamics.
+	\end{itemize}
+\end{frame}
+
 \begin{frame}{Internet voting is hard}
 	Analysis of this area quickly reveals several unsolved issues.
 	Secure voting requires four main properties
@@ -67,6 +182,7 @@
 	\pause
 	They are hard to satisfy together
 \end{frame}
+
 
 \section{Internet votings}
 
