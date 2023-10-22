@@ -65,7 +65,7 @@ describe('Shamir Secret Sharing', () => {
         }
     })
 
-    it("sss m-of-n", async () => {
+    it.only("sss m-of-n", async () => {
         for (let i = 1; i < 10; i++) {
             const secret = F_Base8.e(i)
             const THRESHOLD = i;

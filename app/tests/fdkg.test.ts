@@ -1,11 +1,11 @@
 import assert from 'assert'
 import { BabyJubPoint, PubKey, inCurve, addPoint, decryptResults, mulPointEscalar } from 'shared-crypto'
-import { VotingConfig } from '../src/messageboard'
 import { EncryptedShare } from '../src/party'
 import { PointZero } from 'shared-crypto/src/F'
 import { generateSetOfNodes } from '../src/utils'
 import { LagrangeCoefficient, recoverZ } from 'shared-crypto/src/sss'
 import _  from 'lodash'
+import { VotingConfig } from '../src/configs'
 
 describe('fdkg', () => {
   it('should perform fdkg without proofs', () => {
@@ -32,7 +32,6 @@ describe('fdkg', () => {
       guardiansThreshold: 2,
       skipProofs: true,
       sequential: false,
-      weshnet: false
     }
 
     if (config.guardiansThreshold > config.size - 1) {
