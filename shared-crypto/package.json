@@ -4,6 +4,7 @@
   "main": "./src/index.ts",
   "scripts": {
     "start": "npx ts-node ./src/index.ts",
+    "measurements": "npx ts-node ./src/measure_dlog.ts",
     "test": "npx mocha"
   },
   "type": "module",
