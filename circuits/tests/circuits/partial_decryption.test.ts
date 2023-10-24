@@ -12,12 +12,10 @@ const CIRCUIT_CONFIG = {
     template: "PartialDecryption",
     pubs: ["A", "c1", "c2", "xIncrement"]
 }
-const PRIME = 21888242871839275222246405745257275088548364400416034343698204186575808495617n
-const poly = sss.randomPolynomial(3, 123n)
-const share = sss.evalPolynomial(poly, 1n)
+const poly = sss.randomPolynomialZ(3, 123n)
+const share = sss.evalPolynomialZ(poly, 1n)
 
 
-// const share = 16154370910695209727612948424788872470556569337076176694032478573591482539789n
 const { privKey, pubKey } = genKeypair()
 const ciphertext = encryptShare(share, pubKey)
 const encoded = scalarToPoint(share)

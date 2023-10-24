@@ -71,9 +71,9 @@ export class LocalParty {
   }
 
   async createShares (guardians: PublicParty[]): Promise<{ proof: Proof, publicSignals: PublicSignals, encryptedShares: EncryptedShare[], votingPublicKey: BabyJubPoint }> {
-    const { encryptedShares, votingPublicKey, r1, r2 } = this.createSharesWithoutProofs(guardians)
+    const { shares, encryptedShares, votingPublicKey, r1, r2 } = this.createSharesWithoutProofs(guardians)
 
-    const { proof, publicSignals } = await provePVSS(this.polynomial, r1, r2, guardians.map(g => g.publicKey))
+    const { proof, publicSignals } = await provePVSS(this.polynomial, r1, r2, guardians.map(g => g.publicKey), votingPublicKey, encryptedShares)
     return { proof, publicSignals, encryptedShares, votingPublicKey }
   }
 
