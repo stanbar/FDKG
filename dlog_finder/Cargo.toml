@@ -1,0 +1,17 @@
+[package]
+name = "dlog_finder"
+version = "0.1.0"
+edition = "2021"
+
+[profile.release]
+debug = true
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+babyjubjub-rs = { package = "babyjubjub-rs", version = "0.0.10", features = ["aarch64"]}
+ff = {package="ff_ce" , version= "0.11", features = ["derive"]}
+rayon = "1.5"
+lazy_static = "1.4.0"
+num-bigint = "0.4.4"
+rand = "0.8.5"
