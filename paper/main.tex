@@ -109,6 +109,16 @@ Figure ~\ref{fig:trust-models} presents the shift from internet votings based on
     \label{fig:trust-models}
 \end{figure}
 
+The paper contributes to the state of the art in the following ways:
+\begin{enumerate}
+    \item We propose a novel technique for dynamic Distributed Key Generation (DKG) called Federated DKG (FDKG), which maps the structure of trust between the members of a group that wants to make an election. The technique works in a similar way to the Federated Byzantine Agreement (FBA) in the Stellar Consensus Protocol~\cite{mazieresStellarConsensusProtocol2015}.
+    \item Based on the assumption that the majority of the most important members of the grouping will participate in all phases of voting (1. FDKG and 3. Tally) our protocol requires only one message (You-only-speak-once, YOSO) to be sent by each participant which increases the practicality of our protocol.
+    \item The protocol is robust to Byzantine nodes through the use of zero-knowledge proofs (zkSNARKs). Each message must have a proof of adherence to the rules of the algorithm.
+    \item The privacy of the system is based on the honest majority assumption. The protocol achieves privacy as long as the majority of the most important nodes in the network are honest and do not collude.
+    \item The system is robust against a subset of unavailable nodes (faulty nodes). Using threshold cryptography, the system allows a subset of nodes to decrypt the voting results so that no single node in the network is able to block the voting.
+    \item The system is free of charge for the end user. The application is completely peer-to-peer thus avoiding any fees associated with transactions (as is the case with systems based on public blockchains) and the maintenance of a central coordinator (in the case of a private network or server).
+\end{enumerate}
+
 \section{Related work}
 Most Internet protocols rely on a trusted third party. They differ in what the server can or cannot do. The honesty of the trusted third party determines either anonymity, privacy or coercion resistance properties.
 
@@ -127,7 +137,7 @@ Solutions built on private blockchains still need to be hosted somewhere, which 
 
 Compared to other public-blockchain-based solutions, our solution is free, which is arguably a big deal—paying for a vote must reduce the turnout.
 
-Compared to private-blockchain-based solutions or ElectionGuard-like systems, in our system, there is no need to run the software on any centralised server(s), which is also arguably a big deal, especially in the case of small, informal voting. Someone has to run this server. For larger organisations like universities, it's not a problem as an IT department is responsible for hosting it. But for small organizations, it can be a problem. For example, small informal teams, NGOs, open-source projects, student projects, start-up teams, student communities, boardrooms, housing associations, or even teams like Delendum. Running the software in a SaaS model, brings us back to the question of "who runs the message board and tallying software and can we trust them?" or even "who pays for it?".
+Compared to private-blockchain-based solutions or ElectionGuard-like systems, in our system, there is no need to run the software on any centralised server(s), which is also arguably a big deal, especially in the case of small, informal voting. Someone has to run this server. For larger organisations like universities, it's not a problem as an IT department is responsible for hosting it. But for small organizations, it can be a problem. For example, Student Council Elections, Corporate Board Decisions, Homeowners Association Voting, NGOs, Town Hall Meetings, Union Voting, Talent Competitions, Open-source Projects, Start-up teams, Student communities, or Boardrooms. Running the software in a SaaS model, brings us back to the question of "who runs the message board and tallying software and can we trust them?" or even "who pays for it?".
 
 In our solution, voters are running the software, so the question of “who runs the message board and tallying software and can we trust them?” changes to “do we trust that the majority (more concretely m-of-n voters) are honest?” Moreover, as the network is private p2p there is no problem of "who pays for it?". And because it's a private blockchain there are no transaction fees.
 
@@ -145,9 +155,9 @@ Below is a comparison table.
 \newcommand{\YES}{\cellcolor{red!50}Yes}
 \newcommand{\NO}{\cellcolor{green!50}No}
 \caption{A comparative analysis of three types of internet voting systems: Public Blockchain-based, Private Infrastructure-based, and Voter-to-Voter Network-based, highlighting their differences in transaction fees, service costs, user-friendliness, and trust dynamics.}
-\begin{tabular}{p{0.2\textwidth}p{0.2\textwidth}p{0.19\textwidth}p{0.17\textwidth}p{0.2\textwidth}}
+\begin{tabular}{p{0.2\textwidth}p{0.2\textwidth}p{0.17\textwidth}p{0.17\textwidth}p{0.21\textwidth}}
 \noalign{\smallskip}\hline\noalign{\smallskip}
-\textbf{Property} & \textbf{Centralised server} & \textbf{Private infrastructure} & \textbf{Public blockchain} & \textbf{Voter-to-Voter network} \\
+\textbf{Property} & \textbf{Centralised server} & \textbf{Private network} & \textbf{Public blockchain} & \textbf{Voter-to-Voter network}\\
 \noalign{\smallskip}\hline\noalign{\smallskip}
 Transaction fees & \NO & \NO & \YES & \NO \\
 \hline
@@ -371,6 +381,7 @@ Anyone can calculate the voting results:
 
 \begin{table}
 \centering
+\label{table:plonk-time}
 \caption{Execution time of the PLONK prover in seconds.}
 \begin{tabular}{|c|c|c|c|c|}
     \hline
@@ -380,13 +391,14 @@ Anyone can calculate the voting results:
     \cline{1-3}
     1 of 2 & 2 of 3 & 3 of 4 & & \\
     \hline
-    232.972 & 249.835 & 622.324 & 59.709 & 27.363\\
+    67.753s & 71.902s & 146.026s & 16.822s & 8.602s\\
     \hline
 \end{tabular}
 \end{table}
 
 \begin{table}
 \centering
+\label{table:groth16-time}
 \caption{Execution time of the Groth16 prover in seconds.}
 \begin{tabular}{|c|c|c|c|c|}
     \hline
@@ -396,10 +408,52 @@ Anyone can calculate the voting results:
     \cline{1-3}
     1 of 2 & 2 of 3 & 3 of 4 & & \\
     \hline
-    3.026 & 5.002 & 5.274 & 1.583 & 1.089\\
+    1.388s & 2.135s & 2.414s & 0.747s & 0.506s\\
     \hline
 \end{tabular}
 \end{table}
+
+\begin{table}
+\centering
+\label{table:groth16-size}
+\caption{Message size for each phase using Groth16 proving system.}
+\begin{tabular}{|c|c|c|c|c|}
+    \hline
+    \multicolumn{5}{|c|}{Groth16} \\
+    \hline
+    \multicolumn{3}{|c|}{PVSS} & \multirow{2}{*}{Encrypt ballot} & \multirow{2}{*}{Partial decryption per share} \\
+    \cline{1-3}
+    1 of 2 & 2 of 3 & 3 of 4 & & \\
+    \hline
+    6.476 KB& 8.928 KB & 11.412 KB & 2.310 KB & 2.548 KB\\
+    \hline
+\end{tabular}
+\end{table}
+
+\begin{table}
+\centering
+\label{table:plonk-size}
+\caption{Message size for each phase using Plonk proving system.}
+\begin{tabular}{|c|c|c|c|c|}
+    \hline
+    \multicolumn{5}{|c|}{Plonk} \\
+    \hline
+    \multicolumn{3}{|c|}{PVSS} & \multirow{2}{*}{Encrypt ballot} & \multirow{2}{*}{Partial decryption per share} \\
+    \cline{1-3}
+    1 of 2 & 2 of 3 & 3 of 4 & & \\
+    \hline
+    7.825 KB& 10.332 KB & 12.817 KB & 3.671 KB & 3.920 KB\\
+    \hline
+\end{tabular}
+\end{table}
+
+\begin{figure}
+    \centering
+    \includegraphics[width=\textwidth]{dlog-search-time.png}
+    \caption{Time required to solve DLP with respect to number of candidates and number of voters.}
+    \label{fig:dlog-search}
+\end{figure}
+Finally the offline tally requires extractig number of voters for each party. To do so we have to solve the Discrete Logarithm Problem (DLP) for the decripthed output. However, because the number of voters is small, it is feasible. To extract each $x_i$ we use the technique described in~\cite{haoAnonymousVotingTworound2010}. Figure~\ref{fig:dlog-search} shows the time required to solve DLP.
 
 %TODO: 
 \section{Discussion}
