@@ -453,7 +453,16 @@ Anyone can calculate the voting results:
     \caption{Time required to solve DLP with respect to number of candidates and number of voters.}
     \label{fig:dlog-search}
 \end{figure}
-Finally the offline tally requires extractig number of voters for each party. To do so we have to solve the Discrete Logarithm Problem (DLP) for the decripthed output. However, because the number of voters is small, it is feasible. To extract each $x_i$ we use the technique described in~\cite{haoAnonymousVotingTworound2010}. Figure~\ref{fig:dlog-search} shows the time required to solve DLP.
+Finally the offline tally requires extractig number of voters for each party. To do so we have to solve the Discrete Logarithm Problem (DLP) for the final output point $M = H * \sum_i v_i$. The goal is to find the scalar value $\sum_i v_i$ which when multiplied by $H$ gives the voting output $M$. In general the problem of solving DLog is considered infeasible and so the security of DLog-based crypto systems holds. However, for small number of voters the problem can be solved using exhoustive serach within a reasonable time. To extract each $x_i$ we use the technique described in~\cite{haoAnonymousVotingTworound2010}. Figure~\ref{fig:dlog-search} shows the time required to solve DLP.
+
+Analysis of the measurements shows that time required to find the DLog follows the power-law $Y=aX^b$ where parameter $b$ is linear with the number of options (see Figure~\ref{fig:relation-options-to-power-law-b}).
+
+\begin{figure}
+    \centering
+    \includegraphics[width=\textwidth]{relation-options-to-power-law-b.png}
+    \caption{Relation between number of options and parameter $b$ of the power-law $Y=aX^b$ that models the time required to solve DLP.}
+    \label{fig:relation-options-to-power-law-b}
+\end{figure}
 
 %TODO: 
 \section{Discussion}
