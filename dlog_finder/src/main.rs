@@ -47,8 +47,8 @@ pub fn main() {
     let pk = sk.public();
 
     for options in 6..=10 {
-        for voters in (10..(3000u32.wrapping_div(options as u32 * options as u32))).step_by(10) {
-            encrypt_decrypt(options, voters, &pk, &sk, &file);
+        for voters in (options..(4000u32.wrapping_div(options as u32 * options as u32))).step_by(options as usize * (10usize/options as usize)) {
+            encrypt_decrypt(options as usize, voters, &pk, &sk, &file);
         }
     }
 }
