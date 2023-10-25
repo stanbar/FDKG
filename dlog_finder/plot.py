@@ -1,30 +1,66 @@
+import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+from sklearn.linear_model import LinearRegression
 
 # Load the data
 data = pd.read_csv('results.csv')
+data['Time'] = data['Time'] / 60000  # Convert time to minutes
 
-# Define the column names
-options_column = 'Options'
-voters_column = 'Voters'
-time_column = 'Time'
+# Function for the power-law fit: Y = a * X^b
+def power_law_fit(x, a, b):
+    return a * (x ** b)
 
-# Set up the figure and axis
-plt.figure(figsize=(12, 8))
+# Linear regression on the logarithmically transformed data
+log_model = LinearRegression()
+color_palette = plt.cm.tab10(np.linspace(0, 1, len(data['Options'].unique())))
 
-# For each unique value in 'Options', plot a series
-for option in data[options_column].unique():
-    subset = data[data[options_column] == option]
-    plt.plot(subset[voters_column], subset[time_column], label=f'No. options {option}')
+plt.figure(figsize=(14, 8))
 
-# Set the y-axis to log scale
-plt.yscale('log')
+# Determining the range for extrapolation based on the plot's boundaries
+min_voters = data['Voters'].min()
+max_voters = data['Voters'].max()
 
-# Add labels, title, and legend
+for idx, option in enumerate(sorted(data['Options'].unique())):
+    subset = data[(data['Options'] == option) & (data['Time'] > 0)]
+    
+    if not subset.empty:
+        # Logarithmic transformation of the data
+        log_X = np.log(subset['Voters']).values.reshape(-1, 1)
+        log_Y = np.log(subset['Time']).values
+
+        # Fit the linear model
+        log_model.fit(log_X, log_Y)
+
+        # Calculate the power-law coefficients
+        a = np.exp(log_model.intercept_)
+        b = log_model.coef_[0]
+
+        # Plot the original data
+        plt.scatter(subset['Voters'], subset['Time'], color=color_palette[idx], label=f'Options {option}')
+
+        # Finding the X value where the extrapolation should stop (based on the maximum Y value)
+        max_y = subset['Time'].max()
+        max_x = (max_y / a) ** (1 / b)
+
+        # Extrapolating the power-law fit up to the calculated max X value
+        fit_X = np.linspace(min_voters, min(max_voters, max_x), 100)
+        fit_Y = power_law_fit(fit_X, a, b)
+        plt.plot(fit_X, fit_Y, color=color_palette[idx], linestyle='-.')
+
+        # Annotation for the power-law equation
+        equation_text = f'Y = {a:.2e}X^{b:.3f}'
+        plt.text(fit_X[-1], fit_Y[-1], equation_text, color=color_palette[idx], 
+                 horizontalalignment='left', verticalalignment='bottom')
+
+# Adding plot details
+plt.title('Time vs. Voters with Bounded Extrapolated Power-Law Fits and Equations (All Voters, Log-Log Scale)')
 plt.xlabel('Number of Voters')
-plt.ylabel('Time (Log Scale)')
-plt.title('Time vs. Number of Voters for different Number of Options (Log Scale on Y-axis)')
+plt.ylabel('Time (in minutes)')
+plt.xscale('log')  # Using log scale for x-axis
+plt.yscale('log')  # Also using log scale for y-axis for better visualization
 plt.legend()
-plt.grid(True, which="both", ls="--", linewidth=0.5)
+plt.grid(True)
 
+# Show the plot
 plt.show()
