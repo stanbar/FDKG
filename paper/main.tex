@@ -89,8 +89,10 @@ However, if at some point, the group of observers drops to a few people, the cha
 The critique against internet voting system run by centralised authorities is that it requires the strongest assumption on $1\textrm{ of }1$ trust model as there is no way to provide the electorate convincing evidence that the running software is correct. This means that there is a single point of failure, an authority, which if compromised, breaks the trust.
 
 There are two counterarguments to that critique. 
-First, even if the organizers are not trusted, by enforcing them to produce the cryptographic proof of tallying, they can not produce incorrect results as this incident would come to light during the proof verification (TODO:ref to section on SNARKs or cite SNARK paper).
-The second is that the traditional centralized authority can be decentralised with the usage of distributed systems and consensus mechanisms, changing the trust model from $1 \textrm{ of } 1$ to either $N \textrm{ of } N$ where all actors have to work as expected, or $Few \textrm{ of } N$ where a few fixed set of nodes has to work correctly, or $\frac{N}{2} \textrm{ of } N$ where the system works correctly as long as the majority of nodes are working correctly. 
+\begin{enumerate}
+    \item First, even if the organizers are not trusted, by enforcing them to produce the cryptographic proof of tallying, they can not produce incorrect results as this incident would come to light during the proof verification.
+    \item  The second is that the traditional centralized authority can be decentralised with the usage of distributed systems and consensus mechanisms, changing the trust model from $1 \textrm{ of } 1$ to either $N \textrm{ of } N$ where all actors have to work as expected, or $Few \textrm{ of } N$ where a few fixed set of nodes has to work correctly, or $\frac{N}{2} \textrm{ of } N$ where the system works correctly as long as the majority of nodes are working correctly. 
+\end{enumerate}
 
 When the trust assumption is violated some of the properties of the system fail. Depending on the system, the properties are liveness failure, or safety failure. Other times it's censorship-resistance, privacy, and/or correctness.
 
@@ -112,8 +114,8 @@ Figure ~\ref{fig:trust-models} presents the shift from internet votings based on
 The paper contributes to the state of the art in the following ways:
 \begin{enumerate}
     \item We propose a novel technique for dynamic Distributed Key Generation (DKG) called Federated DKG (FDKG), which maps the structure of trust between the members of a group that wants to make an election. The technique works in a similar way to the Federated Byzantine Agreement (FBA) in the Stellar Consensus Protocol~\cite{mazieresStellarConsensusProtocol2015}.
-    \item Based on the assumption that the majority of the most important members of the grouping will participate in all phases of voting (1. FDKG and 3. Tally) our protocol requires only one message (You-only-speak-once, YOSO) to be sent by each participant which increases the practicality of our protocol.
-    \item The protocol is robust to Byzantine nodes through the use of zero-knowledge proofs (zkSNARKs). Each message must have a proof of adherence to the rules of the algorithm.
+    \item Based on the assumption that the majority of the most important members of the grouping will participate in all phases of voting (1. FDKG and 3. Tally) our protocol requires only one message (You-only-speak-once~\cite{gentryYOSOYouOnly2021}) to be sent by each participant which increases the practicality of our protocol.
+    \item The protocol is robust to Byzantine nodes through the use of zero-knowledge proofs (zkSNARKs)~\cite{parnoPinocchioNearlyPractical2013}. Each message must have a proof of adherence to the rules of the algorithm.
     \item The privacy of the system is based on the honest majority assumption. The protocol achieves privacy as long as the majority of the most important nodes in the network are honest and do not collude.
     \item The system is robust against a subset of unavailable nodes (faulty nodes). Using threshold cryptography, the system allows a subset of nodes to decrypt the voting results so that no single node in the network is able to block the voting.
     \item The system is free of charge for the end user. The application is completely peer-to-peer thus avoiding any fees associated with transactions (as is the case with systems based on public blockchains) and the maintenance of a central coordinator (in the case of a private network or server).
@@ -139,7 +141,7 @@ Compared to other public-blockchain-based solutions, our solution is free, which
 
 Compared to private-blockchain-based solutions or ElectionGuard-like systems, in our system, there is no need to run the software on any centralised server(s), which is also arguably a big deal, especially in the case of small, informal voting. Someone has to run this server. For larger organisations like universities, it's not a problem as an IT department is responsible for hosting it. But for small organizations, it can be a problem. For example, Student Council Elections, Corporate Board Decisions, Homeowners Association Voting, NGOs, Town Hall Meetings, Union Voting, Talent Competitions, Open-source Projects, Start-up teams, Student communities, or Boardrooms. Running the software in a SaaS model, brings us back to the question of "who runs the message board and tallying software and can we trust them?" or even "who pays for it?".
 
-In our solution, voters are running the software, so the question of “who runs the message board and tallying software and can we trust them?” changes to “do we trust that the majority (more concretely m-of-n voters) are honest?” Moreover, as the network is private p2p there is no problem of "who pays for it?". And because it's a private blockchain there are no transaction fees.
+In our solution, voters are running the software, so the question of "who runs the message board and tallying software and can we trust them?" changes to “do we trust that the majority (more concretely m-of-n voters) are honest?” Moreover, as the network is private p2p there is no problem of "who pays for it?". And because it's a private blockchain there are no transaction fees.
 
 Below is a comparison table.
 
@@ -174,6 +176,39 @@ Trust to\footnote{Trust is a broad term that refers to different properties of t
 
 \section{System Architecture}
 Designig a user application that is intended to work in peer-to-peer model is a complex task. The main challenge is to overcome the networking problems, weak availability and limited resources of end-devices such as smartphones and laptops.
+
+\paragraph{Objectives}
+In designing the architecture of the protocol, we were guided by several key objectives, aimed at addressing the fundamental challenges and requirements of an secure and practical internet voting system. These objectives are:
+
+\begin{enumerate}
+    \item \textbf{Privacy}: Ensuring voter privacy under the honest-majority assumption, safeguarding vote confidentiality.
+    \item \textbf{Distributed Architecture}: Eliminating central authority to enhance system resilience and reduce single points of failure.
+    \item \textbf{Robustness}: Designing for ease of use and practicality, ensuring high availability and preventing nodes from blocking the voting process.
+    \item \textbf{Lightweight Implementation}: Facilitating operation on common devices like laptops and smartphones to ensure accessibility and scalability.
+    \item \textbf{Zero-Fee Participation}: Ensuring that voting is free of charge to increase turnout and support democratic engagement.
+\end{enumerate}
+
+\subsection{Achieving System Objectives}
+Each objective in the Voter-to-Voter Internet Voting Protocol is meticulously addressed to ensure the system's effectiveness and alignment with democratic principles:
+
+\paragraph{Privacy}
+The protocol ensures voter privacy through advanced cryptographic techniques, primarily operating under the honest-majority assumption. TODO
+
+\paragraph{Distributed Architecture}
+To eliminate reliance on a central authority, the protocol is built on a distributed network of nodes.. TODO
+
+\paragraph{Robustness}
+The system is designed for practicality and ease of use, ensuring that it is accessible to a wide range of users.. TODO
+
+\paragraph{Lightweight Implementation}
+By optimizing the system for lightweight operation, it can be executed on commonly available devices such as laptops and smartphones. TODO
+
+\paragraph{Zero-Fee Participation}
+Zero-fee participation is ensured through the use of a peer-to-peer ad-hoc network. TODO
+
+\paragraph{Ad-hoc Blockchain Network and Networking}
+The foundation of the system is an ad-hoc blockchain network.
+
 
 \section{Voting Protocol}
 Our voting protocol is a combination of 3-round voting scheme proposed in~\cite{schoenmakersLectureNotesCryptographic2018}, multi-candidate encoding proposed in~\cite{haoAnonymousVotingTworound2010}, and Federated DKG that we propose in this paper. 
@@ -236,12 +271,6 @@ We propose a novel technique for dynamic DKG that works similarly to \href{Stell
 
 Every party can (but does not have to) participate in the DKG phase. The actual number of parties that participate is denoted by $m$ where the maximum number is $n$. Since we focus on small scale votings where participants know each other, we make a social assumption, that each participant trusts $k$ other parties. Then we chose a threshold $t$ of parties, which allows for key reconstruction. Numbers $k$ and $t$ are public parameters agreed by each party.
 
-\begin{figure}
-    \centering
-    \includegraphics[width=\textwidth]{FDKG.png}
-    \caption{Federated Distributed Key Generation}
-    \label{fig:FDKG}
-\end{figure}
 
 For each party $P_i \in \mathbb{D}$, where $\mathbb{D} \subseteq  \mathbb{P}$ is a subset of parties participating in DKG:
 \begin{itemize}
@@ -252,6 +281,18 @@ For each party $P_i \in \mathbb{D}$, where $\mathbb{D} \subseteq  \mathbb{P}$ is
     \item For each guardian $P_{i,j} \in \mathbb{G}_i$, $1 \leq j \leq k$, create a secret share $f_i(j)$, encrypt it $C_{i,j}=\texttt{Enc}_{P_j}(f_i(j))$ and create a zero-knowledge proof $\pi$ = “I know $f_i$ s.t. given $j, P_j$, and $C_{i,j}$, the $C_{i,j}$ is an encrypted value of a polynomial $f_i(\cdot)$ applied to $j$".
     \item Broadcast $(E_i,C_{i,j}, \pi)$.
 \end{itemize}
+
+\paragraph*{State after round 1. FDKG}
+
+After the DKG has been completed (once it reached $n$ messages or after some predefined period). The message board state looks as follows:
+- $\{E_{i} : 1 \leq i \leq m\}$, shares of voting public key.
+- $\{\sigma_{i} : 1 \leq i \leq m\}$, proofs of exponents.
+- $\{\{EG_{P_{j}}(\vec{d}_{i}[j]) : j \in \{1\dots k\}\} : 1 \leq i \leq m \}$, encrypted shares of shares of voting secret key.
+
+The voting encryption key $\textbf{E}$ can be reconstructed by everyone by computing $\mathbf{E}=\sum_{i=1}^{n} E_{i}$.
+
+The share of voting decryption key $\mathbf{D_i}$ can be reconstructed by party $P_i$ by computing $\mathbf{D}_{i}=\sum_{j=1}^{m} EG_{s_{i}}(d_{ji})$.
+
 
 
 \subsubsection{Private Channel}
@@ -292,16 +333,6 @@ For each party $P_i \in \mathbb{D}$, where $\mathbb{D} \subseteq  \mathbb{P}$ is
     \Return $s$\;
 \end{algorithm}
 
-\paragraph*{State after round 1. FDKG}
-
-After the DKG has been completed (once it reached $n$ messages or after some predefined period). The message board state looks as follows:
-- $\{E_{i} : 1 \leq i \leq m\}$, shares of voting public key.
-- $\{\sigma_{i} : 1 \leq i \leq m\}$, proofs of exponents.
-- $\{\{EG_{P_{j}}(\vec{d}_{i}[j]) : j \in \{1\dots k\}\} : 1 \leq i \leq m \}$, encrypted shares of shares of voting secret key.
-
-The voting encryption key $\textbf{E}$ can be reconstructed by everyone by computing $\mathbf{E}=\sum_{i=1}^{n} E_{i}$.
-
-The share of voting decryption key $\mathbf{D_i}$ can be reconstructed by party $P_i$ by computing $\mathbf{D}_{i}=\sum_{j=1}^{m} EG_{s_{i}}(d_{ji})$.
 
 
 \subsection{Casting votes}
@@ -357,6 +388,101 @@ Anyone can calculate the voting results:
     \item To extract $x_c$ we have to solve Elliptic-Curve Discrete Logarithm Problem. However, because $x_c$ is a small number $0 \leq x_c \leq |\mathbb{V}|$ it is feasible. To extract each $x_i$ we use the technique described in~\cite{haoAnonymousVotingTworound2010}.
 \end{enumerate}
 
+\section{Security Analysis}
+
+
+\subsection*{Decipherability}
+\begin{definition}[Decipherability] \label{def:decipherability}
+    Given a set of participants $\mathbb{P}$ and a subset $\mathbb{D} \subseteq \mathbb{P}$ involved in a Federated Distributed Key Generation (FDKG) process with parameters $k$ and $t$, the system is said to exhibit \textit{Decipherability} if and only if for each participating party $P_i \in \mathbb{D}$ with an associated guardian set $\mathbb{G}_i \subseteq \mathbb{P} \setminus \{P_i\}$ where $|\mathbb{G}_i| = k$, there exists a subset $\mathbb{S}_i \subseteq \mathbb{G}_i$ with $|\mathbb{S}_i| \geq t$ such that each party $P_{i,j} \in \mathbb{S}_i$ publishes its partial decryption share. Formally, Decipherability is satisfied if:
+
+    \[
+    \forall P_i \in \mathbb{D}, \exists \mathbb{S}_i \subseteq \mathbb{G}_i : |\mathbb{S}_i| \geq t \text{ and } \forall P_{i,j} \in \mathbb{S}_i, \text{partial decryption share is published}.
+    \]
+\end{definition}
+
+\begin{definition}[Lock-in] \label{def:lock-in}
+    Given a set of participants $\mathbb{P}$ and a subset $\mathbb{D} \subseteq \mathbb{P}$ involved in a Federated Distributed Key Generation (FDKG) process with parameters $k$ and $t$, the system is said to be in a state of \textit{Lock-in} if and only if there exists at least one participating party $P_i \in \mathbb{D}$ for which the threshold of $t$ shares from its associated guardian set $\mathbb{G}_i \subseteq \mathbb{P} \setminus \{P_i\}$, where $|\mathbb{G}_i| = k$, cannot be met. Formally, Lock-in occurs when:
+
+    \[
+    \exists P_i \in \mathbb{D} \text{ for which } \nexists \mathbb{S}_i \subseteq \mathbb{G}_i : |\mathbb{S}_i| \geq t \text{ and } \forall P_{i,j} \in \mathbb{S}_i, \text{partial decryption share is not published}.
+    \]
+\end{definition}
+
+
+\subsection*{FDKG Example}
+
+Consider a set of parties $\{P_1, \ldots, P_{10}\}$. In this setting, we have $k = 3$ and $t = 2$. A subset of these parties, specifically $\mathbb{D} = \{P_1, P_4, P_8, P_{10}\}$, participate in the FDKG, each forming its own guardian set. Figure \ref{fig:FDKG} illustrates this setting.
+
+
+\begin{figure}
+    \centering
+    \includegraphics[width=\textwidth]{FDKG.png}
+    \caption{Federated Distributed Key Generation}
+    \label{fig:FDKG}
+\end{figure}
+
+The process for each participating party is as follows:
+
+\begin{enumerate}
+    \item \textbf{Party $P_1$}:
+    \begin{itemize}
+        \item Chooses Guardian Set $\mathbb{G}_1 = \{P_2, P_3, P_6\}$.
+        \item Samples a random polynomial $f_1(X) \in_R \mathbb{Z}_q[X]$.
+        \item Computes decryption key $d_1 = f_1(0)$.
+        \item Splits $d_1$ among $\mathbb{G}_1$, resulting in shares $s_2, s_3, s_6$.
+    \end{itemize}
+
+    \item \textbf{Party $P_4$}:
+    \begin{itemize}
+        \item Guardian Set $\mathbb{G}_4 = \{P_3, P_5, P_6\}$.
+        \item Samples random polynomial $f_4(X)$, computes decryption key $d_4$, and creates shares for $\mathbb{G}_4$.
+    \end{itemize}
+
+    \item \textbf{Party $P_8$}:
+    \begin{itemize}
+        \item Guardian Set $\mathbb{G}_8 = \{P_5, P_6, P_7\}$.
+        \item Samples random polynomial $f_8(X)$, computes decryption key $d_8$, and creates shares for $\mathbb{G}_8$.
+    \end{itemize}
+
+    \item \textbf{Party $P_{10}$}:
+    \begin{itemize}
+        \item Guardian Set $\mathbb{G}_{10} = \{P_7, P_8, P_9\}$.
+        \item Samples random polynomial $f_{10}(X)$, computes decryption key $d_{10}$, and creates shares for $\mathbb{G}_{10}$.
+    \end{itemize}
+\end{enumerate}
+
+\subsection*{Conclusion of the FDKG Example}
+
+In this FDKG scenario, we identified a minimal set of parties \(\{P_3, P_5, P_6, P_7, P_8\}\) that guarantees Decipherability (as defined in Definition \ref{def:decipherability}) and minimal sets \(\{P_3, P_5\}\) and \(\{P_6, P_7\}\) that can induce a Lock-in state (as defined in Definition \ref{def:lock-in}).
+
+\textbf{Proof of Decipherability}: 
+The set \(\{P_3, P_5, P_6, P_7, P_8\}\) ensures Decipherability as it contains at least two members from each guardian set, thereby meeting the \(t\)-out-of-\(k\) requirement for share publication. Specifically, \(\{P_3, P_6\}\) satisfies \(\mathbb{G}_1\) and \(\mathbb{G}_4\); \(\{P_5, P_6\}\) satisfies \(\mathbb{G}_8\); and \(\{P_7, P_8\}\) satisfies \(\mathbb{G}_{10}\).
+
+\textbf{Proof of Lock-in}:
+1. For \(\{P_3, P_5\}\), if these parties do not participate, \(\mathbb{G}_1\) and \(\mathbb{G}_4\) lack sufficient shares due to the absence of \(P_3\), and \(\mathbb{G}_4\) and \(\mathbb{G}_8\) lack sufficient shares due to the absence of \(P_5\), leading to a Lock-in.
+2. For \(\{P_6, P_7\}\), the absence of \(P_6\) affects \(\mathbb{G}_1\), \(\mathbb{G}_4\), and \(\mathbb{G}_8\), while \(P_7\)'s absence affects \(\mathbb{G}_8\) and \(\mathbb{G}_{10}\), also leading to a Lock-in.
+
+These findings illustrate the critical roles certain parties play in the FDKG process, underlining the importance of their participation for achieving Decipherability and the risks associated with their absence, which can lead to a Lock-in state.
+
+\subsection*{Decipherability Impact Factor (DIF)}
+
+To quantitatively assess the importance of each party in the Federated Distributed Key Generation (FDKG) process, we introduce a measure named the \textit{Decipherability Impact Factor} (DIF). This measure reflects the significance of a party's participation in terms of its influence on achieving Decipherability and preventing Lock-in.
+
+\begin{definition}[Decipherability Impact Factor]
+    The Decipherability Impact Factor (DIF) for a party $P_i$ is defined as the sum of the inverse of the number of other members in each guardian set to which $P_i$ belongs, weighted by the importance of those sets in achieving Decipherability. Formally, it is given by:
+    \[
+    \text{DIF}(P_i) = \sum_{\mathbb{G}_j \in \mathbb{G} : P_i \in \mathbb{G}_j} \frac{1}{|\mathbb{G}_j| - 1}
+    \]
+    where $\mathbb{G}$ is the set of all guardian sets, and $|\mathbb{G}_j| - 1$ represents the number of other members in the guardian set $\mathbb{G}_j$ excluding $P_i$.
+\end{definition}
+
+\textbf{Interpretation:}
+\begin{itemize}
+    \item A higher DIF indicates a more critical role for the party in achieving Decipherability, suggesting that their absence significantly increases the likelihood of a Lock-in.
+    \item A lower DIF suggests that the party's absence can be more easily compensated for by other members of the guardian sets.
+\end{itemize}
+
+
 \section{zkSNARKs for Protocol Adherence}
 
 \section{Privacy and Availability Considerations}
@@ -369,7 +495,7 @@ Anyone can calculate the voting results:
     \centering
     \includegraphics[width=\textwidth]{stack-bc.png}
     \label{fig:stack-bc}
-    \caption{Federated Distributed Key Generation}
+    \caption{System architecture.}
 \end{figure}
 
 - Ad-hoc blockchain network
