@@ -236,8 +236,6 @@ We propose a novel technique for dynamic DKG that works similarly to \href{Stell
 
 Every party can (but does not have to) participate in the DKG phase. The actual number of parties that participate is denoted by $m$ where the maximum number is $n$. Since we focus on small scale votings where participants know each other, we make a social assumption, that each participant trusts $k$ other parties. Then we chose a threshold $t$ of parties, which allows for key reconstruction. Numbers $k$ and $t$ are public parameters agreed by each party.
 
-add figure FDKG.png
-
 \begin{figure}
     \centering
     \includegraphics[width=\textwidth]{FDKG.png}
@@ -246,12 +244,14 @@ add figure FDKG.png
 \end{figure}
 
 For each party $P_i \in \mathbb{D}$, where $\mathbb{D} \subseteq  \mathbb{P}$ is a subset of parties participating in DKG:
-- Chose a guardian set of $k$ parties  $\mathbb{G}_i=\{P_{i_1},P_{i_2},\dots,P_{i_k}\}\subseteq \mathbb{P}/P_i$
-- Sample a random polynomial $f_{i}(X) \in_R \mathbb{Z}_q[X]$ of degree $t-1$
-- Compute decryption (secret) key $d_{i}= f_i(0)$ and encryption (public) key $E_{i} = d_i \times G$.
-- Create a t-of-k access structure for $d_i$ using Publicly Verifiable Secret Sharing (PVSS)
-- For each guardian $P_{i,j} \in \mathbb{G}_i$, $1 \leq j \leq k$, create a secret share $f_i(j)$, encrypt it $C_{i,j}=\texttt{Enc}_{P_j}(f_i(j))$ and create a zero-knowledge proof $\pi$ = “I know $f_i$ s.t. given $j, P_j$, and $C_{i,j}$, the $C_{i,j}$ is an encrypted value of a polynomial $f_i(\cdot)$ applied to $j$“
-- Broadcast $(E_i,C_{i,j}, \pi)$
+\begin{itemize}
+    \item Chose a guardian set of $k$ parties  $\mathbb{G}_i=\{P_{i_1},P_{i_2},\dots,P_{i_k}\}\subseteq \mathbb{P}/P_i$.
+    \item Sample a random polynomial $f_{i}(X) \in_R \mathbb{Z}_q[X]$ of degree $t-1$.
+    \item Compute decryption (secret) key $d_{i}= f_i(0)$ and encryption (public) key $E_{i} = d_i \times G$.
+    \item Create a t-of-k access structure for $d_i$ using Publicly Verifiable Secret Sharing (PVSS).
+    \item For each guardian $P_{i,j} \in \mathbb{G}_i$, $1 \leq j \leq k$, create a secret share $f_i(j)$, encrypt it $C_{i,j}=\texttt{Enc}_{P_j}(f_i(j))$ and create a zero-knowledge proof $\pi$ = “I know $f_i$ s.t. given $j, P_j$, and $C_{i,j}$, the $C_{i,j}$ is an encrypted value of a polynomial $f_i(\cdot)$ applied to $j$".
+    \item Broadcast $(E_i,C_{i,j}, \pi)$.
+\end{itemize}
 
 
 \subsubsection{Private Channel}
@@ -262,7 +262,7 @@ For each party $P_i \in \mathbb{D}$, where $\mathbb{D} \subseteq  \mathbb{P}$ is
     \SetAlgoNlRelativeSize{1}
     \SetKwInOut{Input}{Input}
     \SetKwInOut{Output}{Output}
-    \caption{Encryption\_P}
+    \caption{Encryption\textsubscript{P}}
     
     \Input{A scalar $s$}
     \Output{A tuple $(C1, C2, \Delta)$}
@@ -368,8 +368,8 @@ Anyone can calculate the voting results:
 \begin{figure}
     \centering
     \includegraphics[width=\textwidth]{stack-bc.png}
+    \label{fig:stack-bc}
     \caption{Federated Distributed Key Generation}
-    \label{fig:FDKG}
 \end{figure}
 
 - Ad-hoc blockchain network
@@ -453,16 +453,10 @@ Anyone can calculate the voting results:
     \caption{Time required to solve DLP with respect to number of candidates and number of voters.}
     \label{fig:dlog-search}
 \end{figure}
-Finally the offline tally requires extractig number of voters for each party. To do so we have to solve the Discrete Logarithm Problem (DLP) for the final output point $M = H * \sum_i v_i$. The goal is to find the scalar value $\sum_i v_i$ which when multiplied by $H$ gives the voting output $M$. In general the problem of solving DLog is considered infeasible and so the security of DLog-based crypto systems holds. However, for small number of voters the problem can be solved using exhoustive serach within a reasonable time. To extract each $x_i$ we use the technique described in~\cite{haoAnonymousVotingTworound2010}. Figure~\ref{fig:dlog-search} shows the time required to solve DLP.
+Finally the offline tally requires extracting number of voters for each party. To do so we have to solve the Discrete Logarithm Problem (DLP) for the final output point $M = H * \sum_i v_i$. The goal is to find the scalar value $\sum_i v_i$ which when multiplied by $H$ gives the voting output $M$. In general the problem of solving DLog is considered infeasible and so the security of DLog-based crypto systems holds. However, for small number of voters the problem can be solved using exhaustive search within a reasonable time. To extract each $x_i$ we use the technique described in~\cite{haoAnonymousVotingTworound2010}. Figure~\ref{fig:dlog-search} shows the time required to solve DLP.
 
-Analysis of the measurements shows that time required to find the DLog follows the power-law $Y=aX^b$ where parameter $b$ is linear with the number of options (see Figure~\ref{fig:relation-options-to-power-law-b}).
+Analysis of the measurements shows that time required to find the DLog follows the power-law $Y=aX^b$ where parameter $b$ is linear with the number of options, which is an expected behaviour.
 
-\begin{figure}
-    \centering
-    \includegraphics[width=\textwidth]{relation-options-to-power-law-b.png}
-    \caption{Relation between number of options and parameter $b$ of the power-law $Y=aX^b$ that models the time required to solve DLP.}
-    \label{fig:relation-options-to-power-law-b}
-\end{figure}
 
 %TODO: 
 \section{Discussion}
