@@ -278,8 +278,10 @@ For each party $P_i \in \mathbb{D}$, where $\mathbb{D} \subseteq  \mathbb{P}$ is
     \item Sample a random polynomial $f_{i}(X) \in_R \mathbb{Z}_q[X]$ of degree $t-1$.
     \item Compute decryption (secret) key $d_{i}= f_i(0)$ and encryption (public) key $E_{i} = d_i \times G$.
     \item Create a t-of-k access structure for $d_i$ using Publicly Verifiable Secret Sharing (PVSS).
-    \item For each guardian $P_{i,j} \in \mathbb{G}_i$, $1 \leq j \leq k$, create a secret share $f_i(j)$, encrypt it $C_{i,j}=\texttt{Enc}_{P_j}(f_i(j))$ and create a zero-knowledge proof $\pi$ = “I know $f_i$ s.t. given $j, P_j$, and $C_{i,j}$, the $C_{i,j}$ is an encrypted value of a polynomial $f_i(\cdot)$ applied to $j$".
-    \item Broadcast $(E_i,C_{i,j}, \pi)$.
+    \item For each guardian $P_{i,j} \in \mathbb{G}_i$, $1 \leq j \leq k$, create a secret share $f_i(j)$, encrypt it $C_{i,j}=\texttt{Enc}_{P_j}(f_i(j))$.
+    
+    \item create a zero-knowledge proof $\textrm{PROOF}_\textrm{FDKG}$ = “I know $f_i$ s.t. given $j, P_j$, and $C_{i,j}$, the $C_{i,j}$ is an encrypted value of a polynomial $f_i(\cdot)$ applied to $j$".
+    \item Broadcast $(E_i,C_{i,j}, \textrm{PROOF}_\textrm{FDKG})$.
 \end{itemize}
 
 \paragraph*{State after round 1. FDKG}
@@ -348,8 +350,8 @@ For each voter $P_i \in \mathbb{V}$, where $\mathbb{V} \subseteq  \mathbb{P}$ is
         \item $r_{i} \in_{R} \mathbb{Z}_q$ is a blinding factor for user $i$, and 
         \item $H_{1,}\dots, H_{l}$ are independent generators (one for each candidate).
     \end{enumerate}
-    \item Compute a zero-knowledge proof $\pi$ = “I know $r_i, v_{i1},\dots,v_{ij}$ s.t.$\sum_{j= 1 \dots l}v_{ij}=1$ and $\forall_{j=1}^{l}v_{ij}=1 \lor v_{ij}=0$ and $B_i$ is a correctly encrypted ballot using those values”
-    \item Broadcast $(B_i,\pi)$.
+    \item Compute a zero-knowledge proof $\textrm{PROOF}_\textrm{BALLOT}$ = “I know $r_i, v_{i1},\dots,v_{ij}$ s.t.$\sum_{j= 1 \dots l}v_{ij}=1$ and $\forall_{j=1}^{l}v_{ij}=1 \lor v_{ij}=0$ and $B_i$ is a correctly encrypted ballot using those values”
+    \item Broadcast $(B_i,\textrm{PROOF}_\textrm{FDKG})$.
 \end{enumerate}
 
 \paragraph{State after voting}
@@ -367,8 +369,9 @@ For each party $P_i \in \mathbb{T}$, where $\mathbb{T} \subseteq  \mathbb{D}$ is
     \item Sum the first part of the ballots $A = \sum_{i \in 1 \dots |\mathbb{V}|} C1_i = \sum_{i \in 1 \dots |\mathbb{V}|} r_{i} \times G$, where $(C1_i,C2_i)=B_i$.
     \item  Calculate the share of the decryption key $d_i=\sum_{f_j(i) \in S_i} f_j(i) \lambda_{j,i}$, where $S_i$ is a set of shares $f_j(i)$, where $P_i$ is in $P_j$'s guardian set $\mathbb{G}_j$, and $\lambda_{j,i}=\prod_{k \in \mathbb{G}_j \setminus \{i\}} \frac{k}{k-i}$ denotes Lagrange coefficients. 
     \item Calculate partial decryption $A_i = A \cdot d_i$.
-    \item Compute a zero-knowledge proof $\pi$ = “I know all shares $f_j(i)$ from encrypted shares $C_{j,i}=\texttt{Enc}_{P_i}(f_j(i))$ s.t. $A_i = A \cdot d_i$"
-    \item Broadcast partial decryption $(A_i, \pi)$
+    \item Compute a zero-knowledge proof $\textrm{PROOF}_\textrm{PD}$ = “I know all shares $f_j(i)$ from encrypted shares $C_{j,i}=\texttt{Enc}_{P_i}(f_j(i))$ s.t. $A_i = A \cdot d_i$" 
+    \item %TODO: Formall definition is given in Section \ref{proofs}
+    \item Broadcast partial decryption $(PD_i, \textrm{PROOF}_\textrm{FDKG})$
 \end{enumerate}
 
 \subsubsection{Offline Tally}
@@ -392,20 +395,21 @@ Anyone can calculate the voting results:
 
 
 \subsection*{Decipherability}
-\begin{definition}[Decipherability] \label{def:decipherability}
-    Given a set of participants $\mathbb{P}$ and a subset $\mathbb{D} \subseteq \mathbb{P}$ involved in a Federated Distributed Key Generation (FDKG) process with parameters $k$ and $t$, the system is said to exhibit \textit{Decipherability} if and only if for each participating party $P_i \in \mathbb{D}$ with an associated guardian set $\mathbb{G}_i \subseteq \mathbb{P} \setminus \{P_i\}$ where $|\mathbb{G}_i| = k$, there exists a subset $\mathbb{S}_i \subseteq \mathbb{G}_i$ with $|\mathbb{S}_i| \geq t$ such that each party $P_{i,j} \in \mathbb{S}_i$ publishes its partial decryption share. Formally, Decipherability is satisfied if:
 
+\begin{definition}[Decipherability] \label{def:decipherability}
+    Decipherability in an FDKG system is achieved if for each participant $P_i \in \mathbb{D}$, either the participant publishes the full partial decryption, or a subset of its guardian set $\mathbb{G}_i$, with at least $t$ members, publishes their respective shares of partial decryption. Formally: 
     \[
-    \forall P_i \in \mathbb{D}, \exists \mathbb{S}_i \subseteq \mathbb{G}_i : |\mathbb{S}_i| \geq t \text{ and } \forall P_{i,j} \in \mathbb{S}_i, \text{partial decryption share is published}.
+    \forall P_i \in \mathbb{D}, \left( \textrm{publish}(PD_i) \lor \exists \mathbb{S}_i \subseteq \mathbb{G}_i : |\mathbb{S}_i| \geq t \land \forall P_{i,j} \in \mathbb{S}_i, \textrm{publish}([PD_i]_j) \right)
     \]
+    where \(\textrm{publish}(\cdot)\) denotes the publication of either the full partial decryption $\textrm{PD}_i$ or the share of partial decryption $[\textrm{PD}_i]_j$ in the Online Tally phase.
 \end{definition}
 
 \begin{definition}[Lock-in] \label{def:lock-in}
-    Given a set of participants $\mathbb{P}$ and a subset $\mathbb{D} \subseteq \mathbb{P}$ involved in a Federated Distributed Key Generation (FDKG) process with parameters $k$ and $t$, the system is said to be in a state of \textit{Lock-in} if and only if there exists at least one participating party $P_i \in \mathbb{D}$ for which the threshold of $t$ shares from its associated guardian set $\mathbb{G}_i \subseteq \mathbb{P} \setminus \{P_i\}$, where $|\mathbb{G}_i| = k$, cannot be met. Formally, Lock-in occurs when:
-
+    A Lock-in state occurs in an FDKG system if there exists a participant $P_i \in \mathbb{D}$ for whom neither the full partial decryption $PD_i$ is published by $P_i$ itself nor at least $t$ members of its guardian set $\mathbb{G}_i$ publish their shares of partial decryption $[PD_i]_j$. Formally:
     \[
-    \exists P_i \in \mathbb{D} \text{ for which } \nexists \mathbb{S}_i \subseteq \mathbb{G}_i : |\mathbb{S}_i| \geq t \text{ and } \forall P_{i,j} \in \mathbb{S}_i, \text{partial decryption share is not published}.
+    \exists P_i \in \mathbb{D} : \neg \left( \text{publish}(PD_i) \lor \left( \exists \mathbb{S}_i \subseteq \mathbb{G}_i : |\mathbb{S}_i| \geq t \land \forall P_{i,j} \in \mathbb{S}_i, \text{publish}([PD_i]_j) \right) \right)
     \]
+    indicating the absence of publication of either the full partial decryption $\textrm{PD}_i$ or the required number of partial decryption shares $[\textrm{PD}_i]_j$ by its guardian set $\mathbb{G}_i$ in the Online Tally phase .
 \end{definition}
 
 
@@ -427,27 +431,30 @@ The process for each participating party is as follows:
     \item \textbf{Party $P_1$}:
     \begin{itemize}
         \item Chooses Guardian Set $\mathbb{G}_1 = \{P_2, P_3, P_6\}$.
-        \item Samples a random polynomial $f_1(X) \in_R \mathbb{Z}_q[X]$.
-        \item Computes decryption key $d_1 = f_1(0)$.
-        \item Splits $d_1$ among $\mathbb{G}_1$, resulting in shares $s_2, s_3, s_6$.
+        \item Samples a random polynomial $f_1(X) \in_R \mathbb{Z}_q[X]$, and computes decryption key $d_1 = f_1(0)$.
+        \item Splits $d_1$ among $\mathbb{G}_1$, resulting in shares $[d_1]_2, [d_1]_3, [d_1]_6$.
     \end{itemize}
 
     \item \textbf{Party $P_4$}:
     \begin{itemize}
         \item Guardian Set $\mathbb{G}_4 = \{P_3, P_5, P_6\}$.
-        \item Samples random polynomial $f_4(X)$, computes decryption key $d_4$, and creates shares for $\mathbb{G}_4$.
+        \item Samples random polynomial $f_4(X)$, and computes decryption key $d_4$
+        \item Splits $d_4$ among $\mathbb{G}_4$, resulting in shares $[d_4]_3, [d_4]_5, [d_4]_6$.
     \end{itemize}
 
     \item \textbf{Party $P_8$}:
     \begin{itemize}
         \item Guardian Set $\mathbb{G}_8 = \{P_5, P_6, P_7\}$.
-        \item Samples random polynomial $f_8(X)$, computes decryption key $d_8$, and creates shares for $\mathbb{G}_8$.
+        \item Samples random polynomial $f_8(X)$, and computes decryption key $d_8$.
+        \item Splits $d_8$ among $\mathbb{G}_8$, resulting in shares $[d_8]_5, [d_8]_6, [d_8]_7$.
     \end{itemize}
 
     \item \textbf{Party $P_{10}$}:
     \begin{itemize}
         \item Guardian Set $\mathbb{G}_{10} = \{P_7, P_8, P_9\}$.
-        \item Samples random polynomial $f_{10}(X)$, computes decryption key $d_{10}$, and creates shares for $\mathbb{G}_{10}$.
+        \item Samples random polynomial $f_{10}(X)$, and computes decryption key $d_{10}$.
+        \item Splits $d_{10}$ among $\mathbb{G}_{10}$, resulting in shares $[d_{10}]_7, [d_{10}]_8, [d_{10}]_9$.
+        
     \end{itemize}
 \end{enumerate}
 
@@ -464,26 +471,13 @@ The set \(\{P_3, P_5, P_6, P_7, P_8\}\) ensures Decipherability as it contains a
 
 These findings illustrate the critical roles certain parties play in the FDKG process, underlining the importance of their participation for achieving Decipherability and the risks associated with their absence, which can lead to a Lock-in state.
 
-\subsection*{Decipherability Impact Factor (DIF)}
 
-To quantitatively assess the importance of each party in the Federated Distributed Key Generation (FDKG) process, we introduce a measure named the \textit{Decipherability Impact Factor} (DIF). This measure reflects the significance of a party's participation in terms of its influence on achieving Decipherability and preventing Lock-in.
+\section{Zero-knowledge proofs}
 
-\begin{definition}[Decipherability Impact Factor]
-    The Decipherability Impact Factor (DIF) for a party $P_i$ is defined as the sum of the inverse of the number of other members in each guardian set to which $P_i$ belongs, weighted by the importance of those sets in achieving Decipherability. Formally, it is given by:
-    \[
-    \text{DIF}(P_i) = \sum_{\mathbb{G}_j \in \mathbb{G} : P_i \in \mathbb{G}_j} \frac{1}{|\mathbb{G}_j| - 1}
-    \]
-    where $\mathbb{G}$ is the set of all guardian sets, and $|\mathbb{G}_j| - 1$ represents the number of other members in the guardian set $\mathbb{G}_j$ excluding $P_i$.
-\end{definition}
+The protocol employes three zero-knowledge proofs to achieve privacy and adhere to the constrains of the protocol's imposed computations.
 
-\textbf{Interpretation:}
-\begin{itemize}
-    \item A higher DIF indicates a more critical role for the party in achieving Decipherability, suggesting that their absence significantly increases the likelihood of a Lock-in.
-    \item A lower DIF suggests that the party's absence can be more easily compensated for by other members of the guardian sets.
-\end{itemize}
+%TODO: describe proof of ballot, partial decryption, tally does not need proof because it's self-proven
 
-
-\section{zkSNARKs for Protocol Adherence}
 
 \section{Privacy and Availability Considerations}
 
