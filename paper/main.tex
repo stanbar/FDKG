@@ -6,6 +6,7 @@
 \usepackage{float}
 \usepackage{etoolbox}
 \usepackage{hyperref}
+\usepackage{hyperref}
 \usepackage{tikz}
 \usepackage{fontawesome}
 \usepackage{caption}
@@ -210,6 +211,56 @@ Zero-fee participation is ensured through the use of a peer-to-peer ad-hoc netwo
 The foundation of the system is an ad-hoc blockchain network.
 
 
+% Party
+\newcommand{\PartySecretKey}[1]{\ensuremath{\textrm{sk}_{#1}}}
+\newcommand{\Party}[1]{\ensuremath{P_{#1}}}
+
+% Voting keys
+\newcommand{\EncryptionKey}{\mathbf{E}}
+\newcommand{\DecryptionKey}{\textbf{d}}
+
+% Partial voting keys
+\newcommand{\PartialDecryptionKey}[1]{\ensuremath{d_{#1}}}
+\newcommand{\PartialEncryptionKey}[1]{\ensuremath{E_{#1}}}
+
+% Ciphertexts
+\newcommand{\EncryptedPartialDecryptionKeyShare}[2]{\ensuremath{C_{#1,#2}}}
+\newcommand{\SetOfEncryptedPartialDecryptionKeys}{\ensuremath{\mathbb{C}}}
+\newcommand{\SetOfFDKG}{\ensuremath{\mathbb{D}}}
+\newcommand{\SetOfSharesOfPartialDecryption}{\ensuremath{\mathbb{C}}}
+
+% Shares
+\newcommand{\IthShareOf}[2]{\ensuremath{[#1]_{#2}}}
+\newcommand{\IthDecryptionKeyShare}[1]{\IthShareOf{d}{#1}}
+\newcommand{\IthEncryptionKeyShare}[1]{\IthShareOf{E}{#1}}
+
+% Private channel
+\newcommand{\DecryptionUsingOf}[2]{\ensuremath{\texttt{Dec}_{#1}(#2)}}
+\newcommand{\EncryptionUsingOf}[2]{\ensuremath{\texttt{Enc}_{#1}(#2)}}
+
+\newcommand{\PartialDecryptionKeyShare}[2]{\ensuremath{[d_{#1}]_{#2}}}
+
+
+\newcommand{\ProofFDKG}[1]{\ensuremath{\textrm{PROOF}_{#1,\textrm{FDKG}}}}
+\newcommand{\ProofBALLOT}[1]{\ensuremath{\textrm{PROOF}_{#1,\textrm{BALLOT}}}}
+\newcommand{\ProofPD}[2]{\ensuremath{\textrm{PROOF}_{#1,#2,\textrm{PD}}}}
+\newcommand{\Ballot}[1]{\ensuremath{B_{#1}}}
+
+\newcommand{\Generator}[1]{\ensuremath{H_{#1}}}
+\newcommand{\BlindingFactor}[1]{\ensuremath{r_{i}}}
+\newcommand{\Vote}[1]{\ensuremath{v_{#1}}}
+
+\newcommand{\GuardianSetOf}[1]{\ensuremath{\mathbb{G}_{#1}}}
+\newcommand{\TotalA}{\ensuremath{C1}}
+\newcommand{\TotalB}{\ensuremath{C2}}
+\newcommand{\BallotA}[1]{\ensuremath{C1_{#1}}}
+\newcommand{\BallotB}[1]{\ensuremath{C2_{#1}}}
+
+
+
+% Partial Decryption Results
+\newcommand{\SharePartialDecryptionFromTo}[2]{\ensuremath{[\TotalA \cdot d_{#1}]_{#2}}}
+
 \section{Voting Protocol}
 Our voting protocol is a combination of 3-round voting scheme proposed in~\cite{schoenmakersLectureNotesCryptographic2018}, multi-candidate encoding proposed in~\cite{haoAnonymousVotingTworound2010}, and Federated DKG that we propose in this paper. 
 
@@ -221,83 +272,20 @@ We use Threshold ElGamal Cryptosystem which guarantees the decryptiability even 
     \item Authenticated public channels are available for every participant, achieved by a public message board and digital signatures.
     \item Private channels are available for every participant, achieved by a public message board, and ElGamal public key encryption.
     \item The set of all $n$ participants $\vec{P} = \{P_1,\dots,P_n\}$ is publicly known. 
-    \item Each participant $P_i$ consists of key pair $(s_i, P_i)$, where $s_{i} \in_{R} \mathbb{Z}_q$ is a randomly selected secret key, and $P_{i} = s_i \times G$ is the corresponding public-key. We use the same notation for a party and its public key, $P_i$, as parties are identified by their public keys only.
+    \item Each participant \Party{i} consists of key pair (\PartySecretKey{i}, \Party{i}), where $\PartySecretKey{i} \in_{R} \mathbb{Z}_q$ is a randomly selected secret key, and $\Party{i} = \PartySecretKey{i} \times G$ is the corresponding public-key. We use the same notation for a party and its public key, \Party{i}, as parties are identified by their public keys only.
     \item We use Elliptic Curve Cryptography, specifically \href{babyJubJub curve}{https://z.cash/technology/jubjub/}.
     \item \begin{enumerate}
         \item Participation in the protocol is equivalent to agreeing to:
         \item Elliptic Curve $E(\mathbb{Z}_q)$, with the base (generator) point on the curve $G$;
         \item set of eligible voters (participants) $\vec{P}$, where $n$ is the number of all voters;
-        \item candidate options $\vec{C}=\{C_1, \dots, C_l\}$, where $l$ is the number of all candidates.
+        \item set of $l$ options $\vec{C}=\{C_1, \dots, C_l\}$, where $l$ is the number of all candidates. % TODO fix
     \end{enumerate}
     \item Public-key encryption is realised using ElGamal cryptosystem. $EG_{P}(\cdot)$ is the encryption algorithm for public key $P$, and $EG_{s}(\cdot)$ is the decryption algorithm using corresponding secret key $s$.
-    \item Each participant $P_i$ consists of key pair $(sk_i, P_i)$, where $sk_{i} \in_{R} \mathbb{Z}_q$ is a randomly selected secret key and $P_{i} = sk_i \times G$ the corresponding public key. We use the same notation for a party and its public key, $P_i$, as parties are identified by their public keys only.
 \end{enumerate}
 
-
-\subsection{Federated Distributed Key Generation}
-The goal of DKG protocol is to jointly generate the voting key-pair without any party learning the secret (decryption) key. Each party $P_1,\dots,P_n$ learns only its share of the secret (decryption) key, while public (encryption) key is publicly known. Moreover we want the threshold property, meaning that, not every party that participated in the key generation needs to participate in the tally phase.
-
-\subsubsection*{Secret Sharing}
-
-Threshold secret sharing can be done using Shamir Secret Sharing (SSS), which allows a dealer to encode secret key $s$ into a random polynomial $f(X) = a_0 + a_1X + a_2X^2 + \dots + a_{t-1}X^{t-1}$, where $a_0,a_1,\dots,a_{t-1} \in_R \mathbb{F}_q$; the secret key $s=a_0=f(0)$ and $t-1$ is the degree of polynomial. Following a Lagrage Theorem, $t$ number of points on the polynomial $f(X)$ allows for reconstructing the polynomial and hence extract secret key by computing $s = a_0 = f(0)$. The shares are distributed to parties $P_i, 1 \leq i \leq n$, by evaluating function at a corresponding point $(x=i,y=f(i))$. The polynomial of degree $t$ can be reconstructed with $t+1$ points using Lagrange Interpolation.
-
-\subsubsection{Distributed Key Generation}
-Since we don't want any party to become a dealer (and learn the secret $decryption$ key), we have to distribute the generation of polynomial $\mathbf{f}(X) \in_R \mathbb{Z}_q[X]$ across all parties $\mathbb{P}$. It is done by having each party pick a random polynomial $f_{i}(X) \in \mathbb{Z}_q[X]$, and then define the final polynomial $$\mathbf{f}(X)=\sum_{i=1}^{n}f_i(X)$$. Hence, the voting secret (decryption) key $\mathbf{d}$ and voting public (encryption) key $\mathbf{E}$ are: $$\mathbf{d}=\mathbf{f}(0)$$ $$\mathbf{E}=\mathbf{d}\times G$$. 
-
-To prevent misbehaviour of parties (sending arbitrary values) we use a more sophisticated version of SS called Publicly Verifiable Secret Sharing (\href{PVSS}{https://www.win.tue.nl/~berry/papers/crypto99.pdf}), which involves zero-knowledge proofs attesting that the correct relation between values holds.
-
-
-\subsubsection{Dynamic Distributed Key Generation}
-Distributed Key Generation in its original form requires known and fixed number of participants. It's because, underneath, it relies on SSS which uses polynomials of known degree $t$. The degree is fixed at the beginning of the protocol and can not be changed.
-
-\textbf{We want the DKG phase to be optional}, so the total number of participants is unknown, and so the $t$ is also unknown. As a result, we need a scheme that allows for dynamic updating the number of participants and the threshold.
-
-To our best knowledge, the scheme which allows for dynamic DKG~\cite{delerableeDynamicThresholdPublickey2008} requires all parties to be online for the duration of the DKG (possible a few hours). It's done by reconstructing the key by current participants and resharing it again with the new participant.
-
-We believe it is an unpractical assumption. We want the protocol to be non-interactive, meaning that the party sends only one message and then can leave.
-
-% consider this path of reasoning:
-% - We want the DKG and Tally rounds to be optional
-% - Threshold Encryption works on Shamir Secret Sharing (SSS)
-% - SSS works on polynomials
-% - Polynomials have to have a defined fixed degree $t$
-% - We want the DKG phase to be optional, so the total number of participants is unknown, and so the $t$ is also unknown
-% - Therefore, we can not define the polynomial of unknown size
-
-
-\subsection{Federated Distributed Key Generation}
-
-We propose a novel technique for dynamic DKG that works similarly to \href{Stellar Consensus Protocol}{https://developers.stellar.org/docs/fundamentals-and-concepts/stellar-consensus-protocol}~\cite{mazieresStellarConsensusProtocol2015}.
-
-Every party can (but does not have to) participate in the DKG phase. The actual number of parties that participate is denoted by $m$ where the maximum number is $n$. Since we focus on small scale votings where participants know each other, we make a social assumption, that each participant trusts $k$ other parties. Then we chose a threshold $t$ of parties, which allows for key reconstruction. Numbers $k$ and $t$ are public parameters agreed by each party.
-
-
-For each party $P_i \in \mathbb{D}$, where $\mathbb{D} \subseteq  \mathbb{P}$ is a subset of parties participating in DKG:
-\begin{itemize}
-    \item Chose a guardian set of $k$ parties  $\mathbb{G}_i=\{P_{i_1},P_{i_2},\dots,P_{i_k}\}\subseteq \mathbb{P}/P_i$.
-    \item Sample a random polynomial $f_{i}(X) \in_R \mathbb{Z}_q[X]$ of degree $t-1$.
-    \item Compute decryption (secret) key $d_{i}= f_i(0)$ and encryption (public) key $E_{i} = d_i \times G$.
-    \item Create a t-of-k access structure for $d_i$ using Publicly Verifiable Secret Sharing (PVSS).
-    \item For each guardian $P_{i,j} \in \mathbb{G}_i$, $1 \leq j \leq k$, create a secret share $f_i(j)$, encrypt it $C_{i,j}=\texttt{Enc}_{P_j}(f_i(j))$.
-    
-    \item create a zero-knowledge proof $\textrm{PROOF}_\textrm{FDKG}$ = “I know $f_i$ s.t. given $j, P_j$, and $C_{i,j}$, the $C_{i,j}$ is an encrypted value of a polynomial $f_i(\cdot)$ applied to $j$".
-    \item Broadcast $(E_i,C_{i,j}, \textrm{PROOF}_\textrm{FDKG})$.
-\end{itemize}
-
-\paragraph*{State after round 1. FDKG}
-
-After the DKG has been completed (once it reached $n$ messages or after some predefined period). The message board state looks as follows:
-- $\{E_{i} : 1 \leq i \leq m\}$, shares of voting public key.
-- $\{\sigma_{i} : 1 \leq i \leq m\}$, proofs of exponents.
-- $\{\{EG_{P_{j}}(\vec{d}_{i}[j]) : j \in \{1\dots k\}\} : 1 \leq i \leq m \}$, encrypted shares of shares of voting secret key.
-
-The voting encryption key $\textbf{E}$ can be reconstructed by everyone by computing $\mathbf{E}=\sum_{i=1}^{n} E_{i}$.
-
-The share of voting decryption key $\mathbf{D_i}$ can be reconstructed by party $P_i$ by computing $\mathbf{D}_{i}=\sum_{j=1}^{m} EG_{s_{i}}(d_{ji})$.
-
-
-
 \subsubsection{Private Channel}
+
+Each user can use private channel via
 
 \begin{algorithm}
     \SetAlgoNlRelativeSize{0}
@@ -337,59 +325,170 @@ The share of voting decryption key $\mathbf{D_i}$ can be reconstructed by party 
 
 
 
-\subsection{Casting votes}
+\subsection{Federated Distributed Key Generation}
+The goal of DKG protocol is to jointly generate the voting key-pair without any party learning the secret (decryption) key. Each party $P_1,\dots,P_n$ learns only its share of the secret (decryption) key, while public (encryption) key is publicly known. Moreover we want the threshold property, meaning that, not every party that participated in the key generation needs to participate in the tally phase.
 
-Every party can (but does not have to) participate in the voting phase. The actual number of parties that participated is denoted by $k$ where the maximum number is $n$.
+\subsubsection*{Secret Sharing}
 
-For each voter $P_i \in \mathbb{V}$, where $\mathbb{V} \subseteq  \mathbb{P}$ is a subset of parties participating in voting:
+Threshold secret sharing can be done using Shamir Secret Sharing (SSS), which allows a dealer to encode secret key $s$ into a random polynomial $f(X) = a_0 + a_1X + a_2X^2 + \dots + a_{t-1}X^{t-1}$, where $a_0,a_1,\dots,a_{t-1} \in_R \mathbb{F}_q$; the secret key $s=a_0=f(0)$ and $t-1$ is the degree of polynomial. Following a Lagrage Theorem, $t$ number of points on the polynomial $f(X)$ allows for reconstructing the polynomial and hence extract secret key by computing $s = a_0 = f(0)$. The shares are distributed to parties $P_i, 1 \leq i \leq n$, by evaluating function at a corresponding point $(x=i,y=f(i))$. The polynomial of degree $t$ can be reconstructed with $t+1$ points using Lagrange Interpolation.
+
+\subsubsection{Distributed Key Generation}
+Since we don't want any party to become a dealer (and learn the secret $decryption$ key), we have to distribute the generation of polynomial $\mathbf{f}(X) \in_R \mathbb{Z}_q[X]$ across all parties $\mathbb{P}$. It is done by having each party pick a random polynomial $f_{i}(X) \in \mathbb{Z}_q[X]$, and then define the final polynomial \[\mathbf{f}(X)=\sum_{i=1}^{n}f_i(X)\] Hence, the voting secret (decryption) key $\mathbf{d}$ and voting public (encryption) key $\mathbf{E}$ are: $$\mathbf{d}=\mathbf{f}(0)$$ $$\mathbf{E}=\mathbf{d}\times G$$. 
+
+To prevent misbehaviour of parties (sending arbitrary values) we use a more sophisticated version of SS called Publicly Verifiable Secret Sharing (\href{PVSS}{https://www.win.tue.nl/~berry/papers/crypto99.pdf}), which involves zero-knowledge proofs attesting that the correct relation between values holds.
+
+
+\subsubsection{Dynamic Distributed Key Generation}
+Distributed Key Generation in its original form requires known and fixed number of participants. It's because, underneath, it relies on SSS which uses polynomials of known degree $t$. The degree is fixed at the beginning of the protocol and can not be changed.
+
+\textbf{We want the DKG phase to be optional}, so the total number of participants is unknown, and so the $t$ is also unknown. As a result, we need a scheme that allows for dynamic updating the number of participants and the threshold.
+
+To our best knowledge, the scheme which allows for dynamic DKG~\cite{delerableeDynamicThresholdPublickey2008} requires all parties to be online for the duration of the DKG (possible a few hours). It's done by reconstructing the key by current participants and resharing it again with the new participant.
+
+We believe it is an unpractical assumption. We want the protocol to be non-interactive, meaning that the party sends only one message and then can leave.
+
+% consider this path of reasoning:
+% - We want the DKG and Tally rounds to be optional
+% - Threshold Encryption works on Shamir Secret Sharing (SSS)
+% - SSS works on polynomials
+% - Polynomials have to have a defined fixed degree $t$
+% - We want the DKG phase to be optional, so the total number of participants is unknown, and so the $t$ is also unknown
+% - Therefore, we can not define the polynomial of unknown size
+
+
+\subsection{Round 1. Federated Distributed Key Generation}
+
+We propose a novel technique for dynamic DKG that works similarly to \href{Stellar Consensus Protocol}{https://developers.stellar.org/docs/fundamentals-and-concepts/stellar-consensus-protocol}~\cite{mazieresStellarConsensusProtocol2015}.
+
+Every party can (but does not have to) participate in the DKG phase. The actual number of parties that participate is denoted by $m$ where the maximum number is $n$. Since we focus on small scale votings where participants know each other, we make a social assumption, that each participant trusts $k$ other parties. Then we chose a threshold $t$ of parties, which allows for key reconstruction. Numbers $k$ and $t$ are public parameters agreed by each party.
+
+
+For each party $\Party{i} \in \mathbb{D}$, where $\mathbb{D} \subseteq  \mathbb{P}$ is a subset of parties participating in DKG:
+\begin{itemize}
+    \item Chose a guardian set of $k$ parties  $\mathbb{G}_i\subseteq \mathbb{P}/P_i$.
+    \item Sample a random polynomial $f_{i}(X) \in_R \mathbb{Z}_q[X]$ of degree $t-1$.
+    \item Compute partial decryption (secret) key $\PartialDecryptionKey{i}= f_i(0)$ and partial encryption (public) key $\PartialEncryptionKey{i} = \PartialDecryptionKey{i} \times G$.
+    \item Create a t-of-k access structure for \PartialDecryptionKey{i} using Publicly Verifiable Secret Sharing (PVSS). For each guardian $P_{j} \in \mathbb{G}_i$, create a partial decryption key share $\PartialDecryptionKeyShare{i}{j}=f_i(j)$.
+    \item Encrypt the partial decryption key share $\EncryptedPartialDecryptionKeyShare{i}{j}=\EncryptionUsingOf{\Party{j}}{\PartialDecryptionKeyShare{i}{j}}$.
+    
+    \item Create a zero-knowledge proof \ProofFDKG{i} = “I know $f_i$ s.t. given $j, \Party{j}$, and \EncryptedPartialDecryptionKeyShare{i}{j}, the \EncryptedPartialDecryptionKeyShare{i}{j} is an encrypted value of a polynomial $f_i(\cdot)$ applied to $j$". The detailed description is presented in Section~\ref{sec:proof-fdkg}.
+    \item Broadcast (\PartialEncryptionKey{i},\EncryptedPartialDecryptionKeyShare{i}{j}, \ProofFDKG{i}).
+\end{itemize}
+
+\paragraph*{State after round 1. FDKG}
+
+After the FDKG has been completed (once it reached $n$ messages or after a predefined period). The message board state looks as follows:
+\begin{itemize}
+    \item $\{\PartialEncryptionKey{i} : 1 \leq i \leq m\}$, parts of the voting encryption key.
+    \item $\SetOfEncryptedPartialDecryptionKeys = \bigcup_{i=1}^{m} \{C_{i,j} \mid P_j \in \mathbb{G}_i\}$, the set of all encrypted shares of partial decryption key sent from all parties to all other parties in their respective guardian sets.
+    \item $\{\ProofFDKG{i} : 1 \leq i \leq m\}$, zero-knowledge proofs of message correctness.
+\end{itemize}
+
+
+
+The voting encryption key \EncryptionKey{} can be reconstructed by everyone by computing $\EncryptionKey=\sum_{i=1}^{n} \PartialEncryptionKey{i}$.
+
+
+\subsection{Round 2. Casting votes}
+
+Every party optionally can participate in the voting phase. The actual number of parties that participated is denoted by $k$ where the maximum number is $n$.
+
+For each voter $\Party{i} \in \mathbb{V}$, where $\mathbb{V} \subseteq  \mathbb{P}$ is a subset of parties participating in voting:
+
 
 \begin{enumerate}
-    \item Select a vote $v_{ij} \in \{0,1\} \simeq \{\textrm{"no", "yes"}\}$ for each candidate $j \in \{1 \dots l\}$.
-    \item Compute a ballot using ElGamal encryption for $B_i = (r_i G,\ r_i \mathbf{E} + v_{i1} H_1 + \dots + v_{il} H_l)$, where 
-    \item \begin{enumerate}
-        \item $r_{i} \in_{R} \mathbb{Z}_q$ is a blinding factor for user $i$, and 
-        \item $H_{1,}\dots, H_{l}$ are independent generators (one for each candidate).
-    \end{enumerate}
-    \item Compute a zero-knowledge proof $\textrm{PROOF}_\textrm{BALLOT}$ = “I know $r_i, v_{i1},\dots,v_{ij}$ s.t.$\sum_{j= 1 \dots l}v_{ij}=1$ and $\forall_{j=1}^{l}v_{ij}=1 \lor v_{ij}=0$ and $B_i$ is a correctly encrypted ballot using those values”
-    \item Broadcast $(B_i,\textrm{PROOF}_\textrm{FDKG})$.
+    \item Encode a multi-candidate ballot using a method specified in~\cite{baudronPracticalMulticandidateElection2001}. A vote for candidate 1 is encoded as $2^0$, for candidate 2 as $2^j$, for candidate 3 is $2^{2j}$ and so on, where $j$ is the smallest integer such that $2^j > n$. In other words, a vote is defined as \[\Vote{i}\ =\ \begin{cases} 2^0 & \text{if } P_i \text{ votes candidate 1} \\ 2^j & \text{if } P_i \text{ votes candidate 2} \\ \vdots & \vdots \\ 2^{(l-1)j} & \text{if } P_i \text{ votes candidate $l$}\end{cases}\]
+    
+    \item Encrypt it using ElGamal encryption $\Ballot{i} = (\BlindingFactor{i} G,\ \BlindingFactor{i} \EncryptionKey{} + \Vote{i})$, where $\BlindingFactor{i} \in_{R} \mathbb{Z}_q$ is a blinding factor for party $\Party{i}$.
+    \item Compute a zero-knowledge proof \ProofBALLOT{i} = “Given \EncryptionKey{} and \Ballot{i}, I know \BlindingFactor{i}, and \Vote{i} s.t. $\Vote{i} \in \{2^0, 2^j, \ldots, 2^{(l-1)j}\}$ and $\Ballot{i} = (\BlindingFactor{i} G,\ \BlindingFactor{i} \EncryptionKey{} + \Vote{i})$”. The detailed description is presented in Section~\ref{sec:proof-ballot}.
+    \item Broadcast (\Ballot{i},\ProofBALLOT{i}).
 \end{enumerate}
 
 \paragraph{State after voting}
 
 After the voting phase has completed (once it reached $n$ messages or after a predefined period). The message board state is appended by:
-- $\{(B_{i}, \sigma_i) : 1 \leq i \leq k\}$, set of encrypted votes casted by $k$ voters, along with ZKPs showing that $v_{ij}$ is one of $\{0,1\}$.
+\begin{itemize}
+    \item $\{\Ballot{i} : 1 \leq i \leq k\}$, set of encrypted votes casted by $k$ voters.
+    \item $\{\ProofBALLOT{i} : 1 \leq i \leq k\}$, proofs of message correctness.
+\end{itemize}
 
-\subsection{Tally}
+\subsection{Round 3. Tally}
 
 Tally consists of two phases
 \subsubsection{Online Tally}
 
-For each party $P_i \in \mathbb{T}$, where $\mathbb{T} \subseteq  \mathbb{D}$ is a subset of parties participating in the Threshold ElGamal Decryption. $\mathbb{T}$ must include at least $t \leq k$ parties from every set of guardians $\mathbb{G}_1,\dots,\mathbb{G}_{|\mathbb{D}|}$.
+For each party $\Party{i} \in \mathbb{T}$, where $\mathbb{T} \subseteq  \mathbb{D}$ is a subset of parties participating in the Threshold ElGamal Decryption. $\mathbb{T}$ must include at least $t \leq k$ parties from every set of guardians \GuardianSetOf{1},\dots,\GuardianSetOf{|\mathbb{D}|}.
 \begin{enumerate}
-    \item Sum the first part of the ballots $A = \sum_{i \in 1 \dots |\mathbb{V}|} C1_i = \sum_{i \in 1 \dots |\mathbb{V}|} r_{i} \times G$, where $(C1_i,C2_i)=B_i$.
-    \item  Calculate the share of the decryption key $d_i=\sum_{f_j(i) \in S_i} f_j(i) \lambda_{j,i}$, where $S_i$ is a set of shares $f_j(i)$, where $P_i$ is in $P_j$'s guardian set $\mathbb{G}_j$, and $\lambda_{j,i}=\prod_{k \in \mathbb{G}_j \setminus \{i\}} \frac{k}{k-i}$ denotes Lagrange coefficients. 
-    \item Calculate partial decryption $A_i = A \cdot d_i$.
-    \item Compute a zero-knowledge proof $\textrm{PROOF}_\textrm{PD}$ = “I know all shares $f_j(i)$ from encrypted shares $C_{j,i}=\texttt{Enc}_{P_i}(f_j(i))$ s.t. $A_i = A \cdot d_i$" 
-    \item %TODO: Formall definition is given in Section \ref{proofs}
-    \item Broadcast partial decryption $(PD_i, \textrm{PROOF}_\textrm{FDKG})$
+    \item Sum the first part of the ballots $\TotalA = \sum_{i \in 1 \dots |\mathbb{V}|} \BallotA{i} = \sum_{i \in 1 \dots |\mathbb{V}|} \BlindingFactor{i} \times G$, where (\BallotA{i},\BallotB{i})=\Ballot{i}.
+    \item For each received encrypted share $\EncryptedPartialDecryptionKeyShare{j}{i} \in \{ \EncryptedPartialDecryptionKeyShare{j}{i} | \Party{j} \in \mathbb{D} \setminus \{\Party{i}\} \text{ and } \Party{i} \in \GuardianSetOf{j}\}$ \begin{enumerate}
+        \item Decrypt \PartialDecryptionKeyShare{j}{i}=\DecryptionUsingOf{\PartySecretKey{i}}{\EncryptedPartialDecryptionKeyShare{j}{i}}
+        \item Compute share of partial decryption  $\SharePartialDecryptionFromTo{j}{i} = \TotalA \cdot \PartialDecryptionKeyShare{j}{i}$. % TODO: decide if I want to introduce new variable PD or use [C1*d_i]_k
+        \item Compute a zero-knowledge proof \ProofPD{i}{j} = “Given $\SharePartialDecryptionFromTo{j}{i}, \EncryptedPartialDecryptionKeyShare{j}{i}, \TotalA$, I know a secret key $\PartySecretKey{i}$ s.t. $\SharePartialDecryptionFromTo{j}{i} = \TotalA \cdot \PartialDecryptionKeyShare{j}{i}$ where $\PartialDecryptionKeyShare{j}{i} = \DecryptionUsingOf{\PartySecretKey{i}}{\EncryptedPartialDecryptionKeyShare{j}{i}}$". The detailed description is presented in Section~\ref{sec:proof-pd}
+        \item Broadcast partial decryption $(\SharePartialDecryptionFromTo{j}{i}, \ProofPD{i}{j})$
+    \end{enumerate}
+    
 \end{enumerate}
+
+\paragraph{State after online tally}
+
+After the online tally phase has completed (once it received partial decryption for all \SetOfEncryptedPartialDecryptionKeys{} or from all parties in \SetOfFDKG{} or after a predefined period). The message board state is appended by:
+\begin{itemize}
+    \item $\SetOfSharesOfPartialDecryption = \bigcup_{P_i \in \mathbb{T}} \{ \SharePartialDecryptionFromTo{j}{i} | \Party{j} \in \mathbb{D} \setminus \{\Party{i}\} \text{ and } \Party{i} \in \GuardianSetOf{j}\}$, set of shares of partial decryption.
+    \item $\{\ProofPD{i}{j} : 1 \leq i \leq k\}$, proofs of message correctness. % TODO formalise the set builder
+\end{itemize}
 
 \subsubsection{Offline Tally}
 
 Anyone can calculate the voting results:
 \begin{enumerate}
-    \item Sum the first part of the ballots $C2 = \sum_{i \in 1 \dots |\mathbb{V}|} C2_i = \sum_{i \in 1 \dots |\mathbb{V}|} r_i \mathbf{E} + v_{i1} H_1 + \dots + v_{il} H_l$, where $(C1_i,C2_i)=B_i$
-    \item Sum the partial descriptions $Z=\sum_{i \in 1 \dots |\mathbb{V}|} A_i = \sum_{i \in 1 \dots |\mathbb{V}|} A \sum_{f_j(i) \in S_i} f_j(i) \lambda_{j,i} = A \cdot d$
-    \item The decryption is $M=C2-Z=x_1 H_1 + \dots + x_l H_l$
-    \item $M=C2-Z=x_1 H_1 + \dots + x_l H_l$ because,
-    \item $\begin{aligned} M&=C2-Z \\
-        &= \sum_{i=1}^k ( r_{i} \times \mathbf{E}) + H_1 \times \sum_{i=1}^k v_{i1} + \dots + H_l \times \sum_{i=1}^k v_{il} - Z\\
-        &= \sum_{i=1}^k ( r_{i} \times \mathbf{E}) + H_1 \times \sum_{i=1}^k v_{i1} + \dots + H_l \times \sum_{i=1}^k v_{il} - \sum_{i=1}^k r_{i} \times \mathbf{E}\\
-        &= H_1 \times \sum_{i=1}^k v_{i1} + \dots + H_l \times \sum_{i=1}^k v_{il}\\
-        &= x_1 H_1 + \dots + x_l H_l\\
+    \item Sum the second part of the ballots $\TotalB = \sum_{i \in 1 \dots |\mathbb{V}|} \BallotB{i} = \sum_{i \in 1 \dots |\mathbb{V}|} \BlindingFactor{i} \EncryptionKey + \Vote{i}$, where $(\BallotA{i},\BallotB{i})=\Ballot{i}$ %TODO: update ballot formating
+    
+    \item Sum the partial descriptions multiplied by Lagrange coefficient (as defined in \ref{sef:shamir-secret-sharing}) $Z=\sum_{\SharePartialDecryptionFromTo{j}{i} \in \SetOfSharesOfPartialDecryption} \SharePartialDecryptionFromTo{j}{i} = \TotalA \sum  \PartialDecryptionKeyShare{j}{i} \lambda_{j,i} = \TotalA \cdot \DecryptionKey{}$
+    
+    \item The decryption is $M=\TotalB{} - Z=x_1 2^0 + x_2 2^j + \dots + x_l 2^{(l-1)j}$, because $\begin{aligned} M&=C2-Z \\
+        &= (\sum_{i=1}^k r_{i} \mathbf{E} + \sum^{x_1} 2^0 + \sum^{x_2} 2^j + \dots + \sum^{x_l} 2^{(l-1)j}) - Z\\
+        &= (\sum_{i=1}^k r_{i} \mathbf{E} + x_1 2^0 + x_2 2^j + \dots + x_l 2^{(l-1)j}) - \sum_{i=1}^k r_{i} \mathbf{E}\\
+        &= \sum_{i=1}^k r_{i} \mathbf{E} + x_1 2^0 + x_2 2^j + \dots + x_l 2^{(l-1)j} - \sum_{i=1}^k r_{i} \mathbf{E}\\
+        &= x_1 2^0 + x_2 2^j + \dots + x_l 2^{(l-1)j}\\
         \end{aligned}$
-    \item To extract $x_c$ we have to solve Elliptic-Curve Discrete Logarithm Problem. However, because $x_c$ is a small number $0 \leq x_c \leq |\mathbb{V}|$ it is feasible. To extract each $x_i$ we use the technique described in~\cite{haoAnonymousVotingTworound2010}.
+    \item To extract $x_i$ we have to solve Elliptic-Curve Discrete Logarithm Problem. However, because $x_i$ is a small number $0 \leq x_i \leq |\mathbb{V}|$ it is feasible problem. To extract each $x_i$ we use the technique described in~\cite{haoAnonymousVotingTworound2010}.
 \end{enumerate}
+
+\section{zk-SNARK}
+%TODO: Rewrite and rephrase with ChatGPT!
+zk-SNARK (Zero-Knowledge Succinct Non-Interactive Argument of Knowledge) is a cryptographic technique enabling one party to prove to another that a statement is true without revealing any information beyond the validity of the statement itself.~\cite{grothSizePairingbasedNoninteractive2016}.
+
+
+Suppose an arithmetic circuit $C$ with a relation $\mathcal{R}_C$ and a language $\mathcal{L}_C$ takes as input a statement $\vec{s}$ and a witness $\vec{w}$ s.t. $(\vec{s}, \vec{w}) \in \mathcal{R}_C$. A zk-SNARK for this arithmetic circuit satisfiability is defined by the following triple of polynomial time algorithms~\cite{grothSizePairingbasedNoninteractive2016,parnoPinocchioNearlyPractical2013}:
+\begin{itemize}
+    \item $\textrm{(pk,vk)} \gets \textrm{Setup}(1^\lambda,C)$. Given a security parameter $\lambda$ and the circuit $C$, the algorithm generates a common reference string (CRS) that contains a pair of keys; a proving key $\textrm{pk}$ and a verifying key $\textrm{vk}$. Both keys are considered as public parameters for the circuit $C$.
+    \item $\pi \gets \textrm{Prove}(\textrm{pk}, \vec{s}, \vec{w})$. Given a proving key $\textrm{pk}$, a statement $\vec{s}$ and a witness $\vec{w}$ s.t. $(\vec{s}, \vec{w}) \in \mathcal{R}_C$, the algorithm generates a zero-knowledge non-interactive proof $\pi$ for the statement $\vec{s} \in \mathcal{L}_C$ that reflects the relation between $\vec{s}$ and $\vec{w}$.
+    \item $0/1 \gets \textrm{Verify}(\textrm{vk}, \vec{s}, \pi)$. Given a verifying key $\textrm{vk}$, the statement $\vec{s}$, and the proof $\pi$, the algorithm outputs 1 if $\pi$ is  a valid proof for the statement $\vec{s} \in \mathcal{L}_C$, and outputs 0 otherwise.
+\end{itemize}
+
+Typically, a zk-SNARK provides the following security properties:
+\begin{itemize}
+    \item \textbf{Perfect Completeness}: For each valid statement $\vec{s}$ with a valid witness $\vec{w}$ s.t. $(\vec{s}, \vec{w}) \in \mathcal{R}_C$, an honest prover always convinces an honest verifier, i.e., $\textrm{Verify}(\textrm{vk}, \vec{s}, \pi)$ outputs 1 with a probability equal to 1.
+    \item \textbf{Computational Soundness}: A polynomial-time malicious prover cannot convince the verifier of a false statement, i.e., $\textrm{Verify}(\textrm{vk}, \vec{s}, \pi)$ outputs 1 with a probability $\approx$ 0 when the statement $\vec{s} \notin \mathcal{L}_C$.
+    \item \textbf{Computational Zero-Knowledge}: A polynomial-time adversary cannot extract any information about the witness $\vec{w}$ from the honestly-generated proof $\pi$. 
+    \item \textbf{Succinctness}. A zk-SNARK is succinct if the honesty-generated proof size $|\pi|$ is polynomial in $\lambda$ and verify $\textrm{Verify}(\textrm{vk}, \vec{s}, \pi)$ runs in polynomial time in $\lambda + |\vec{s}|$
+\end{itemize}
+%TODO: Rewrite and rephrase with ChatGPT!
+
+We use the zkSNARK to prove the correctness of computation in privacy-preserving manner.
+The protocol employes three zero-knowledge proofs to achieve privacy and adhere to the constrains of the protocol's imposed computations.
+
+%TODO: describe proof of ballot, partial decryption, tally does not need proof because it's self-proven
+
+\subsection{\textrm{PROOF}_\textrm{FDKG}}\label{sec:proof-fdkg}
+Informal proof $\textrm{PROOF}_\textrm{FDKG}$
+
+\subsection{\textrm{PROOF}_\textrm{BALLOT}}\label{sec:proof-ballot}
+Informal proof $\textrm{PROOF}_\textrm{BALLOT}$
+
+\subsection{\textrm{PROOF}_\textrm{PD}}\label{sec:proof-pd}
+Informal proof $\textrm{PROOF}_\textrm{PD}$ 
+
 
 \section{Security Analysis}
 
@@ -414,8 +513,7 @@ Anyone can calculate the voting results:
 
 
 \subsection*{FDKG Example}
-
-Consider a set of parties $\{P_1, \ldots, P_{10}\}$. In this setting, we have $k = 3$ and $t = 2$. A subset of these parties, specifically $\mathbb{D} = \{P_1, P_4, P_8, P_{10}\}$, participate in the FDKG, each forming its own guardian set. Figure \ref{fig:FDKG} illustrates this setting.
+For better understanding of the protocol we present a following example. Consider a set of parties $\{P_1, \ldots, P_{10}\}$. In this setting, we have $k = 3$ and $t = 2$. A subset of these parties, specifically $\mathbb{D} = \{P_1, P_4, P_8, P_{10}\}$, participate in the FDKG, each forming its own guardian set. Figure \ref{fig:FDKG} illustrates this setting.
 
 
 \begin{figure}
@@ -472,11 +570,6 @@ The set \(\{P_3, P_5, P_6, P_7, P_8\}\) ensures Decipherability as it contains a
 These findings illustrate the critical roles certain parties play in the FDKG process, underlining the importance of their participation for achieving Decipherability and the risks associated with their absence, which can lead to a Lock-in state.
 
 
-\section{Zero-knowledge proofs}
-
-The protocol employes three zero-knowledge proofs to achieve privacy and adhere to the constrains of the protocol's imposed computations.
-
-%TODO: describe proof of ballot, partial decryption, tally does not need proof because it's self-proven
 
 
 \section{Privacy and Availability Considerations}
@@ -507,11 +600,11 @@ The protocol employes three zero-knowledge proofs to achieve privacy and adhere 
     \hline
     \multicolumn{5}{|c|}{PLONK} \\
     \hline
-    \multicolumn{3}{|c|}{PVSS} & \multirow{2}{*}{Encrypt ballot} & \multirow{2}{*}{Partial decryption} \\
+    \multicolumn{3}{|c|}{\textrm{PROOF}_\textrm{FDKG}} & \multirow{2}{*}{\textrm{PROOF}_\textrm{BALLOT}} & \multirow{2}{*}{\textrm{PROOF}_\textrm{PD}} \\
     \cline{1-3}
     1 of 2 & 2 of 3 & 3 of 4 & & \\
     \hline
-    67.753s & 71.902s & 146.026s & 16.822s & 8.602s\\
+    67.753s & 71.902s & 146.026s & 16.822s & 8.602s/share\\
     \hline
 \end{tabular}
 \end{table}
@@ -524,11 +617,11 @@ The protocol employes three zero-knowledge proofs to achieve privacy and adhere 
     \hline
     \multicolumn{5}{|c|}{Groth16} \\
     \hline
-    \multicolumn{3}{|c|}{PVSS} & \multirow{2}{*}{Encrypt ballot} & \multirow{2}{*}{Partial decryption} \\
+    \multicolumn{3}{|c|}{\textrm{PROOF}_\textrm{FDKG}} & \multirow{2}{*}{\textrm{PROOF}_\textrm{BALLOT}} & \multirow{2}{*}{\textrm{PROOF}_\textrm{PD}} \\
     \cline{1-3}
     1 of 2 & 2 of 3 & 3 of 4 & & \\
     \hline
-    1.388s & 2.135s & 2.414s & 0.747s & 0.506s\\
+    1.388s & 2.135s & 2.414s & 0.747s & 0.506s/share\\
     \hline
 \end{tabular}
 \end{table}
@@ -541,11 +634,11 @@ The protocol employes three zero-knowledge proofs to achieve privacy and adhere 
     \hline
     \multicolumn{5}{|c|}{Groth16} \\
     \hline
-    \multicolumn{3}{|c|}{PVSS} & \multirow{2}{*}{Encrypt ballot} & \multirow{2}{*}{Partial decryption per share} \\
+    \multicolumn{3}{|c|}{\textrm{PROOF}_\textrm{FDKG}} & \multirow{2}{*}{\textrm{PROOF}_\textrm{BALLOT}} & \multirow{2}{*}{\textrm{PROOF}_\textrm{PD}} \\
     \cline{1-3}
     1 of 2 & 2 of 3 & 3 of 4 & & \\
     \hline
-    6.476 KB& 8.928 KB & 11.412 KB & 2.310 KB & 2.548 KB\\
+    6.476 KB& 8.928 KB & 11.412 KB & 2.310 KB & 2.548 KB/share\\
     \hline
 \end{tabular}
 \end{table}
@@ -558,7 +651,7 @@ The protocol employes three zero-knowledge proofs to achieve privacy and adhere 
     \hline
     \multicolumn{5}{|c|}{Plonk} \\
     \hline
-    \multicolumn{3}{|c|}{PVSS} & \multirow{2}{*}{Encrypt ballot} & \multirow{2}{*}{Partial decryption per share} \\
+    \multicolumn{3}{|c|}{\textrm{PROOF}_\textrm{FDKG}} & \multirow{2}{*}{\textrm{PROOF}_\textrm{BALLOT}} & \multirow{2}{*}{\textrm{PROOF}_\textrm{PD}} \\
     \cline{1-3}
     1 of 2 & 2 of 3 & 3 of 4 & & \\
     \hline
@@ -582,6 +675,9 @@ Analysis of the measurements shows that time required to find the DLog follows t
 \section{Discussion}
 
 \section{Conclusion and Future Work}
+
+We find two possible paths of optimisations. First is in optimising the proof time and size by batching proofs together. 
+The second one is on implementing the solution on-chain but making it gasless with the use of paymaster introduced in ERC-4337, making the votes gasless.
 
 \section{Acknowledgments}
 
