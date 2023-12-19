@@ -212,11 +212,11 @@ The foundation of the system is an ad-hoc blockchain network.
 
 
 % Party
-\newcommand{\PartySecretKey}[1]{\ensuremath{\textrm{sk}_{#1}}}
+\newcommand{\PartySecretKey}[1]{\ensuremath{s_{#1}}}
 \newcommand{\Party}[1]{\ensuremath{P_{#1}}}
 
 % Voting keys
-\newcommand{\EncryptionKey}{\mathbf{E}}
+\newcommand{\EncryptionKey}{\textbf{E}}
 \newcommand{\DecryptionKey}{\textbf{d}}
 
 % Partial voting keys
@@ -230,9 +230,8 @@ The foundation of the system is an ad-hoc blockchain network.
 \newcommand{\SetOfSharesOfPartialDecryption}{\ensuremath{\mathbb{C}}}
 
 % Shares
-\newcommand{\IthShareOf}[2]{\ensuremath{[#1]_{#2}}}
-\newcommand{\IthDecryptionKeyShare}[1]{\IthShareOf{d}{#1}}
-\newcommand{\IthEncryptionKeyShare}[1]{\IthShareOf{E}{#1}}
+\newcommand{\IthDecryptionKey}[1]{\ensuremath{d_{#1}}}
+\newcommand{\IthEncryptionKey}[1]{E_{#1}}
 
 % Private channel
 \newcommand{\DecryptionUsingOf}[2]{\ensuremath{\texttt{Dec}_{#1}(#2)}}
@@ -242,8 +241,19 @@ The foundation of the system is an ad-hoc blockchain network.
 
 
 \newcommand{\ProofFDKG}[1]{\ensuremath{\textrm{PROOF}_{#1,\textrm{FDKG}}}}
+
+\newcommand{\ProofFDKGInformal}{"Given \EncryptedPartialDecryptionKeyShare{i}{j} and $\Party{j} \in \GuardianSetOf{i}$, I know $f_i = a_0, \dots, a_{t-1}$, $r1_1,\dots,r1_k$, and $r2_1,\dots,r2_k$, s.t. the \EncryptedPartialDecryptionKeyShare{i}{j} is an encrypted value of a polynomial $f_i(\cdot)$ applied to $j$"}
+
 \newcommand{\ProofBALLOT}[1]{\ensuremath{\textrm{PROOF}_{#1,\textrm{BALLOT}}}}
+
+\newcommand{\ProofBALLOTInformal}{"Given \EncryptionKey{} and \Ballot{i} = $(C1, C2)$, I know \BlindingFactor{i}, and \Vote{i} s.t. $\Vote{i} \in \{2^0, 2^j, \ldots, 2^{(l-1)j}\}$ and $\Ballot{i} = (\BlindingFactor{i} G,\ \BlindingFactor{i} \EncryptionKey{} + \Vote{i})$"}
+
 \newcommand{\ProofPD}[2]{\ensuremath{\textrm{PROOF}_{#1,#2,\textrm{PD}}}}
+
+\newcommand{\ProofPDInformal}{"Given $\SharePartialDecryptionFromTo{j}{i}, \EncryptedPartialDecryptionKeyShare{j}{i}, \TotalA$, I know a secret key $\PartySecretKey{i}$ s.t. $\SharePartialDecryptionFromTo{j}{i} = \TotalA \cdot \PartialDecryptionKeyShare{j}{i}$ where $\PartialDecryptionKeyShare{j}{i} = \DecryptionUsingOf{\PartySecretKey{i}}{\EncryptedPartialDecryptionKeyShare{j}{i}}$"}
+
+
+
 \newcommand{\Ballot}[1]{\ensuremath{B_{#1}}}
 
 \newcommand{\Generator}[1]{\ensuremath{H_{#1}}}
@@ -261,23 +271,24 @@ The foundation of the system is an ad-hoc blockchain network.
 % Partial Decryption Results
 \newcommand{\SharePartialDecryptionFromTo}[2]{\ensuremath{[\TotalA \cdot d_{#1}]_{#2}}}
 
+\newcommand{\PartialDecryptionFrom}[1]{\ensuremath{\TotalA \cdot d_{#1}}}
+
 \section{Voting Protocol}
 Our voting protocol is a combination of 3-round voting scheme proposed in~\cite{schoenmakersLectureNotesCryptographic2018}, multi-candidate encoding proposed in~\cite{haoAnonymousVotingTworound2010}, and Federated DKG that we propose in this paper. 
 
-We use Threshold ElGamal Cryptosystem which guarantees the decryptiability even in case of unavaiable guardians.
+We use Threshold ElGamal Cryptosystem which guarantees the decryptiability even in case of unavailable guardians.
 
 \paragraph*{Assumptions}
 \begin{enumerate}
     \item All communication is done over a public Message board.
     \item Authenticated public channels are available for every participant, achieved by a public message board and digital signatures.
     \item Private channels are available for every participant, achieved by a public message board, and ElGamal public key encryption.
-    \item The set of all $n$ participants $\vec{P} = \{P_1,\dots,P_n\}$ is publicly known. 
-    \item Each participant \Party{i} consists of key pair (\PartySecretKey{i}, \Party{i}), where $\PartySecretKey{i} \in_{R} \mathbb{Z}_q$ is a randomly selected secret key, and $\Party{i} = \PartySecretKey{i} \times G$ is the corresponding public-key. We use the same notation for a party and its public key, \Party{i}, as parties are identified by their public keys only.
+    \item Each participant \Party{i} consists of key pair (\PartySecretKey{i}, \Party{i}), where $\PartySecretKey{i} \in_{R} \mathbb{Z}_q$ is a randomly selected secret key, and $\Party{i} = \PartySecretKey{i} G$ is the corresponding public-key. We use the same notation for a party and its public key, \Party{i}, as parties are identified by their public keys only.
     \item We use Elliptic Curve Cryptography, specifically \href{babyJubJub curve}{https://z.cash/technology/jubjub/}.
     \item \begin{enumerate}
         \item Participation in the protocol is equivalent to agreeing to:
         \item Elliptic Curve $E(\mathbb{Z}_q)$, with the base (generator) point on the curve $G$;
-        \item set of eligible voters (participants) $\vec{P}$, where $n$ is the number of all voters;
+        \item set of eligible voters (participants) $\vec{P}=\{P_1,\dots,P_n\}$, where $n$ is the number of all voters;
         \item set of $l$ options $\vec{C}=\{C_1, \dots, C_l\}$, where $l$ is the number of all candidates. % TODO fix
     \end{enumerate}
     \item Public-key encryption is realised using ElGamal cryptosystem. $EG_{P}(\cdot)$ is the encryption algorithm for public key $P$, and $EG_{s}(\cdot)$ is the decryption algorithm using corresponding secret key $s$.
@@ -285,7 +296,9 @@ We use Threshold ElGamal Cryptosystem which guarantees the decryptiability even 
 
 \subsubsection{Private Channel}
 
-Each user can use private channel via
+Each user use a private authenticated channel to send encrypted messages to other parties. We follow the ElGamal encryption on the BabyJub curve scheme as described in~\cite{ElGamalEncryptionDecryption2020,jieWeijiekohElgamalbabyjub2023}.  In this encryption method, we start with a plaintext scalar $m$, which is an element in the BabyJub finite field. To encrypt this scalar, we first change it into a point on the BabyJub elliptic curve using a function \texttt{encodeToMessage}. This function samples a random value \( r \in_{R} \mathbb{Z}_q\), computes a point \( rG \), and subtracts the $m$ value from the x-coordinate of the point. As a result the ciphertext is a triple of two elliptic curve points and one field element $(C_1, C_2, \Delta=rG.x - m)$. See Algorithm~\ref{alg:encryption}.
+
+The decryption of $(C_1, C_2, \Delta)$ involves standard ElGamal decryption and then adding x-delta $\Delta$ to the x-coordinate of the output point. See Algorithm~\ref{alg:decryption}.
 
 \begin{algorithm}
     \SetAlgoNlRelativeSize{0}
@@ -293,18 +306,19 @@ Each user can use private channel via
     \SetAlgoNlRelativeSize{1}
     \SetKwInOut{Input}{Input}
     \SetKwInOut{Output}{Output}
-    \caption{Encryption\textsubscript{P}}
+    \caption{$\texttt{Enc}_{P_i}$}
+    \label{alg:encryption}
     
-    \Input{A scalar $s$}
-    \Output{A tuple $(C1, C2, \Delta)$}
+    \Input{A scalar $m$}
+    \Output{A tripe $(C_1, C_2, \Delta)$}
     
-    $k \gets_\$ \mathbb{Z}$\;
-    $r \gets_\$ \mathbb{Z}$\;
-    $C1 = k \cdot G$\;
-    $M = G \cdot r$\;
-    $C2 = P \cdot k + M$\;
-    $\Delta = s - M.x$\;
-    \Return $(C1, C2, \Delta)$\;
+    $k \gets_R \mathbb{Z}_q$\;
+    $r \gets_R \mathbb{Z}_q$\;
+    $C_1 = kG$\;
+    $M = rG$\;
+    $C_2 = kP + M$\;
+    $\Delta = M.x - m$\;
+    \Return $(C_1, C_2, \Delta)$
 \end{algorithm}
 
 \begin{algorithm}
@@ -313,14 +327,15 @@ Each user can use private channel via
     \SetAlgoNlRelativeSize{1}
     \SetKwInOut{Input}{Input}
     \SetKwInOut{Output}{Output}
-    \caption{Decryption\textsubscript{sk}}
+    \caption{$\texttt{Dec}_{s_i}$}
+    \label{alg:decryption}
     
-    \Input{A tuple $(C_1, C_2, \Delta)$}
-    \Output{A scalar $s$}
+    \Input{A tripe $(C_1, C_2, \Delta)$}
+    \Output{A scalar $m$}
     
-    $M = C_2 - sk \cdot C_1$\;
-    $s = M.x - \Delta$\;
-    \Return $s$\;
+    $M = C_2 - s_i C_1$\;
+    $m = M.x - \Delta$\;
+    \Return $m$
 \end{algorithm}
 
 
@@ -330,15 +345,15 @@ The goal of DKG protocol is to jointly generate the voting key-pair without any 
 
 \subsubsection*{Secret Sharing}
 
-Threshold secret sharing can be done using Shamir Secret Sharing (SSS), which allows a dealer to encode secret key $s$ into a random polynomial $f(X) = a_0 + a_1X + a_2X^2 + \dots + a_{t-1}X^{t-1}$, where $a_0,a_1,\dots,a_{t-1} \in_R \mathbb{F}_q$; the secret key $s=a_0=f(0)$ and $t-1$ is the degree of polynomial. Following a Lagrage Theorem, $t$ number of points on the polynomial $f(X)$ allows for reconstructing the polynomial and hence extract secret key by computing $s = a_0 = f(0)$. The shares are distributed to parties $P_i, 1 \leq i \leq n$, by evaluating function at a corresponding point $(x=i,y=f(i))$. The polynomial of degree $t$ can be reconstructed with $t+1$ points using Lagrange Interpolation.
+Threshold secret sharing can be done using Shamir Secret Sharing (SSS), which allows a dealer to encode secret key $s$ into a random polynomial $\mathbf{f}(X) = a_0 + a_1X + a_2X^2 + \dots + a_{t-1}X^{t-1}$, where $a_0,a_1,\dots,a_{t-1} \in_R \mathbb{F}_q$; the secret key $s=a_0=\mathbf{f}(0)$ and $t-1$ is the degree of polynomial. The shares are computed by evaluating function $\mathbf{f}(\cdot)$ at coordinates $(x=i,y=\mathbf{f}(i))$, $i \neq 0$. Following a Lagrange Theorem, $t$ number of points on the polynomial $\mathbf{f}(X)$ allows for reconstructing the polynomial and hence extract secret key by computing $s = \mathbf{f}(0)$.
 
-\subsubsection{Distributed Key Generation}
-Since we don't want any party to become a dealer (and learn the secret $decryption$ key), we have to distribute the generation of polynomial $\mathbf{f}(X) \in_R \mathbb{Z}_q[X]$ across all parties $\mathbb{P}$. It is done by having each party pick a random polynomial $f_{i}(X) \in \mathbb{Z}_q[X]$, and then define the final polynomial \[\mathbf{f}(X)=\sum_{i=1}^{n}f_i(X)\] Hence, the voting secret (decryption) key $\mathbf{d}$ and voting public (encryption) key $\mathbf{E}$ are: $$\mathbf{d}=\mathbf{f}(0)$$ $$\mathbf{E}=\mathbf{d}\times G$$. 
+\subsubsection*{Distributed Key Generation}
+We don't want any party to become a dealer (and learn the secret value $s$), and so, we have to distribute the generation of polynomial $\mathbf{f}(X) \in_R \mathbb{Z}_q[X]$ across all parties $\vec{P}$. It is done by having each party pick a random polynomial $f_{i}(X) \in \mathbb{Z}_q[X]$, and then define the final polynomial \[\mathbf{f}(X)=\sum_{i=1}^{n}f_i(X)\] Hence, the voting secret (decryption) key $\mathbf{d}$ and voting public (encryption) key $\mathbf{E}$ are: $$\mathbf{d}=\mathbf{f}(0)$$ $$\mathbf{E}=\mathbf{d} G$$ 
 
 To prevent misbehaviour of parties (sending arbitrary values) we use a more sophisticated version of SS called Publicly Verifiable Secret Sharing (\href{PVSS}{https://www.win.tue.nl/~berry/papers/crypto99.pdf}), which involves zero-knowledge proofs attesting that the correct relation between values holds.
 
 
-\subsubsection{Dynamic Distributed Key Generation}
+\subsubsection*{Dynamic Distributed Key Generation}
 Distributed Key Generation in its original form requires known and fixed number of participants. It's because, underneath, it relies on SSS which uses polynomials of known degree $t$. The degree is fixed at the beginning of the protocol and can not be changed.
 
 \textbf{We want the DKG phase to be optional}, so the total number of participants is unknown, and so the $t$ is also unknown. As a result, we need a scheme that allows for dynamic updating the number of participants and the threshold.
@@ -367,11 +382,13 @@ For each party $\Party{i} \in \mathbb{D}$, where $\mathbb{D} \subseteq  \mathbb{
 \begin{itemize}
     \item Chose a guardian set of $k$ parties  $\mathbb{G}_i\subseteq \mathbb{P}/P_i$.
     \item Sample a random polynomial $f_{i}(X) \in_R \mathbb{Z}_q[X]$ of degree $t-1$.
-    \item Compute partial decryption (secret) key $\PartialDecryptionKey{i}= f_i(0)$ and partial encryption (public) key $\PartialEncryptionKey{i} = \PartialDecryptionKey{i} \times G$.
-    \item Create a t-of-k access structure for \PartialDecryptionKey{i} using Publicly Verifiable Secret Sharing (PVSS). For each guardian $P_{j} \in \mathbb{G}_i$, create a partial decryption key share $\PartialDecryptionKeyShare{i}{j}=f_i(j)$.
+    \item Compute partial decryption (secret) key $\PartialDecryptionKey{i}= f_i(0)$ and partial encryption (public) key $\PartialEncryptionKey{i} = \PartialDecryptionKey{i} G$.
+    \item Create a t-of-k access structure for \PartialDecryptionKey{i} using Publicly Verifiable Secret Sharing (PVSS). For each guardian $P_{j} \in \mathbb{G}_i$, $1 \leq j \leq k$, \begin{itemize}
+    \item Create a partial decryption key share $\PartialDecryptionKeyShare{i}{j}=f_i(j)$.
     \item Encrypt the partial decryption key share $\EncryptedPartialDecryptionKeyShare{i}{j}=\EncryptionUsingOf{\Party{j}}{\PartialDecryptionKeyShare{i}{j}}$.
+    \end{itemize}
     
-    \item Create a zero-knowledge proof \ProofFDKG{i} = “I know $f_i$ s.t. given $j, \Party{j}$, and \EncryptedPartialDecryptionKeyShare{i}{j}, the \EncryptedPartialDecryptionKeyShare{i}{j} is an encrypted value of a polynomial $f_i(\cdot)$ applied to $j$". The detailed description is presented in Section~\ref{sec:proof-fdkg}.
+    \item Create a zero-knowledge proof \ProofFDKG{i}(described in Section~\ref{sec:proof-fdkg}).
     \item Broadcast (\PartialEncryptionKey{i},\EncryptedPartialDecryptionKeyShare{i}{j}, \ProofFDKG{i}).
 \end{itemize}
 
@@ -400,7 +417,8 @@ For each voter $\Party{i} \in \mathbb{V}$, where $\mathbb{V} \subseteq  \mathbb{
     \item Encode a multi-candidate ballot using a method specified in~\cite{baudronPracticalMulticandidateElection2001}. A vote for candidate 1 is encoded as $2^0$, for candidate 2 as $2^j$, for candidate 3 is $2^{2j}$ and so on, where $j$ is the smallest integer such that $2^j > n$. In other words, a vote is defined as \[\Vote{i}\ =\ \begin{cases} 2^0 & \text{if } P_i \text{ votes candidate 1} \\ 2^j & \text{if } P_i \text{ votes candidate 2} \\ \vdots & \vdots \\ 2^{(l-1)j} & \text{if } P_i \text{ votes candidate $l$}\end{cases}\]
     
     \item Encrypt it using ElGamal encryption $\Ballot{i} = (\BlindingFactor{i} G,\ \BlindingFactor{i} \EncryptionKey{} + \Vote{i})$, where $\BlindingFactor{i} \in_{R} \mathbb{Z}_q$ is a blinding factor for party $\Party{i}$.
-    \item Compute a zero-knowledge proof \ProofBALLOT{i} = “Given \EncryptionKey{} and \Ballot{i}, I know \BlindingFactor{i}, and \Vote{i} s.t. $\Vote{i} \in \{2^0, 2^j, \ldots, 2^{(l-1)j}\}$ and $\Ballot{i} = (\BlindingFactor{i} G,\ \BlindingFactor{i} \EncryptionKey{} + \Vote{i})$”. The detailed description is presented in Section~\ref{sec:proof-ballot}.
+    
+    \item Compute a zero-knowledge proof \ProofBALLOT{i}(described in Section~\ref{sec:proof-ballot}).
     \item Broadcast (\Ballot{i},\ProofBALLOT{i}).
 \end{enumerate}
 
@@ -423,7 +441,7 @@ For each party $\Party{i} \in \mathbb{T}$, where $\mathbb{T} \subseteq  \mathbb{
     \item For each received encrypted share $\EncryptedPartialDecryptionKeyShare{j}{i} \in \{ \EncryptedPartialDecryptionKeyShare{j}{i} | \Party{j} \in \mathbb{D} \setminus \{\Party{i}\} \text{ and } \Party{i} \in \GuardianSetOf{j}\}$ \begin{enumerate}
         \item Decrypt \PartialDecryptionKeyShare{j}{i}=\DecryptionUsingOf{\PartySecretKey{i}}{\EncryptedPartialDecryptionKeyShare{j}{i}}
         \item Compute share of partial decryption  $\SharePartialDecryptionFromTo{j}{i} = \TotalA \cdot \PartialDecryptionKeyShare{j}{i}$. % TODO: decide if I want to introduce new variable PD or use [C1*d_i]_k
-        \item Compute a zero-knowledge proof \ProofPD{i}{j} = “Given $\SharePartialDecryptionFromTo{j}{i}, \EncryptedPartialDecryptionKeyShare{j}{i}, \TotalA$, I know a secret key $\PartySecretKey{i}$ s.t. $\SharePartialDecryptionFromTo{j}{i} = \TotalA \cdot \PartialDecryptionKeyShare{j}{i}$ where $\PartialDecryptionKeyShare{j}{i} = \DecryptionUsingOf{\PartySecretKey{i}}{\EncryptedPartialDecryptionKeyShare{j}{i}}$". The detailed description is presented in Section~\ref{sec:proof-pd}
+        \item Compute a zero-knowledge proof \ProofPD{i}{j} (described in Section~\ref{sec:proof-pd}).
         \item Broadcast partial decryption $(\SharePartialDecryptionFromTo{j}{i}, \ProofPD{i}{j})$
     \end{enumerate}
     
@@ -456,8 +474,7 @@ Anyone can calculate the voting results:
 
 \section{zk-SNARK}
 %TODO: Rewrite and rephrase with ChatGPT!
-zk-SNARK (Zero-Knowledge Succinct Non-Interactive Argument of Knowledge) is a cryptographic technique enabling one party to prove to another that a statement is true without revealing any information beyond the validity of the statement itself.~\cite{grothSizePairingbasedNoninteractive2016}.
-
+zk-SNARK (Zero-Knowledge Succinct Non-Interactive Argument of Knowledge) is a cryptographic technique enabling one party to prove to another that a statement is true without revealing any information beyond the validity of the statement itself~\cite{grothSizePairingbasedNoninteractive2016}.
 
 Suppose an arithmetic circuit $C$ with a relation $\mathcal{R}_C$ and a language $\mathcal{L}_C$ takes as input a statement $\vec{s}$ and a witness $\vec{w}$ s.t. $(\vec{s}, \vec{w}) \in \mathcal{R}_C$. A zk-SNARK for this arithmetic circuit satisfiability is defined by the following triple of polynomial time algorithms~\cite{grothSizePairingbasedNoninteractive2016,parnoPinocchioNearlyPractical2013}:
 \begin{itemize}
@@ -480,14 +497,41 @@ The protocol employes three zero-knowledge proofs to achieve privacy and adhere 
 
 %TODO: describe proof of ballot, partial decryption, tally does not need proof because it's self-proven
 
-\subsection{\textrm{PROOF}_\textrm{FDKG}}\label{sec:proof-fdkg}
-Informal proof $\textrm{PROOF}_\textrm{FDKG}$
 
-\subsection{\textrm{PROOF}_\textrm{BALLOT}}\label{sec:proof-ballot}
-Informal proof $\textrm{PROOF}_\textrm{BALLOT}$
+\subsection{Proofs constructions}\label{sec:proofs}
 
-\subsection{\textrm{PROOF}_\textrm{PD}}\label{sec:proof-pd}
-Informal proof $\textrm{PROOF}_\textrm{PD}$ 
+Using the general definition of zkSNARK we construct three proofs for each phase of the voting protocol. Each proof is defined as circuit $C$ that checks the contraints, public instance (statement) $\vec{s}$, and private input (witness) $\vec{w}$.
+
+\subsubsection{\textrm{PROOF}_\textrm{FDKG}}\label{sec:proof-fdkg}
+
+\begin{itemize}
+    \item $C$ = \ProofFDKGInformal{}
+
+    \item $\vec{s}=[\EncryptionKey{}, (x,y)_1,\dots,(x,y)_k, \EncryptedPartialDecryptionKeyShare{i}{1},\dots, \EncryptedPartialDecryptionKeyShare{i}{k}]$
+    
+    \item $\vec{w}=[a_0, \dots, a_{t-1}, r1_1,\dots,r1_k, r2_1,\dots,r2_k]$
+\end{itemize}
+
+\subsubsection{\textrm{PROOF}_\textrm{BALLOT}}\label{sec:proof-ballot}
+
+\begin{itemize}
+    \item $C$ = \ProofBALLOTInformal{}
+    
+    \item $\vec{s}=[\EncryptionKey{}, \Ballot{i} = (C1, C2)]$
+    
+    \item $\vec{w}=[v_i, r_i]$
+\end{itemize}
+
+\subsubsection{\textrm{PROOF}_\textrm{PD}}\label{sec:proof-pd}
+
+
+\begin{itemize}
+    \item $C$ = \ProofPDInformal{}
+    
+    \item $\vec{s}=[C1, \SharePartialDecryptionFromTo{j}{i}, \EncryptedPartialDecryptionKeyShare{j}{i}, \Delta]$
+    
+    \item $\vec{w}=[\PartySecretKey{i}]$
+\end{itemize}
 
 
 \section{Security Analysis}
@@ -496,20 +540,29 @@ Informal proof $\textrm{PROOF}_\textrm{PD}$
 \subsection*{Decipherability}
 
 \begin{definition}[Decipherability] \label{def:decipherability}
-    Decipherability in an FDKG system is achieved if for each participant $P_i \in \mathbb{D}$, either the participant publishes the full partial decryption, or a subset of its guardian set $\mathbb{G}_i$, with at least $t$ members, publishes their respective shares of partial decryption. Formally: 
+    Decipherability in an FDKG system is achieved if for each participant $\Party{i} \in \mathbb{D}$, either the participant publishes the full partial decryption, or a subset of its guardian set $\mathbb{G}_i$, with at least $t$ members, publishes their respective shares of partial decryption. Formally: 
     \[
-    \forall P_i \in \mathbb{D}, \left( \textrm{publish}(PD_i) \lor \exists \mathbb{S}_i \subseteq \mathbb{G}_i : |\mathbb{S}_i| \geq t \land \forall P_{i,j} \in \mathbb{S}_i, \textrm{publish}([PD_i]_j) \right)
+    \forall \Party{i} \in \mathbb{D}, \left( \textrm{publish}(\PartialDecryptionFrom{i}) \lor \exists \mathbb{S}_i \subseteq \mathbb{G}_i : |\mathbb{S}_i| \geq t \land \forall P_{j} \in \mathbb{S}_i, \textrm{publish}(\SharePartialDecryptionFromTo{i}{j}) \right)
     \]
-    where \(\textrm{publish}(\cdot)\) denotes the publication of either the full partial decryption $\textrm{PD}_i$ or the share of partial decryption $[\textrm{PD}_i]_j$ in the Online Tally phase.
+    where \(\textrm{publish}(\cdot)\) denotes the publication of either the full partial decryption $\PartialDecryptionFrom{i}$ or the share of partial decryption $\SharePartialDecryptionFromTo{i}{j}$ in the Online Tally phase.
 \end{definition}
 
 \begin{definition}[Lock-in] \label{def:lock-in}
-    A Lock-in state occurs in an FDKG system if there exists a participant $P_i \in \mathbb{D}$ for whom neither the full partial decryption $PD_i$ is published by $P_i$ itself nor at least $t$ members of its guardian set $\mathbb{G}_i$ publish their shares of partial decryption $[PD_i]_j$. Formally:
+    A Lock-in state occurs in an FDKG system if there exists a participant $\Party{i} \in \mathbb{D}$ for whom neither the full partial decryption $\PartialDecryptionFrom{i}$ is published by \Party{i} itself nor at least $t$ members of its guardian set $\mathbb{G}_i$ publish their shares of partial decryption $\SharePartialDecryptionFromTo{i}{j}$. Formally:
     \[
-    \exists P_i \in \mathbb{D} : \neg \left( \text{publish}(PD_i) \lor \left( \exists \mathbb{S}_i \subseteq \mathbb{G}_i : |\mathbb{S}_i| \geq t \land \forall P_{i,j} \in \mathbb{S}_i, \text{publish}([PD_i]_j) \right) \right)
+    \exists \Party{i} \in \mathbb{D} : \neg \left( \text{publish}(\PartialDecryptionFrom{i}) \lor \left( \exists \mathbb{S}_i \subseteq \mathbb{G}_i : |\mathbb{S}_i| \geq t \land \forall P_{j} \in \mathbb{S}_i, \text{publish}(\SharePartialDecryptionFromTo{i}{j}) \right) \right)
     \]
-    indicating the absence of publication of either the full partial decryption $\textrm{PD}_i$ or the required number of partial decryption shares $[\textrm{PD}_i]_j$ by its guardian set $\mathbb{G}_i$ in the Online Tally phase .
+    indicating the absence of publication of either the full partial decryption $\PartialDecryptionFrom{i}$ or the required number of partial decryption shares $\SharePartialDecryptionFromTo{i}{j}$ by its guardian set $\mathbb{G}_i$ in the Online Tally phase.
 \end{definition}
+
+\begin{definition}[Privacy] \label{def:privacy}
+    The FDKG system achieves privacy if and only if there does not exist any Decipherability set that is malicious. A Decipherability set is a set of parties \( \mathbb{A} \) within the system that satisfies the condition for Decipherability. Formally, privacy is achieved when:
+    \[
+    \nexists \mathbb{A} \subseteq \mathbb{P} : (\text{Decipherability}(\mathbb{A}) \land \text{Malicious}(\mathbb{A}))
+    \]
+    where \( \mathbb{A} \) is a Decipherability set, \( \text{Decipherability}(\mathbb{A}) \) denotes that the set \( \mathbb{A} \) achieves Decipherability, and \( \text{Malicious}(\mathbb{A}) \) indicates that the set \( \mathbb{A} \) is malicious.
+\end{definition}
+
 
 
 \subsection*{FDKG Example}
@@ -530,28 +583,28 @@ The process for each participating party is as follows:
     \begin{itemize}
         \item Chooses Guardian Set $\mathbb{G}_1 = \{P_2, P_3, P_6\}$.
         \item Samples a random polynomial $f_1(X) \in_R \mathbb{Z}_q[X]$, and computes decryption key $d_1 = f_1(0)$.
-        \item Splits $d_1$ among $\mathbb{G}_1$, resulting in shares $[d_1]_2, [d_1]_3, [d_1]_6$.
+        \item Splits $d_1$ among $\mathbb{G}_1$, resulting in shares $\PartialDecryptionKeyShare{1}{2}, \PartialDecryptionKeyShare{1}{3}, \PartialDecryptionKeyShare{1}{6}$.
     \end{itemize}
 
     \item \textbf{Party $P_4$}:
     \begin{itemize}
-        \item Guardian Set $\mathbb{G}_4 = \{P_3, P_5, P_6\}$.
+        \item Guardian Set \GuardianSetOf{4} = $\{P_3, P_5, P_6\}$.
         \item Samples random polynomial $f_4(X)$, and computes decryption key $d_4$
-        \item Splits $d_4$ among $\mathbb{G}_4$, resulting in shares $[d_4]_3, [d_4]_5, [d_4]_6$.
+        \item Splits $d_4$ among $\mathbb{G}_4$, resulting in shares $\PartialDecryptionKeyShare{4}{3}, \PartialDecryptionKeyShare{4}{5}, \PartialDecryptionKeyShare{4}{6}$.
     \end{itemize}
 
     \item \textbf{Party $P_8$}:
     \begin{itemize}
-        \item Guardian Set $\mathbb{G}_8 = \{P_5, P_6, P_7\}$.
-        \item Samples random polynomial $f_8(X)$, and computes decryption key $d_8$.
-        \item Splits $d_8$ among $\mathbb{G}_8$, resulting in shares $[d_8]_5, [d_8]_6, [d_8]_7$.
+        \item Guardian Set \GuardianSetOf{8} = $\{P_5, P_6, P_7\}$.
+        \item Samples random polynomial $f_8(X)$, and computes decryption key \IthDecryptionKey{8}.
+        \item Splits \IthDecryptionKey{8} among \GuardianSetOf{8}, resulting in shares $\PartialDecryptionKeyShare{8}{5}, \PartialDecryptionKeyShare{8}{6}, \PartialDecryptionKeyShare{8}{7}$.
     \end{itemize}
 
     \item \textbf{Party $P_{10}$}:
     \begin{itemize}
-        \item Guardian Set $\mathbb{G}_{10} = \{P_7, P_8, P_9\}$.
-        \item Samples random polynomial $f_{10}(X)$, and computes decryption key $d_{10}$.
-        \item Splits $d_{10}$ among $\mathbb{G}_{10}$, resulting in shares $[d_{10}]_7, [d_{10}]_8, [d_{10}]_9$.
+        \item Guardian Set \GuardianSetOf{10} = $\{P_7, P_8, P_9\}$.
+        \item Samples random polynomial $f_{10}(X)$, and computes decryption key \IthDecryptionKey{10}.
+        \item Splits \IthDecryptionKey{10} among \GuardianSetOf{10}, resulting in shares $\PartialDecryptionKeyShare{10}{7}, \PartialDecryptionKeyShare{10}{8}, \PartialDecryptionKeyShare{10}{9}$.
         
     \end{itemize}
 \end{enumerate}
@@ -560,17 +613,15 @@ The process for each participating party is as follows:
 
 In this FDKG scenario, we identified a minimal set of parties \(\{P_3, P_5, P_6, P_7, P_8\}\) that guarantees Decipherability (as defined in Definition \ref{def:decipherability}) and minimal sets \(\{P_3, P_5\}\) and \(\{P_6, P_7\}\) that can induce a Lock-in state (as defined in Definition \ref{def:lock-in}).
 
-\textbf{Proof of Decipherability}: 
+\paragraph{Decipherability}
 The set \(\{P_3, P_5, P_6, P_7, P_8\}\) ensures Decipherability as it contains at least two members from each guardian set, thereby meeting the \(t\)-out-of-\(k\) requirement for share publication. Specifically, \(\{P_3, P_6\}\) satisfies \(\mathbb{G}_1\) and \(\mathbb{G}_4\); \(\{P_5, P_6\}\) satisfies \(\mathbb{G}_8\); and \(\{P_7, P_8\}\) satisfies \(\mathbb{G}_{10}\).
 
-\textbf{Proof of Lock-in}:
+\paragraph{Lock-in}
 1. For \(\{P_3, P_5\}\), if these parties do not participate, \(\mathbb{G}_1\) and \(\mathbb{G}_4\) lack sufficient shares due to the absence of \(P_3\), and \(\mathbb{G}_4\) and \(\mathbb{G}_8\) lack sufficient shares due to the absence of \(P_5\), leading to a Lock-in.
 2. For \(\{P_6, P_7\}\), the absence of \(P_6\) affects \(\mathbb{G}_1\), \(\mathbb{G}_4\), and \(\mathbb{G}_8\), while \(P_7\)'s absence affects \(\mathbb{G}_8\) and \(\mathbb{G}_{10}\), also leading to a Lock-in.
 
-These findings illustrate the critical roles certain parties play in the FDKG process, underlining the importance of their participation for achieving Decipherability and the risks associated with their absence, which can lead to a Lock-in state.
-
-
-
+\paragraph{Privacy}
+Privacy in the FDKG system is compromised when all parties from a Decipherability set are malicious. For example, if \(\{P_3, P_5, P_6, P_7, P_8\}\) colludes they can collectively reconstruct the secret \DecryptionKey.
 
 \section{Privacy and Availability Considerations}
 
