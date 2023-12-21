@@ -29,6 +29,7 @@
 
 \maketitle
 
+
 \section{Introduction}
 Voting is one of the most popular mechanisms for collective decision-making, prevalent in all types of communities including: non-government organizations, boardrooms, housing associations, regional contests and plebiscites, domestic presidential elections, as well as all forms of global voting that take place on the internet.
 
@@ -504,11 +505,11 @@ Using the general definition of zkSNARK we construct three proofs for each phase
 \subsubsection{\textrm{PROOF}_\textrm{FDKG}}\label{sec:proof-fdkg}
 
 \begin{itemize}
-    \item $C$ = \ProofFDKGInformal{}
+    \item $C$ = \ProofFDKGInformal{}. The circuit is presented in Algorithm~\ref{alg:circuit_fdkg}.
 
-    \item $\vec{s}=[\PartialEncryptionKey{i}, (x,y)_1,\dots,(x,y)_k, \EncryptedPartialDecryptionKeyShare{i}{1},\dots, \EncryptedPartialDecryptionKeyShare{i}{k}]$
+    \item $\vec{s}=(\PartialEncryptionKey{i}, \GuardianSetOf{} = \{\Party{1},\dots,\Party{|\GuardianSetOf{}|}\}, \{\EncryptedPartialDecryptionKeyShare{}{1},\dots, \EncryptedPartialDecryptionKeyShare{}{|\GuardianSetOf{}|})$
     
-    \item $\vec{w}=[a_0, \dots, a_{t-1}, r1_1,\dots,r1_k, r2_1,\dots,r2_k]$
+    \item $\vec{w}=(\{a_0, \dots, a_{t-1}\}, \{r1_1,\dots,r1_{|\GuardianSetOf{}|}\}, \{r2_1,\dots,r2_{|\GuardianSetOf{}|}\})$
 \end{itemize}
 
 \subsubsection{\textrm{PROOF}_\textrm{BALLOT}}\label{sec:proof-ballot}
@@ -533,105 +534,60 @@ Using the general definition of zkSNARK we construct three proofs for each phase
     \item $\vec{w}=[\PartySecretKey{i}]$
 \end{itemize}
 
-\begin{algorithm}
-\caption{An algorithm with caption}\label{alg:two}
-\KwData{$n \geq 0$}
-\KwResult{$y = x^n$}
+\begin{algorithm}[H]
+\caption{Circuit FDKG($|\GuardianSetOf{}|$ = guardian\_set\_size, t = threshold)}
+\label{alg:circuit_fdkg}
+
+\KwIn{Statement $\vec{s}$: (\PartialEncryptionKey{i}, \GuardianSetOf{} = \{\Party{1},\dots,\Party{|\GuardianSetOf{}|}\}, \{\EncryptedPartialDecryptionKeyShare{}{1},\dots, \EncryptedPartialDecryptionKeyShare{}{|\GuardianSetOf{}|})\}}
+
+\KwIn{Witness $\vec{w}$: (\{a_0, \dots, a_{t-1}\}, \{r1_1,\dots,r1_{|\GuardianSetOf{}|}\}, \{r2_1,\dots,r2_{|\GuardianSetOf{}|}\})}
 
 \SetKwFunction{Num2Bits}{Num2Bits}
 \SetKwFunction{EscalarMulFix}{EscalarMulFix}
 \SetKwFunction{EscalarMulAny}{EscalarMulAny}
 \SetKwFunction{BabyAdd}{BabyAdd}
 \SetKwFunction{Assert}{Assert}
-\SetKw{KwTo}{in}
+\SetKw{KwTo}{to}
+\SetKw{KwIn}{in}
 \SetKw{KwDownTo}{down to}
 \SetKw{KwAssert}{assert}
+\SetKw{N}{N}
+\SetKwData{Threshold}{t}
+\SetKwData{Base}{BASE8}
+\SetKwData{Eval}{eval}
+\SetKwData{GuardianSetSize}{$|\GuardianSetOf{}|$}
 
 
 \SetKw{Assert}{assert}
 
-\Assert{guardian\_set\_size $\geq$ threshold}\;
-
-
 \BlankLine
 
-\PartySecretKey{i} $\leftarrow$ coefficients[0]\;
+\Assert \PartialEncryptionKey{i} = \EscalarMulFix{\PartySecretKey{i}, \Base}\;
 
-\Assert \PartialEncryptionKey{i} = \EscalarMulFix{\PartySecretKey{i}, BASE8}\;
-
-votingPublicKey[0] $\leftarrow$ C1[0]\;
-votingPublicKey[1] $\leftarrow$ C1[1]\;
-
-\For{$i \gets\ 0$ \KwTo guardian\_set\_size}{
-    $eval[i][0] \leftarrow coefficients[0]$\;
-    \For{$j\leftarrow 1$ \KwTo threshold-1}{
-        e $\leftarrow (i+1)^j\ \%\ \BABYORDER$\;
-        mul $\leftarrow (coefficients[j]  e)\ \%\ \BABYORDER$\;
-        eval[i][j] $\leftarrow (eval[i][j-1] + mul)\ \%\ \BABYORDER$\;
+\For{i \KwIn \GuardianSetSize}{
+    $\Eval[i][0] \leftarrow a_0$\;
+    \For{j \KwIn \Threshold}{
+        e $\leftarrow (i+1)^j\ \%\ \N$\;
+        d $\leftarrow (a_j \cdot  e)\ \%\ \N$\;
+        $\Eval[i][j] \leftarrow (\Eval[i][j-1] + d)\ \%\ \N$\;
     }
     
-    rP $\leftarrow$ \EscalarMulAny{\Party{i}, r1[i]}\; % party in guardiansPubKeys[i]
+    R $\leftarrow$ \EscalarMulAny(r1_i, \Party{i})\; % party in guardiansPubKeys[i]
     
-    randomPoint $\leftarrow$ \EscalarMulFix(r2, BASE8)\;
+    F $\leftarrow$ \EscalarMulFix(r2_i, \Base)\;
     
-    (x,y) $\leftarrow$ \BabyAdd{rP, randomPoint[1]}\;
-    \Delta $\leftarrow$ randomPoint[0] - eval[i][threshold-1]\;
+    J $\leftarrow$ \BabyAdd(R, F)\;
+    \Delta $\leftarrow F_x - \Eval[i][\Threshold]$\;
 
-    \Assert \EncryptedPartialDecryptionKeyShare{j}{i}[1] = \EscalarMulFix{r1[i], BASE8}\;
-    \Assert \EncryptedPartialDecryptionKeyShare{j}{i}[2] = (x,y)\;
-    \Assert \EncryptedPartialDecryptionKeyShare{j}{i}[\Delta] = \Delta\;
+    \Assert $\EncryptedPartialDecryptionKeyShare{}{i}.C1 = \EscalarMulFix{r1[i], \Base}$\;
+    \Assert $\EncryptedPartialDecryptionKeyShare{}{i}.C2 = J$\;
+    \Assert $\EncryptedPartialDecryptionKeyShare{}{i}.\Delta = \Delta$\;
 }
 \end{algorithm}
 
-\begin{algorithm}[H]
-\caption{Circuit PVSS(guardian set size, threshold)}
-\label{alg:circuit_pvss}
-
-\KwIn{Statement $\vec{s}$: (\PartialEncryptionKey{i}, (x,y)_1,\dots,(x,y)_k, \EncryptedPartialDecryptionKeyShare{i}{1},\dots, \EncryptedPartialDecryptionKeyShare{i}{k})}
-\KwIn{Witness $\vec{w}$: (a_0, \dots, a_{t-1}, r1_1,\dots,r1_k, r2_1,\dots,r2_k)}
-
-\SetKwFunction{Num2Bits}{Num2Bits}
-\SetKwFunction{EscalarMulFix}{EscalarMulFix}
-\SetKwFunction{EscalarMulAny}{EscalarMulAny}
-\SetKwFunction{BabyAdd}{BabyAdd}
-\SetKwFunction{Assert}{Assert}
-\SetKw{KwTo}{in}
-\SetKw{KwDownTo}{down to}
-\SetKw{KwAssert}{assert}
-
-\Assert{guardian\_set\_size $\geq$ threshold}\;
-
-\BlankLine
-
-\PartySecretKey{i} $\leftarrow$ coefficients[0]\;
-
-\Assert \PartialEncryptionKey{i} = \EscalarMulFix{\PartySecretKey{i}, BASE8}\;
-
-votingPublicKey[0] $\leftarrow$ C1[0]\;
-votingPublicKey[1] $\leftarrow$ C1[1]\;
-\For{$N \neq 0$}{
-    
-  \eIf{$N$ is even}{
-    $X \gets X \times X$\;
-    $N \gets \frac{N}{2}$ \Comment*[r]{This is a comment}
-  }{\If{$N$ is odd}{
-      $y \gets y \times X$\;
-      $N \gets N - 1$\;
-    }
-  }
-}
-\For{$N \neq 0$}{
-    $eval[i][0] \leftarrow coefficients[0]$\;
-    
-    
-}
-
-\end{algorithm}
-
-
 
 \begin{algorithm}[H]
-\caption{Circuit EncryptedBallot(voters, options)}
+\caption{Circuit EncryptedBallot(voters, options, m)}
 \label{alg:circuit_proof_ballot}
 
 \KwIn{Statement $\vec{s}$: (\EncryptionKey{}, \Ballot{i} = (C1, C2))}
@@ -644,11 +600,13 @@ votingPublicKey[1] $\leftarrow$ C1[1]\;
 \SetKwFunction{Assert}{Assert}
 \SetKw{KwTo}{in}
 \SetKw{KwDownTo}{down to}
-\SetKw{KwAssert}{assert}
+\SetKw{Assert}{assert}
 
-\KwAssert{$options > 1$}\;
-\KwAssert{$1 \leq \Vote{i} \leq options$}\;
-\KwAssert{$m > 2^{voters}$}\;
+% \KwAssert{$options > 1$}\;
+% \KwAssert{$1 \leq \Vote{i} \leq options$}\;
+% \KwAssert{$m > 2^{voters}$}\;
+
+\BlankLine
 
 \Assert $C1 = \EscalarMulFix{r, BASE8}$\;
 
@@ -676,7 +634,7 @@ H $\leftarrow$ \EscalarMulFix{e, BASE8}\;
 \SetKwFunction{Assert}{Assert}
 \SetKw{KwTo}{in}
 \SetKw{KwDownTo}{down to}
-\SetKw{KwAssert}{assert}
+\SetKw{Assert}{assert}
 
 \BlankLine
 
