@@ -444,8 +444,8 @@ For each party $\Party{i} \in \mathbb{T}$, where $\mathbb{T} \subseteq  \mathbb{
 \begin{enumerate}
     \item Sum the first part of the ballots $\TotalA = \sum_{i \in 1 \dots |\mathbb{V}|} \BallotA{i} = \sum_{i \in 1 \dots |\mathbb{V}|} \BlindingFactor{i} \cdot \G$, where (\BallotA{i},\BallotB{i})=\Ballot{i}.
 
-    \item If $\Party{i} \in \SetOfFDKG$ \begin{enumerate}
-        \item Compute partial decryption  $\PartialDecryptionFrom{j}{i} = \TotalA \cdot \PartialDecryptionKeyShare{i}$.
+    \item If $\Party{i} \in \SetOfFDKG$: \begin{enumerate}
+        \item Compute partial decryption  $\PartialDecryptionFrom{i} = \TotalA \cdot \PartialDecryptionKey{i}$.
         \item Compute a zero-knowledge proof \ProofPD{i} (described in Section~\ref{sec:proof-pd}).
         \item Broadcast partial decryption $(\SharePartialDecryptionFromTo{j}{i}, \ProofPD{i})$
     \end{enumerate}
@@ -541,7 +541,7 @@ Using the general definition of zkSNARK we construct three proofs for each phase
 
 \subsubsection{\textrm{PROOF}_\textrm{PD}}\label{sec:proof-pd}
 \begin{itemize}
-    \item $C$ = \ProofPDFullInformal{}. The circuit is presented in Algorithm~\ref{alg:circuit_proof_pd}.
+    \item $C$ = \ProofPDInformal{}. The circuit is presented in Algorithm~\ref{alg:circuit_proof_pd}.
     
     \item $\vec{s}=(\TotalA{}, \PartialDecryptionFrom{i}, \PartialEncryptionKey{i})$
     
@@ -553,7 +553,7 @@ Using the general definition of zkSNARK we construct three proofs for each phase
 
 
 \begin{itemize}
-    \item $C$ = \ProofPDInformal{}. The circuit is presented in Algorithm~\ref{alg:circuit_proof_pds}.
+    \item $C$ = \ProofPDSInformal{}. The circuit is presented in Algorithm~\ref{alg:circuit_proof_pds}.
     
     \item $\vec{s}=[\TotalA{}, \SharePartialDecryptionFromTo{j}{i}, \EncryptedPartialDecryptionKeyShare{j}{i}, \Delta]$
     
@@ -701,21 +701,12 @@ $\PartialDecryptionKeyShare{j}{i} \leftarrow M_x - \Delta$\;
 \subsection*{Decipherability}
 
 \begin{definition}[Decipherability] \label{def:decipherability}
-    Decipherability in an FDKG system is achieved if for each participant $\Party{i} \in \mathbb{D}$ a subset of its guardian set $\mathbb{G}_i$, with at least $t$ members, publishes their respective shares of partial decryption. Formally: 
+    Decipherability in an FDKG system is achieved if for each participant $\Party{i} \in \mathbb{D}$, either the participant publishes the full partial decryption, or a subset of its guardian set $\mathbb{G}_i$, with at least $t$ members, publishes their respective shares of partial decryption. Formally: 
     \[
-    \forall \Party{i} \in \mathbb{D}, \left( \exists \mathbb{S}_i \subseteq \mathbb{G}_i : |\mathbb{S}_i| \geq t \land \forall P_{j} \in \mathbb{S}_i, \textrm{publish}(\SharePartialDecryptionFromTo{i}{j}) \right)
+    \forall \Party{i} \in \mathbb{D}, \left( \textrm{publish}(\PartialDecryptionFrom{i}) \lor \exists \mathbb{S}_i \subseteq \mathbb{G}_i : |\mathbb{S}_i| \geq t \land \forall P_{j} \in \mathbb{S}_i, \textrm{publish}(\SharePartialDecryptionFromTo{i}{j}) \right)
     \]
-    where \(\textrm{publish}(\cdot)\) denotes the publication of the share of partial decryption $\SharePartialDecryptionFromTo{i}{j}$ in the Online Tally phase.
+    where \(\textrm{publish}(\cdot)\) denotes the publication of either the full partial decryption $\PartialDecryptionFrom{i}$ or the share of partial decryption $\SharePartialDecryptionFromTo{i}{j}$ in the Online Tally phase.
 \end{definition}
-
-\begin{definition}[Lock-in] \label{def:lock-in}
-    A Lock-in state occurs in an FDKG system if there exists a participant $\Party{i} \in \mathbb{D}$ for whom at least $t$ shares of partial decryptions $\SharePartialDecryptionFromTo{i}{j}$ is \textbf{not published} by a subset of its guardian set $\mathbb{G}_i$. Formally:
-    \[
-    \exists \Party{i} \in \mathbb{D} : \neg \left( \exists \mathbb{S}_i \subseteq \mathbb{G}_i : |\mathbb{S}_i| \geq t \land \forall P_{j} \in \mathbb{S}_i, \text{publish}(\SharePartialDecryptionFromTo{i}{j}) \right)
-    \]
-    indicating the absence of publication of the required number of partial decryption shares $\SharePartialDecryptionFromTo{i}{j}$ by the participant or its guardian set $\mathbb{G}_i$ in the Online Tally phase.
-\end{definition}
-
 
 \begin{definition}[Privacy] \label{def:privacy}
     The FDKG system achieves privacy if and only if there does not exist any Decipherability set that is malicious. A Decipherability set is a set of parties \( \mathbb{A} \) within the system that satisfies the condition for Decipherability. Formally, privacy is achieved when:
