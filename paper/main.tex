@@ -717,14 +717,13 @@ $\PartialDecryptionKeyShare{j}{i} \leftarrow M_x - \Delta$\;
 \end{definition}
 
 
+\subsection{FDKG Example}
 
-\subsection*{FDKG Example}
-For better understanding of the protocol we present a following example. Consider a set of parties $\{P_1, \ldots, P_{10}\}$. In this setting, we have $k = 3$ and $t = 2$. A subset of these parties, specifically $\mathbb{D} = \{P_1, P_4, P_8, P_{10}\}$, participate in the FDKG, each forming its own guardian set. Figure \ref{fig:FDKG} illustrates this setting.
-
+For a better understanding of the protocol and highlighting the improvements compared to state-of-the-art, we present the following example. Consider a set of parties $\{P_1, \ldots, P_{10}\}$. In this setting, we have $k = 3$ and $t = 2$. A subset of these parties, specifically $\mathbb{D} = \{P_1, P_3, P_5, P_7, P_9\}$, participate in the FDKG, each forming its own guardian set. Figure \ref{fig:FDKG} illustrates this setting.
 
 \begin{figure}
     \centering
-    \includegraphics[width=\textwidth]{FDKG.png}
+    \includegraphics[width=\textwidth]{FDKG2.png}
     \caption{Federated Distributed Key Generation}
     \label{fig:FDKG}
 \end{figure}
@@ -734,47 +733,47 @@ The process for each participating party is as follows:
 \begin{enumerate}
     \item \textbf{Party $P_1$}:
     \begin{itemize}
-        \item Chooses Guardian Set $\mathbb{G}_1 = \{P_2, P_3, P_6\}$.
+        \item Chooses Guardian Set $\mathbb{G}_1 = \{P_2, P_3, P_5\}$.
         \item Samples a random polynomial $f_1(X) \in_R \mathbb{Z}_q[X]$, and computes decryption key $d_1 = f_1(0)$.
-        \item Splits $d_1$ among $\mathbb{G}_1$, resulting in shares $\PartialDecryptionKeyShare{1}{2}, \PartialDecryptionKeyShare{1}{3}, \PartialDecryptionKeyShare{1}{6}$.
+        \item Splits $d_1$ among $\mathbb{G}_1$, resulting in shares $\PartialDecryptionKeyShare{1}{2}, \PartialDecryptionKeyShare{1}{3}, \PartialDecryptionKeyShare{1}{5}$.
     \end{itemize}
 
-    \item \textbf{Party $P_4$}:
+    \item \textbf{Party $P_3$}:
     \begin{itemize}
-        \item Guardian Set \GuardianSetOf{4} = $\{P_3, P_5, P_6\}$.
-        \item Samples random polynomial $f_4(X)$, and computes decryption key $d_4$
-        \item Splits $d_4$ among $\mathbb{G}_4$, resulting in shares $\PartialDecryptionKeyShare{4}{3}, \PartialDecryptionKeyShare{4}{5}, \PartialDecryptionKeyShare{4}{6}$.
+        \item Guardian Set $\mathbb{G}_3 = \{P_1, P_2, P_4\}$.
+        \item Samples random polynomial $f_3(X)$, and computes decryption key $d_3$.
+        \item Splits $d_3$ among $\mathbb{G}_3$, resulting in shares $\PartialDecryptionKeyShare{3}{1}, \PartialDecryptionKeyShare{3}{2}, \PartialDecryptionKeyShare{3}{4}$.
     \end{itemize}
 
-    \item \textbf{Party $P_8$}:
+    \item \textbf{Party $P_5$}:
     \begin{itemize}
-        \item Guardian Set \GuardianSetOf{8} = $\{P_5, P_6, P_7\}$.
-        \item Samples random polynomial $f_8(X)$, and computes decryption key \IthDecryptionKey{8}.
-        \item Splits \IthDecryptionKey{8} among \GuardianSetOf{8}, resulting in shares $\PartialDecryptionKeyShare{8}{5}, \PartialDecryptionKeyShare{8}{6}, \PartialDecryptionKeyShare{8}{7}$.
+        \item Guardian Set $\mathbb{G}_5 = \{P_3, P_6, P_7\}$.
+        \item Samples random polynomial $f_5(X)$, and computes decryption key $d_5$.
+        \item Splits $d_5$ among $\mathbb{G}_5$, resulting in shares $\PartialDecryptionKeyShare{5}{3}, \PartialDecryptionKeyShare{5}{6}, \PartialDecryptionKeyShare{5}{7}$.
     \end{itemize}
 
-    \item \textbf{Party $P_{10}$}:
+    \item \textbf{Party $P_7$}:
     \begin{itemize}
-        \item Guardian Set \GuardianSetOf{10} = $\{P_7, P_8, P_9\}$.
-        \item Samples random polynomial $f_{10}(X)$, and computes decryption key \IthDecryptionKey{10}.
-        \item Splits \IthDecryptionKey{10} among \GuardianSetOf{10}, resulting in shares $\PartialDecryptionKeyShare{10}{7}, \PartialDecryptionKeyShare{10}{8}, \PartialDecryptionKeyShare{10}{9}$.
-        
+        \item Guardian Set $\mathbb{G}_7 = \{P_8, P_9, P_{10}\}$.
+        \item Samples random polynomial $f_7(X)$, and computes decryption key $d_7$.
+        \item Splits $d_7$ among $\mathbb{G}_7$, resulting in shares $\PartialDecryptionKeyShare{7}{8}, \PartialDecryptionKeyShare{7}{9}, \PartialDecryptionKeyShare{7}{10}$.
+    \end{itemize}
+
+    \item \textbf{Party $P_9$}:
+    \begin{itemize}
+        \item Guardian Set $\mathbb{G}_9 = \{P_5, P_7, P_{10}\}$.
+        \item Samples random polynomial $f_9(X)$, and computes decryption key $d_9$.
+        \item Splits $d_9$ among $\mathbb{G}_9$, resulting in shares $\PartialDecryptionKeyShare{9}{5}, \PartialDecryptionKeyShare{9}{7}, \PartialDecryptionKeyShare{9}{10}$.
     \end{itemize}
 \end{enumerate}
 
-\subsection*{Conclusion of the FDKG Example}
-
-In this FDKG scenario, we identified a minimal set of parties \(\{P_3, P_5, P_6, P_7, P_8\}\) that guarantees Decipherability (as defined in Definition \ref{def:decipherability}) and minimal sets \(\{P_3, P_5\}\) and \(\{P_6, P_7\}\) that can induce a Lock-in state (as defined in Definition \ref{def:lock-in}).
+In standard DKG protocol, the minimal set of parties to achieve Decipherability would be \(\{P_1, P_3, P_5, P_7, P_9 \}\). However, in FDKG, thanks to Guardian Sets the minimal set reduces to \(M = \{P_3, P_5, P_6\}\).
 
 \paragraph{Decipherability}
-The set \(\{P_3, P_5, P_6, P_7, P_8\}\) ensures Decipherability as it contains at least two members from each guardian set, thereby meeting the \(t\)-out-of-\(k\) requirement for share publication. Specifically, \(\{P_3, P_6\}\) satisfies \(\mathbb{G}_1\) and \(\mathbb{G}_4\); \(\{P_5, P_6\}\) satisfies \(\mathbb{G}_8\); and \(\{P_7, P_8\}\) satisfies \(\mathbb{G}_{10}\).
-
-\paragraph{Lock-in}
-1. For \(\{P_3, P_5\}\), if these parties do not participate, \(\mathbb{G}_1\) and \(\mathbb{G}_4\) lack sufficient shares due to the absence of \(P_3\), and \(\mathbb{G}_4\) and \(\mathbb{G}_8\) lack sufficient shares due to the absence of \(P_5\), leading to a Lock-in.
-2. For \(\{P_6, P_7\}\), the absence of \(P_6\) affects \(\mathbb{G}_1\), \(\mathbb{G}_4\), and \(\mathbb{G}_8\), while \(P_7\)'s absence affects \(\mathbb{G}_8\) and \(\mathbb{G}_{10}\), also leading to a Lock-in.
+The set $M$ ensures Decipherability because shares $\PartialDecryptionKey{3},\PartialDecryptionKey{5},\PartialDecryptionKey{6}$ are published directly by those parties, whereas \PartialDecryptionKey{1} is recoverable by shares of \(\{P_3, P_5\}\) and \PartialDecryptionKey{9} is recoverable by shares of \(\{P_5, P_7\}\).
 
 \paragraph{Privacy}
-Privacy in the FDKG system is compromised when all parties from a Decipherability set are malicious. For example, if \(\{P_3, P_5, P_6, P_7, P_8\}\) colludes they can collectively reconstruct the secret \DecryptionKey.
+Privacy in the FDKG system is compromised when all parties from any Decipherability set collude. In this example, if all parties \(\{P_3, P_5, P_6\}\) collude, they can collectively reconstruct the secret \DecryptionKey and therefore decrypt each individual ballot \Ballot{i}.
 
 \section{System Implementation}
 
