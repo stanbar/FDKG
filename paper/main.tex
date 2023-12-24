@@ -113,14 +113,21 @@ Figure ~\ref{fig:trust-models} presents the shift from internet votings based on
     \label{fig:trust-models}
 \end{figure}
 
-The paper contributes to the state of the art in the following ways:
+In this paper, we address a significant limitation in state-of-the-art Distributed Key Generation (DKG) protocols used in voting systems, where the unavailability of initial participating parties during the tally phase can hinder the voting process. Traditional approaches rely on deposits to incentivize participation and penalize non-participation, a method we find impractical for real-world applications. Our key contributions are as follows:
+
 \begin{enumerate}
     \item We propose a novel technique for dynamic Distributed Key Generation (DKG) called Federated DKG (FDKG), which maps the structure of trust between the members of a group that wants to make an election. The technique works in a similar way to the Federated Byzantine Agreement (FBA) in the Stellar Consensus Protocol~\cite{mazieresStellarConsensusProtocol2015}.
     \item Based on the assumption that the majority of the most important members of the grouping will participate in all phases of voting (1. FDKG and 3. Tally) our protocol requires only one message (You-only-speak-once~\cite{gentryYOSOYouOnly2021}) to be sent by each participant which increases the practicality of our protocol.
     \item The protocol is robust to Byzantine nodes through the use of zero-knowledge proofs (zkSNARKs)~\cite{parnoPinocchioNearlyPractical2013}. Each message must have a proof of adherence to the rules of the algorithm.
-    \item The privacy of the system is based on the honest majority assumption. The protocol achieves privacy as long as the majority of the most important nodes in the network are honest and do not collude.
-    \item The system is robust against a subset of unavailable nodes (faulty nodes). Using threshold cryptography, the system allows a subset of nodes to decrypt the voting results so that no single node in the network is able to block the voting.
-    \item The system is free of charge for the end user. The application is completely peer-to-peer thus avoiding any fees associated with transactions (as is the case with systems based on public blockchains) and the maintenance of a central coordinator (in the case of a private network or server).
+    % \item The privacy of the system is based on the honest majority assumption. The protocol achieves privacy as long as the majority of the most important nodes in the network are honest and do not collude. % TODO it's assumption not contribution
+    \item The protocol is robust against a subset of unavailable nodes. Using threshold cryptography, the system allows a subset of nodes to decrypt the voting results so that no single node in the network is able to block the voting. % TODO fix it
+    \item The protocol increases the availability without
+    
+    \item \textbf{Introduction of a Guardian Set Model:} We propose an innovative protocol that introduces the concept of a "Guardian Set." This model allows for each participant in the DKG to appoint a set of trusted parties, termed the Guardian Set, capable of recovering the participant's secret key in their absence. This approach significantly enhances the protocol's usability by relaxing the stringent requirement of node availability, thus ensuring the voting process remains uninterrupted even if some original participants become unavailable.
+
+    \item \textbf{Balancing Usability and Privacy:} While reducing the dependency on original node availability typically entails a trade-off with privacy, our protocol maintains a high standard of privacy. This is achieved by the assumption that the Guardian Set comprises trusted nodes, often including the most influential and reliable ones in the network. As a result, the likelihood of collusion is reduced, ensuring that the protocol's increased usability does not come at the expense of privacy.
+    %\item The system is free of charge for the end user. The application is completely peer-to-peer thus avoiding any fees associated with transactions (as is the case with systems based on public blockchains) and the maintenance of a central coordinator (in the case of a private network or server). % TODO it not a contribution, it's property
+    
 \end{enumerate}
 
 \section{Related work}
