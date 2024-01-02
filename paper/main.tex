@@ -30,11 +30,10 @@
 
 \maketitle
 
-
-\keywords{Something \and Something else}
+\keywords{Internet Voting \and Digital Democracy \and Federated Distributed Key Generation \and Threshold Cryptography \and  Zero-Knowledge Proofs \and zkSNARKs \and Blockchain}
 
 \begin{abstract}
-  In this paper we prove that the One-Time-Pad has perfect security.
+This paper introduces an innovative Voter-to-Voter Internet Voting Protocol, fundamentally shifting the paradigm in internet voting systems by eliminating reliance on centralized authorities or trusted intermediaries. We present a novel technique called Federated Distributed Key Generation (FDKG), which allows dynamic participant involvement in the key generation process, ensuring robustness against node unavailability. The protocol leverages threshold cryptography, ensuring that a subset of nodes can decrypt voting results, thereby preventing any single node from obstructing the voting process. Utilizing zero-knowledge proofs (zkSNARKs), the protocol guarantees the integrity and privacy of the voting process, allowing voters to verify the correctness of the process without compromising their anonymity. The paper also discusses the protocol's resilience to Byzantine nodes and its application in small-scale votings, where participants are familiar with each other, making it especially suitable for modern decentralized governance models like smart cities, DAOs, and algorithmic governance. The protocol is rigorously analyzed for security, decipherability, and privacy, and experimental results demonstrate its practical feasibility and scalability. This work not only contributes a significant advancement in secure and decentralized voting but also opens avenues for future research in optimizing computational demands and scalability for larger elections..
 
 \end{abstract}
 
@@ -893,12 +892,20 @@ We propose two possible deployments of the protocol (see Figure~\ref{fig:stack-b
 
 We also provide an open-source implementation of the protocol in TypeScript and Golang. This implementation allows for the deployment of the voting system across various platforms, broadening its accessibility and utility. The codebase is available at \url{https://github.com/delendum-xyz/private-voting}.
 
-In conclusion, while our protocol presents a significant step forward in secure and decentralized voting, further research is required to address its computational demands and scalability challenges. Future work could focus on optimizing zkSNARKs implementations, possibly batching proofs together, exploring alternative cryptographic schemes, and enhancing the protocol's adaptability to diverse election scales and requirements.
-
-\section{Conclusion and Future Work}
-
-We find two possible paths of optimisations. First is in optimising the proof time and size by batching proofs together. 
+We find two possible paths of optimisations. First is in optimising the proof time and size by batching proofs together or refolmulating the proofs into simpler and more efficient Sigma Proofs. 
 The second one is on implementing the solution on-chain but making it gasless with the use of paymaster introduced in ERC-4337, making the votes gasless.
+
+\section{Conclusion}
+
+This paper introduces the Voter-to-Voter Internet Voting Protocol, which aims to enhance the security and decentralization of internet voting systems. Central to this protocol is the Federated Distributed Key Generation (FDKG), designed to decentralize the key generation process and improve robustness against node unavailability. The incorporation of threshold cryptography ensures that the decryption of voting results does not depend on any single node, thus maintaining the continuity of the voting process.
+
+The protocol employs zero-knowledge proofs (zkSNARKs) to maintain the integrity and privacy of the voting process. This cryptographic technique allows for the verification of the voting process's correctness while preserving voter anonymity, which is a critical aspect of democratic voting systems.
+
+The protocol's applicability extends to various modern governance models, including smart cities, Decentralised Autonomous Organisations (DAOs), and algorithmic governance systems. This adaptability underscores its potential utility in the evolving landscape of digital governance and democratic processes.
+
+Our security analysis, focusing on decipherability and privacy, demonstrates the protocol's robustness. Experimental results further support its practicality and scalability, suggesting its applicability across diverse voting scenarios. However, the research also highlights areas for future improvement, particularly in computational efficiency and scalability in the context of large-scale elections.
+
+In summary, the Voter-to-Voter Internet Voting Protocol contributes to the ongoing efforts in developing secure, decentralized, and privacy-preserving voting systems. While it presents several advancements, continued research is necessary to address its current limitations and to adapt the protocol for broader applications in complex electoral systems.
 
 \section{Acknowledgments}
 
