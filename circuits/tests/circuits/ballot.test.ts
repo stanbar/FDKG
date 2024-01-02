@@ -23,16 +23,14 @@ const input: BallotCircuitInput = {
     votingPublicKey: [F.toBigint(votingPubKey[0]), F.toBigint(votingPubKey[1])],
     cast,
     r,
-}
-const out = {
-    out: [F.toBigint(C1[0]), F.toBigint(C1[1]), F.toBigint(C2[0]), F.toBigint(C2[1])],
+    encryptedBallot: [F.toBigint(C1[0]), F.toBigint(C1[1]), F.toBigint(C2[0]), F.toBigint(C2[1])],
 }
 
 const CIRCUIT_NAME = "encrypt_ballot"
 const CIRCUIT_CONFIG = {
     file: "encrypt_ballot",
     template: "EncrytedBallot",
-    pubs: ["votingPublicKey"],
+    pubs: ["votingPublicKey", "encryptedBallot"],
     params: [VOTERS, OPTIONS],
 }
 
@@ -43,7 +41,7 @@ describe(`test ${CIRCUIT_NAME}`, () => {
         console.log({ info })
     });
     describe(`test witness generation ${CIRCUIT_NAME} `, () => {
-        let circuit: WitnessTester<["cast", "r", "votingPublicKey"], ["out"]>;
+        let circuit: WitnessTester<["votingPublicKey", "cast", "r", "encryptedBallot"]>;
 
         before(async () => {
             circuit = await circomkit.WitnessTester(CIRCUIT_NAME, CIRCUIT_CONFIG);
@@ -58,27 +56,7 @@ describe(`test ${CIRCUIT_NAME}`, () => {
         });
 
         it("should decrypt correctly", async () => {
-            await circuit.expectPass(input, out);
-        });
-
-        it("should compute correctly", async () => {
-            const output = await circuit.compute(input, ["out"]);
-            assert(Object.hasOwn(output, "out"))
-            assert.deepStrictEqual(output.out, out.out)
-        });
-
-        it("should compute witness and read correct output", async () => {
-            const witness = await circuit.calculateWitness(input)
-            const result = await circuit.readWitnessSignals(witness, ["out"])
-            const out = result as any
-            assert.deepEqual(result, out)
-
-            const x = decryptBallot([F.fromBigint(out.out[0]), F.fromBigint(out.out[1])],
-                [F.fromBigint(out.out[2]), F.fromBigint(out.out[3])],
-                votingPrivKey,
-                VOTERS,
-                OPTIONS)
-            assert.equal(x, cast)
+            await circuit.expectPass(input);
         });
 
         it('should assert for correct witness', async () => {
@@ -88,7 +66,7 @@ describe(`test ${CIRCUIT_NAME}`, () => {
     });
 
     describe(`test ${CIRCUIT_NAME} proof generation`, () => {
-        let circuit: ProofTester<["cast", "r", "votingPublicKey"]>;
+        let circuit: ProofTester<["votingPublicKey", "cast", "r", "encryptedBallot"]>;
 
         before(async () => {
             circuit = await circomkit.ProofTester(CIRCUIT_NAME);
@@ -98,7 +76,7 @@ describe(`test ${CIRCUIT_NAME}`, () => {
             await measureTime("Proof generation", async () => {
                 const { proof, publicSignals } = await circuit.prove(input)
                 await circuit.expectPass(proof, publicSignals)
-            })
+            }, 10)
         });
         it('should NOT verify a proof with invalid public signals', async () => {
             const { proof } = await circuit.prove(input);

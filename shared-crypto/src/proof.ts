@@ -27,12 +27,14 @@ export interface BallotCircuitInput extends CircuitSignals {
   votingPublicKey: bigint[]
   cast: bigint
   r: bigint
+  encryptedBallot: bigint[]
 }
 
 export interface PartialDecryptionCircuitInput extends CircuitSignals {
-  A: bigint[]
-  c1: bigint[]
-  c2: bigint[]
+  C1: bigint[]
+  encryptedShareC1: bigint[]
+  encryptedShareC2: bigint[]
   xIncrement: bigint
   privKey: bigint
+  partialDecryption: bigint[]
 }

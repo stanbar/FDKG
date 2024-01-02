@@ -1,39 +1,37 @@
 /// <reference path='../../types/types.d.ts'/>
 
+import assert from 'node:assert';
 import { ProofTester, WitnessTester } from "circomkit";
 import { circomkit } from "../common/index.js";
 import { measureTime } from "../common/utils.js";
 import { F, mulPointEscalar, scalarToPoint, encryptShare, genKeypair, PartialDecryptionCircuitInput, genRandomSalt, sss } from "shared-crypto";
-import { CircuitSignals } from 'shared-crypto/src/proof.js';
 
-const CIRCUIT_NAME = "partial_decryption"
+const CIRCUIT_NAME = "partial_decryption_share"
 const CIRCUIT_CONFIG = {
-    file: "partial_decryption",
-    template: "PartialDecryption",
-    pubs: ["C1", "partialDecryption", "partialEncryptionKey"]
+    file: "partial_decryption_share",
+    template: "PartialDecryptionShare",
+    pubs: ["C1", "encryptedShareC1", "encryptedShareC2", "xIncrement", "partialDecryption"],
 }
-
-const keypair = genKeypair()
-const d_i = keypair.privKey
-const E_i = keypair.pubKey
+const poly = sss.randomPolynomialZ(3, 123n)
+const share = sss.evalPolynomialZ(poly, 1n)
 
 
-const C1 = genKeypair().pubKey
+const { privKey, pubKey } = genKeypair()
+const ciphertext = encryptShare(share, pubKey)
+const encoded = scalarToPoint(share)
 
-const PDi = mulPointEscalar(C1, d_i).map(F.toBigint)
+const randomPoint = genKeypair()
+const A = randomPoint.pubKey
 
-export interface PartialDecryptionFullCircuitInput extends CircuitSignals {
-    C1: bigint[]
-    partialDecryption: bigint[]
-    partialEncryptionKey: bigint[]
-    partialPrivKey: bigint
-}
+const partialDecryption = mulPointEscalar(A, share)
 
-const input: PartialDecryptionFullCircuitInput = {
-    C1: C1.map(F.toBigint),
-    partialDecryption: PDi,
-    partialEncryptionKey: E_i.map(F.toBigint),
-    partialPrivKey: d_i,
+const input: PartialDecryptionCircuitInput = {
+    C1: A.map(F.toBigint),
+    encryptedShareC1: ciphertext.c1.map(F.toBigint),
+    encryptedShareC2: ciphertext.c2.map(F.toBigint),
+    xIncrement: F.toBigint(ciphertext.xIncrement),
+    privKey: privKey,
+    partialDecryption: partialDecryption.map(F.toBigint)
 }
 
 describe(`test ${CIRCUIT_NAME}`, () => {
@@ -41,10 +39,11 @@ describe(`test ${CIRCUIT_NAME}`, () => {
         circomkit.compile(CIRCUIT_NAME, CIRCUIT_CONFIG)
         const info = await circomkit.info(CIRCUIT_NAME)
         console.log({ info })
+        console.log({share, randomSalt: genRandomSalt()})
     });
 
     describe(`test witness generation ${CIRCUIT_NAME}`, () => {
-        let circuit: WitnessTester<["C1", "partialDecryption", "partialEncryptionKey", "partialPrivKey"]>;
+        let circuit: WitnessTester<["C1", "encryptedShareC1", "encryptedShareC2", "xIncrement", "partialDecryption", "privKey"]>;
 
         before(async () => {
             circuit = await circomkit.WitnessTester(CIRCUIT_NAME, CIRCUIT_CONFIG);
@@ -65,18 +64,18 @@ describe(`test ${CIRCUIT_NAME}`, () => {
     })
 
     describe(`test proof generation ${CIRCUIT_NAME} `, () => {
-        let circuit: ProofTester<["C1", "partialDecryption", "partialEncryptionKey", "partialPrivKey"]>;
+        let circuit: ProofTester<["C1", "encryptedShareC1", "encryptedShareC2", "xIncrement", "partialDecryption", "privKey"]>;
 
         before(async () => {
             circuit = await circomkit.ProofTester(CIRCUIT_NAME);
         });
 
-        it.only("should verify a proof correctly", async () => {
+        it("should verify a proof correctly", async () => {
             await measureTime("Proof generation", async () => {
-                const { proof, publicSignals } = await circuit.prove(input)
+                const { proof, publicSignals } = await circuit.prove(input);
                 console.log(`Size of proof object: ${Buffer.byteLength(JSON.stringify(proof))} bytes`);
-                await circuit.expectPass(proof, publicSignals)
-            }) 
+                await circuit.expectPass(proof, publicSignals);
+            });
         });
         it('should NOT verify a proof with invalid public signals', async () => {
             const { proof } = await circuit.prove(input);
