@@ -650,7 +650,7 @@ H $\leftarrow$ \EscalarMulFix{e, \G}\;
 \caption{Circuit PartialDecryption}
 \label{alg:circuit_proof_pd}
 
-\KwIn{Statement $\vec{s}$: (\TotalA{}, \PartialDecryptionFrom{i}), \PartialEncryptionKey{i}}
+\KwIn{Statement $\vec{s}$: (\TotalA{}, \PartialDecryptionFrom{i}, \PartialEncryptionKey{i})}
 \KwIn{Witness $\vec{w}$: (\PartialDecryptionKey{i})}
 \SetKwFunction{Num2Bits}{Num2Bits}
 \SetKwFunction{EscalarMulFix}{EscalarMulFix}
@@ -775,57 +775,9 @@ The set $M$ ensures Decipherability because shares $\PartialDecryptionKey{3},\Pa
 \paragraph{Privacy}
 Privacy in the FDKG system is compromised when all parties from any Decipherability set collude. In this example, if all parties \(\{P_3, P_5, P_6\}\) collude, they can collectively reconstruct the secret \DecryptionKey and therefore decrypt each individual ballot \Ballot{i}.
 
-% \section{System Implementation}
-
-% \subsection{Consensus and Networking}
-
-% \begin{figure}
-%     \centering
-%     \includegraphics[width=\textwidth]{stack-bc.png}
-%     \label{fig:stack-bc}
-%     \caption{System architecture.}
-% \end{figure}
-
-% \begin{itemize}
-%     \item Ad-hoc blockchain network
-%     \item p2p networking via async mesh network https://wesh.network/
-%     \item FBA or Tendermint
-%     \item Or, a public blockchain with ERC4337 paymaster to cover the transaction costs
-% \end{itemize}
-
 \section{Experimental Results}
 
-
-
-
-
-
-
-
-\begin{figure}
-    \centering
-    \includegraphics[width=\textwidth]{dlog-search-time.png}
-    \caption{Time required to solve DLP with respect to number of voters and number of candidates.}
-    \label{fig:dlog-search}
-\end{figure}
-
-
-
-Finally the offline tally requires extracting number of voters for each party. To do so we have to solve the Discrete Logarithm Problem (DLP) for the final output point $M = H * \sum_i v_i$. The goal is to find the scalar value $\sum_i v_i$ which when multiplied by $H$ gives the voting output $M$. In general the problem of solving DLog is considered infeasible and so the security of DLog-based crypto systems holds. However, for small number of voters the problem can be solved using exhaustive search within a reasonable time. To extract each $x_i$ we use the technique described in~\cite{haoAnonymousVotingTworound2010}. Figure~\ref{fig:dlog-search} shows the time required to solve DLP.
-
-Analysis of the measurements shows that time required to find the DLog follows the power-law $Y=aX^b$ where parameter $b$ is linear with the number of options, which is an expected behaviour. In other words, the time to compute the results is linear with the number of voters and exponential with the number of candidates.
-
-\begin{figure}
-    \centering
-    \includegraphics[width=\textwidth]{stack-bc.png}
-    \caption{Possible protocol deployments.}
-    \label{fig:stack-bc}
-\end{figure}
-
-
-\section{Experimental Results}
-
-Our experimental evaluation was conducted on a MacBook Pro with an Apple M1 Pro processor and 16GB of RAM. The experiments focused on measuring the execution time and message size for both the Plonk and Groth16 proving systems. The results provide valuable insights into the practicality and efficiency of the proof systems in the context of our protocol.
+Our experimental evaluation was conducted on a MacBook Pro with an Apple M1 Pro processor and 16GB of RAM. The experiments focused on measuring the proving time and message size for two popular proving protocols Plonk and Groth16 provided in \texttt{snarkjs}\cite{ProvingCircuitsZK,Iden3Snarkjs2023} WASM implementation. We also measured execution time of solving the Discrete Logarithm Problem (DLP) as part of the offline tally process.
 
 \subsection{PLONK Proving System}
 
@@ -919,7 +871,7 @@ As depicted in Figure~\ref{fig:dlog-search}, our analysis demonstrates that the 
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=\textwidth]{dlog-search-time2.png}
+    \includegraphics[width=\textwidth]{dlog-search-time.png}
     \caption{Time required to solve DLP with respect to the number of candidates and number of voters (log-log scale).}
     \label{fig:dlog-search}
 \end{figure}
