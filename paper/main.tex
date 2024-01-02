@@ -142,24 +142,24 @@ to incentivize participation and penalize non-participation. We find this method
 \end{enumerate}
 
 \section{Related work}
+
 Most Internet protocols rely on a trusted third party. They differ in what the server can or cannot do. The honesty of the trusted third party determines either anonymity, privacy or coercion resistance properties.
 
-Most of the current reserach on internet voting protocols uses some kind of blockchain for integral and transparent storage: 
+Most of the current research on internet voting protocols uses some kind of blockchain for integral and transparent storage: 
 Voatz~\cite{mooreWestVirginiaMobile2019}, 
 Polys~\cite{PolysOnlineVoting}, Follow My Vote~\cite{SecureDecentralizedApplication2023}, Verify-Your-Vote~\cite{chaiebVerifyYourVoteVerifiableBlockchainBased2019},
-OpenVoteNetwork~\cite{haoAnonymousVotingTworound2010,mccorrySmartContractBoardroom2017,seifelnasrScalableOpenVoteNetwork2020,elsheikhDisputefreeScalableOpen2022}, TIVI~\cite{TIVIPoweredSmartmatic,NowYouCan2016}, Stellot~\cite{baranskiPracticalIVotingStellar2020} and MACI~\cite{ethereumfoundationMinimalAntiCollusionInfrastructure2022}.
+OpenVoteNetwork~\cite{haoAnonymousVotingTworound2010,mccorrySmartContractBoardroom2017,seifelnasrScalableOpenVoteNetwork2020,elsheikhDisputefreeScalableOpen2022}, TIVI~\cite{TIVIPoweredSmartmatic,NowYouCan2016}, Stellot~\cite{baranskiPracticalIVotingStellar2020}, Cicida~\cite{BuildingCicadaPrivate,A16zCicada2023} and MACI~\cite{ethereumfoundationMinimalAntiCollusionInfrastructure2022,PrivacyscalingexplorationsMaci2023}.
 
-However, some projects achieve similar properties without using blockchain platform per-se. Projects like Helios~\cite{adidaHeliosWebbasedOpenAudit2008}, Civitas~\cite{clarksonCivitasSecureVoting2008,roenneJCJImprovedVerifiability2016}, Swisspost/Scytl, iVoting, or ElectionGuard~\cite{ElectionGuard} use some kind of distributed authorities to run the voting process. The trust model usually is $N \textrm{ of } N$ where all authorities have to work as expected. All the computation is done using some kind of Multi-Party Computation (MPC) protocol~\cite{boweMultipartyProtocolConstructing2018}.
+However, some projects achieve similar properties without using blockchain platform per-se. Projects like Helios~\cite{adidaHeliosWebbasedOpenAudit2008}, Civitas~\cite{clarksonCivitasSecureVoting2008,roenneJCJImprovedVerifiability2016}, Swisspost/Scytl, iVoting, or ElectionGuard~\cite{ElectionGuard} use some kind of distributed authorities to run the voting process. All the computation is done using some kind of Multi-Party Computation (MPC) protocol~\cite{boweMultipartyProtocolConstructing2018}.
 These systems are not fully decentralised as they are based on a closed set of trusted entities called Guardians. In practice they are "Election Officials, Trustees Canvass Board Members, Government Officials or other trusted authorities who are responsible and accountable for conducting the election"~\cite{ElectionGuardWhoGuardian}.
 
 
-Solutions built on public blockchains~\cite{mccorrySmartContractBoardroom2017,ethereumfoundationMinimalAntiCollusionInfrastructure2022,elsheikhDisputefreeScalableOpen2022} %TODO refer to solutions using public blockchains
-require voters to pay transaction fees.
+Solutions built on public blockchains~\cite{mccorrySmartContractBoardroom2017,ethereumfoundationMinimalAntiCollusionInfrastructure2022,elsheikhDisputefreeScalableOpen2022} require voters to pay transaction fees.
 
 Solutions built on private blockchains~\cite{mooreWestVirginiaMobile2019,PolysOnlineVoting,SecureDecentralizedApplication2023,chaiebVerifyYourVoteVerifiableBlockchainBased2019} %TODO refer to solutions using private blockchains
-still need to be hosted somewhere, which costs money or creates a high entry point for non-technical people.
+are centralised and still need to be hosted somewhere, which costs money or creates a high entry point for non-technical people.
 
-Systems like MACI~\cite{ethereumfoundationMinimalAntiCollusionInfrastructure2022} requires running both public blockchain network and a coordinator server.
+Some systems like MACI~\cite{ethereumfoundationMinimalAntiCollusionInfrastructure2022,PrivacyscalingexplorationsMaci2023} runs on both blockchain network and a single coordinator server.
 
 Compared to other public-blockchain-based solutions, our solution is free, which is arguably a big deal because paying for a vote must reduce the turnout.
 
@@ -167,7 +167,7 @@ Compared to private-blockchain-based solutions, in our protocol, there is no nee
 
 In our solution, voters are running the software, so the question of "who runs the message board and tallying software and can we trust them?" changes to “do we trust that the majority (more concretely m-of-n voters) are honest?” Moreover, as the network is private p2p there is no problem of "who pays for it?". And because it's a private blockchain there are no transaction fees.
 
-The comparision is presented in the Table~\ref{table-comparision}.
+The comparison is presented in the Table~\ref{table-comparision}.
 
 \newcommand{\fullmoon}{\tikz\filldraw[fill=black] (0,0) circle (0.5em);}
 \newcommand{\newmoon}{\tikz\draw (0,0) circle (0.5em);}
@@ -198,6 +198,18 @@ Trust to\footnote{Trust is a broad term that refers to different properties of t
 \hline
 \end{tabular}
 \end{table*}
+
+Moreover, each system achieves different security and privacy properties based on different assumptions. Apparently, there is no single approach to achieve privacy, and even the most popular protocols uses different approaches.
+
+OpenVoteNetwork~\cite{haoAnonymousVotingTworound2010,mccorrySmartContractBoardroom2017,seifelnasrScalableOpenVoteNetwork2020,elsheikhDisputefreeScalableOpen2022} completely eliminates the use of trusted third parties by using the self-tally scheme~\cite{kiayiasSelftallyingElectionsPerfect2002}. The protocol achieves perfect ballot secrecy as there is no secret-key that can decrypt a single ballot. The downside of the protocol is that it's subject to the denial of service (DOS) attack. It requires all parties to participate in all rounds of the protocol, as even one missing party can halt the protocol.
+
+Cicida~\cite{BuildingCicadaPrivate,A16zCicada2023} achieves voting secrecy with the use of homomorphic time-lock puzzles~\cite{malavoltaHomomorphicTimeLockPuzzles2019} that ensures that voting results can be revealed after predetermined amount of time has elapsed, that is, after repeatedly performing some non-parallelizable computation. The protocol encodes ballots as a secrets protected by time-lock puzzles and then sum the ballots together thanks to homomorphic property of the time-puzzles. The downside of this approach is that each single ballot can be revealed the same way as the final result. Therefore, to achieve voter anonymity the protocol uses Semaphore~\cite{Semaphore}, a zero-knowledge set membership proofs, so even if the single ballot is decrypted nobody can tell whose ballot it is.
+
+MACI~\cite{ethereumfoundationMinimalAntiCollusionInfrastructure2022,PrivacyscalingexplorationsMaci2023}, although the only one that achieves coercion-resistance, it uses single coordinator server which holds the secret (decryption) key. Therefore the ballot privacy is achieved as long as the coordinator is not corrupted.
+
+ElectionGuard~\cite{ElectionGuard} distributes the key among trusted parties using the protocol called Distributed Key Generation. The encryption keys are distributed among set of authorities called Guardians. Each Guardian independently creates a pair of public and private keys. These individual public keys are aggregated into a single election public key through simple multiplication. Then the final result is decrypted using multi-party-computation. To prevent DOS due to Guardians unavailablity, Guardians distribute parts of their private keys to each other. This distribution is structured around a predetermined quorum parameter $k$, enabling any group of $k$ Guardians to collectively decrypt, thus ensuring the election's completion even if some Guardians are absent.
+
+Our protocol works similarly to ElectionGuard but it generalises the protocol allowing every voter to become a Guardian and share their secret input among parties they trust rather than everyone in the network. 
 
 \paragraph{Objectives}
 In designing the protocol, we focused on key objectives to meet the essential challenges and needs of a secure and practical internet voting protocol. These objectives are:
@@ -354,7 +366,7 @@ Threshold secret sharing can be done using Shamir Secret Sharing (SSS), which al
 \subsubsection*{Distributed Key Generation}
 We don't want any party to become a dealer (and learn the secret value $s$), and so, we have to distribute the generation of polynomial $\mathbf{f}(X) \in_R \mathbb{Z}_q[X]$ across all parties $\vec{P}$. It is done by having each party pick a random polynomial $f_{i}(X) \in \mathbb{Z}_q[X]$, and then define the final polynomial \[\mathbf{f}(X)=\sum_{i=1}^{n}f_i(X)\] Hence, the voting secret (decryption) key $\mathbf{d}$ and voting public (encryption) key $\mathbf{E}$ are: $$\mathbf{d}=\mathbf{f}(0)$$ $$\mathbf{E}=\mathbf{d} \cdot \G$$ 
 
-To prevent misbehaviour of parties (sending arbitrary values) we use a more sophisticated version of SS called Publicly Verifiable Secret Sharing (\href{PVSS}{https://www.win.tue.nl/~berry/papers/crypto99.pdf}), which involves zero-knowledge proofs attesting that the correct relation between values holds.
+To prevent misbehaviour of parties (sending arbitrary values) we use a more sophisticated version of SS called Publicly Verifiable Secret Sharing (PVSS)~\cite{goosSimplePubliclyVerifiable1999}, which involves zero-knowledge proofs attesting that the correct relation between values holds.
 
 
 \subsubsection*{Dynamic Distributed Key Generation}
