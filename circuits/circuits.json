@@ -85,10 +85,15 @@
     "template": "ElGamalDecrypt",
     "pubs": ["c1", "c2", "xIncrement"]
   },
+  "partial_decryption_share": {
+    "file": "partial_decryption_share",
+    "template": "PartialDecryptionShare",
+    "pubs": ["C1", "encryptedShareC1", "encryptedShareC2", "xIncrement", "partialDecryption"]
+  },
   "partial_decryption": {
     "file": "partial_decryption",
     "template": "PartialDecryption",
-    "pubs": ["A", "c1", "c2", "xIncrement"]
+    "pubs": ["C1", "partialDecryption", "partialEncryptionKey"]
   },
   "encrypt_ballot": {
     "file": "encrypt_ballot",

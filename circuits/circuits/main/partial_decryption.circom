@@ -3,4 +3,4 @@ pragma circom 2.1.2;
 
 include "../partial_decryption.circom";
 
-component main {public[A, c1, c2, xIncrement]} = PartialDecryption();
+component main {public[C1, partialDecryption, partialEncryptionKey]} = PartialDecryption();
