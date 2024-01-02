@@ -49,7 +49,7 @@ template PVSS(guardianIndex, threshold) {
     C2.r1Bits <== r1Bits;
     C2.r2 <== r2;
     C2.share <== eval[threshold-1];
-    C2.recipent_public_key <== guardianPubKey;
+    C2.recipentPublicKey <== guardianPubKey;
 
     out[0] <== votingPubXout; // C1.x
     out[1] <== votingPubYout; // C1.y

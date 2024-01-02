@@ -9,13 +9,13 @@ template ComputeC2() {
     signal input r1Bits[253];
     signal input r2;
     signal input share;
-    signal input recipent_public_key[2];
+    signal input recipentPublicKey[2];
     signal output xout;
     signal output yout;
     signal output xDelta;
 
-    // r1 * recipent_public_key
-    signal rP[2] <== EscalarMulAny(253)(p <== recipent_public_key, e <== r1Bits);
+    // r1 * recipentPublicKey
+    signal rP[2] <== EscalarMulAny(253)(p <== recipentPublicKey, e <== r1Bits);
 
     // M = r2*G
     var BASE8[2] = [

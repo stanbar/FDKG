@@ -28,13 +28,15 @@ template EncrytedBallot(voters, options) {
     signal input votingPublicKey[2];
     signal input cast;
     signal input r;
-    signal output out[4];
+    signal input encryptedBallot[4];
 
     component rBits = Num2Bits(253);
     rBits.in <== r;
 
     component C1 = ElGamalC1();
     C1.rBits <== rBits.out;
+    encryptedBallot[0] === C1.xout;
+    encryptedBallot[1] === C1.yout;
 
     component rP = EscalarMulAny(253);
     rP.p[0] <== votingPublicKey[0];
@@ -65,8 +67,9 @@ template EncrytedBallot(voters, options) {
     C2.x2 <== mG.out[0];
     C2.y2 <== mG.out[1];
 
-    out[0] <== C1.xout;
-    out[1] <== C1.yout;
-    out[2] <== C2.xout;
-    out[3] <== C2.yout;
+
+
+
+    encryptedBallot[2] === C2.xout;
+    encryptedBallot[3] === C2.yout;
 }

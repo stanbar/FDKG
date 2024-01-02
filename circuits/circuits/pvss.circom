@@ -4,33 +4,7 @@ include "../lib/circomlib/circuits/babyjub.circom";
 include "../lib/circomlib/circuits/escalarmulany.circom";
 include "../lib/circomlib/circuits/bitify.circom";
 include "elGamal_c1.circom";
-
-template ComputeC2() {
-    signal input r1Bits[253];
-    signal input r2;
-    signal input share;
-    signal input recipent_public_key[2];
-    signal output xout;
-    signal output yout;
-    signal output xDelta;
-
-    // r1 * recipent_public_key
-    signal rP[2] <== EscalarMulAny(253)(p <== recipent_public_key, e <== r1Bits);
-
-    // M = r2*G
-    var BASE8[2] = [
-        5299619240641551281634865583518297030282874472190772894086521144482721001553,
-        16950150798460657717958625567821834550301663161624707787222815936182638968203
-    ];
-    // encodeToMessage(eval) -> Message
-    signal r2Bits[253] <== Num2Bits(253)(r2);
-    signal randomPoint[2] <== EscalarMulFix(253, BASE8)(r2Bits);
-
-    // r * public_key + M
-    (xout, yout) <== BabyAdd()(x1 <== rP[0], y1 <== rP[1], x2 <== randomPoint[0], y2 <== randomPoint[1]);
-
-    xDelta <== randomPoint[0] - share;
-}
+include "elGamal_c2.circom";
 
 
 template PVSS(guardian_set_size, threshold) {
@@ -48,18 +22,20 @@ template PVSS(guardian_set_size, threshold) {
     component r1Bits[guardian_set_size];
     component C1[guardian_set_size];
     component rP[guardian_set_size];
-    component randomPoint[guardian_set_size];
     component C2[guardian_set_size];
 
 
     signal privKeyBits[253] <== Num2Bits(253)(coefficients[0]);
-    
+    // C1 = G * r1
+    var BASE8[2] = [
+        5299619240641551281634865583518297030282874472190772894086521144482721001553,
+        16950150798460657717958625567821834550301663161624707787222815936182638968203
+    ];
+    signal C1[2] <== EscalarMulFix(253, BASE8)(e <== privKeyBits);
 
-    signal (votingPubXout, votingPubYout);
-    (votingPubXout, votingPubYout) <== ElGamalC1()(rBits <== privKeyBits);
     
-    votingPublicKey[0] === votingPubXout;
-    votingPublicKey[1] === votingPubYout;
+    votingPublicKey[0] === C1[0];
+    votingPublicKey[1] === C1[1];
 
     var EXPONENTS[6][10] = [
         [ 1,1,1,1,1,1,1,1,1,1 ], // guardianIndex = 0
@@ -99,13 +75,7 @@ template PVSS(guardian_set_size, threshold) {
         C2[i].r1Bits <== r1Bits[i].out;
         C2[i].r2 <== r2[i];
         C2[i].share <== eval[i][threshold-1];// eval[i][threshold-1]; // share;
-        C2[i].recipent_public_key <== guardiansPubKeys[i];
-
-        // out[i][0] <== C1[i].xout; // C1.x
-        // out[i][1] <== C1[i].yout; // C1.y
-        // out[i][2] <== C2[i].xout; // C2.x
-        // out[i][3] <== C2[i].yout; // C2.y
-        // out[i][4] <== C2[i].xDelta; // xDelta = share - C2.x
+        C2[i].recipentPublicKey <== guardiansPubKeys[i];
 
         encryptedShares[i][0] === C1[i].xout; // C1.x
         encryptedShares[i][1] === C1[i].yout; // C1.y
