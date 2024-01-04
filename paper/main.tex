@@ -16,6 +16,7 @@
 \usepackage[english]{babel}
 \usepackage{scalerel}
 \usepackage{xcolor,colortbl}
+\usepackage{cite}
 \usepackage[linesnumbered,ruled,vlined]{algorithm2e}
 \usepackage{amsmath}
 \usepackage{amssymb}
@@ -33,8 +34,7 @@
 \keywords{Internet Voting \and Digital Democracy \and Federated Distributed Key Generation \and Threshold Cryptography \and  Zero-Knowledge Proofs \and zkSNARKs \and Blockchain}
 
 \begin{abstract}
-This paper introduces an innovative Voter-to-Voter Internet Voting Protocol, fundamentally shifting the paradigm in internet voting systems by eliminating reliance on centralized authorities or trusted intermediaries. We present a novel technique called Federated Distributed Key Generation (FDKG), which allows dynamic participant involvement in the key generation process, ensuring robustness against node unavailability. The protocol leverages threshold cryptography, ensuring that a subset of nodes can decrypt voting results, thereby preventing any single node from obstructing the voting process. Utilizing zero-knowledge proofs (zkSNARKs), the protocol guarantees the integrity and privacy of the voting process, allowing voters to verify the correctness of the process without compromising their anonymity. The paper also discusses the protocol's resilience to Byzantine nodes and its application in small-scale votings, where participants are familiar with each other, making it especially suitable for modern decentralized governance models like smart cities, DAOs, and algorithmic governance. The protocol is rigorously analyzed for security, decipherability, and privacy, and experimental results demonstrate its practical feasibility and scalability. This work not only contributes a significant advancement in secure and decentralized voting but also opens avenues for future research in optimizing computational demands and scalability for larger elections..
-
+This paper introduces an Voter-to-Voter Internet Voting Protocol, fundamentally shifting the paradigm in internet voting systems by eliminating reliance on centralized authorities or trusted intermediaries. We present a novel technique called Federated Distributed Key Generation (FDKG), which allows dynamic participant involvement in the key generation process, ensuring robustness against node unavailability. The protocol leverages threshold cryptography, ensuring that a subset of nodes can decrypt voting results, thereby preventing any single node from obstructing the voting process. Utilizing zero-knowledge proofs (zkSNARKs), the protocol guarantees the integrity and privacy of the voting process, allowing voters to verify the correctness of the process without compromising their anonymity. The paper also discusses the protocol's resilience to Byzantine nodes and its application in small-scale votings, where participants are familiar with each other, making it especially suitable for modern decentralized governance models like smart cities, DAOs, and algorithmic governance. The protocol is rigorously analyzed for security, decipherability, and privacy, and experimental results demonstrate its practical feasibility and scalability. This work not only contributes a significant advancement in secure and decentralized voting but also opens avenues for future research in optimizing computational demands and scalability for larger elections.
 \end{abstract}
 
 
@@ -59,7 +59,7 @@ Voting over the internet (i-voting) seems to be an ideal solution especially whe
 
 Internet voting can increase turnout and the frequency of votings, but most importantly, it can catalyze the further development of modern democracy. Enabling practical applications of direct democracy, liquid democracy, and all other sorts of voting methods like Quadratic Voting, Approval voting, Alternative vote, Score voting, and many others \cite{laslierLoserPluralityVoting2011}.
 
-Moreover, visions of smart cities, crypto cities \cite{buterinCryptoCities2021}, Decentralised Autonomous Organisations (DAO)~\cite{wangDecentralizedAutonomousOrganizations2019}, and other forms of algorithmic governance~\cite{GovernmentAlgorithm2022} rely heavily on the existence of electronic voting, so there is a high need for such systems, as they would enable further development of modern democracy.
+Moreover, visions of smart cities, crypto cities~\cite{buterinCryptoCities2021}, Decentralised Autonomous Organisations (DAO)~\cite{wangDecentralizedAutonomousOrganizations2019}, and other forms of algorithmic governance~\cite{GovernmentAlgorithm2022} rely heavily on the existence of electronic voting, so there is a high need for such systems, as they would enable further development of modern democracy.
 
 Undoubtedly, there is a high demand for internet voting protocol. However, except a minor cases like Switzerland~\cite{ElectronicVotingSwitzerland2023} and Estonia~\cite{ElectronicVotingEstonia2023}, the progress of introducing modern democracy tools is still slow comparing to e.g., online banking.
 
@@ -177,11 +177,9 @@ The comparison is presented in the Table~\ref{table-comparision}.
 
 
 \begin{table*}[!h]
-\label{table-comparision}
 \centering
 \newcommand{\YES}{\cellcolor{red!50}Yes}
 \newcommand{\NO}{\cellcolor{green!50}No}
-\caption{A comparative analysis of three types of internet voting protocols: Public Blockchain-based, Private Infrastructure-based, and Voter-to-Voter Network-based, highlighting their differences in transaction fees, service costs, user-friendliness, and trust dynamics.}
 \begin{tabular}{p{0.2\textwidth}p{0.2\textwidth}p{0.17\textwidth}p{0.17\textwidth}p{0.21\textwidth}}
 \noalign{\smallskip}\hline\noalign{\smallskip}
 \textbf{Property} & \textbf{Centralised server} & \textbf{Private network} & \textbf{Public blockchain} & \textbf{Voter-to-Voter network}\\
@@ -194,12 +192,15 @@ User-Friendliness & \cellcolor{green!50} High & \cellcolor{green!50}High & \cell
 \hline
 Trust to\footnote{Trust is a broad term that refers to different properties of the system, but most of the time it answers the question of who holds the properties of censorship-resistance, privacy, and/or correctness.} & \cellcolor{red!50} Central authority & \cellcolor{yellow!50} Authorities\footnote{Examples of authorities are: "Election Officials, Trustees Canvass Board Members, Government Officials or other trusted authorities who are responsible and accountable for conducting the election", \href{http://www.electionguard.vote/basics/steps/1_Key_Ceremony/}{source}.} & \cellcolor{yellow!50} Miners & \cellcolor{yellow!50} Voters  \\
 \noalign{\smallskip}\hline
-
 \hline
 \end{tabular}
+
+\caption{A comparative analysis of three types of internet voting protocols: Public Blockchain-based, Private Infrastructure-based, and Voter-to-Voter Network-based, highlighting their differences in transaction fees, service costs, user-friendliness, and trust dynamics.}
+\label{table-comparision}
+
 \end{table*}
 
-Moreover, each system achieves different security and privacy properties based on different assumptions. Apparently, there is no single approach to achieve privacy, and even the most popular protocols uses different approaches.
+Moreover, each system achieves different security and privacy properties based on different assumptions. Apparently, there is no single approach to achieve privacy, and even the most popular protocols use fundamentally different approaches.
 
 OpenVoteNetwork~\cite{haoAnonymousVotingTworound2010,mccorrySmartContractBoardroom2017,seifelnasrScalableOpenVoteNetwork2020,elsheikhDisputefreeScalableOpen2022} completely eliminates the use of trusted third parties by using the self-tally scheme~\cite{kiayiasSelftallyingElectionsPerfect2002}. The protocol achieves perfect ballot secrecy as there is no secret-key that can decrypt a single ballot. The downside of the protocol is that it's subject to the denial of service (DOS) attack. It requires all parties to participate in all rounds of the protocol, as even one missing party can halt the protocol.
 
@@ -215,11 +216,11 @@ Our protocol works similarly to ElectionGuard but it generalises the protocol al
 In designing the protocol, we focused on key objectives to meet the essential challenges and needs of a secure and practical internet voting protocol. These objectives are:
 
 \begin{enumerate}
-    \item \textbf{Distributed Model}: Use a completely distributed model to eliminate the need for central authorities or trusted intermediaries. This approach increases the system's resilience to attacks and reduces the risk of having single points of failure.
-    \item \textbf{Social Mapping}: Use a social mapping approach for security, where the system relies on the structure of trust within the voting community. Nodes that are more trusted should have a bigger role in maintaining security.
-    \item \textbf{Privacy}: Ensure strong privacy for voter identity and choices, using cryptographic methods based on the honest-majority assumption. This means individual votes remain secret and cannot be decrypted unless the most important nodes collude.
+    \item \textbf{Distributed Model}. Use a completely distributed model to eliminate the need for central authorities or trusted intermediaries. This approach increases the system's resilience to attacks and reduces the risk of having single points of failure.
+    \item \textbf{Flexible trust.} Use a social mapping approach for security, where the system relies on the structure of trust within the community. People that are more trusted should have a bigger role in maintaining security.
+    \item \textbf{Privacy.} Ensure strong privacy for voter identity and choices, using cryptographic methods based on the honest-majority assumption. This means individual votes remain secret and cannot be decrypted unless the most important nodes collude.
     \item \textbf{Robustness}: The protocol should be resilient to partial participation, particularly in the final round, allowing for flexible involvement without compromising the voting process integrity.
-    \item \textbf{Accessibility}: Ensure the protocol works smoothly on common devices like smartphones and laptops. This makes it accessible, scalable, and easy to use for everyone.
+    \item \textbf{Accessibility.} Ensure the protocol works smoothly on common devices like smartphones and laptops. This makes it accessible, scalable, and easy to use for everyone.
 \end{enumerate}
 
 
@@ -529,7 +530,7 @@ The protocol employes three zero-knowledge proofs to achieve privacy and adhere 
 
 Using the general definition of zkSNARK we construct three proofs for each phase of the voting protocol. Each proof is defined as circuit $C$ that checks the contraints, public instance (statement) $\vec{s}$, and private input (witness) $\vec{w}$.
 
-\subsubsection{\textrm{PROOF}_\textrm{FDKG}}\label{sec:proof-fdkg}
+\subsubsection{\ProofFDKG{i}}\label{sec:proof-fdkg}
 
 \begin{itemize}
     \item $C$ = \ProofFDKGInformal{}. The circuit is presented in Algorithm~\ref{alg:circuit_fdkg}.
@@ -539,7 +540,7 @@ Using the general definition of zkSNARK we construct three proofs for each phase
     \item $\vec{w}=(\{a_0, \dots, a_{t-1}\}, \{r1_1,\dots,r1_{|\GuardianSetOf{}|}\}, \{r2_1,\dots,r2_{|\GuardianSetOf{}|}\})$
 \end{itemize}
 
-\subsubsection{\textrm{PROOF}_\textrm{BALLOT}}\label{sec:proof-ballot}
+\subsubsection{\ProofBALLOT{i}}\label{sec:proof-ballot}
 
 \begin{itemize}
     \item $C$ = \ProofBALLOTInformal{}. The circuit is presented in Algorithm~\ref{alg:circuit_proof_ballot}.
@@ -550,7 +551,7 @@ Using the general definition of zkSNARK we construct three proofs for each phase
 \end{itemize}
 
 
-\subsubsection{\textrm{PROOF}_\textrm{PD}}\label{sec:proof-pd}
+\subsubsection{\ProofPD{}}\label{sec:proof-pd}
 \begin{itemize}
     \item $C$ = \ProofPDInformal{}. The circuit is presented in Algorithm~\ref{alg:circuit_proof_pd}.
     
@@ -560,7 +561,7 @@ Using the general definition of zkSNARK we construct three proofs for each phase
 \end{itemize}
 
 
-\subsubsection{\textrm{PROOF}_\textrm{PDS}}\label{sec:proof-pds}
+\subsubsection{\ProofPDS{i}{j}}\label{sec:proof-pds}
 
 
 \begin{itemize}
@@ -575,15 +576,14 @@ Using the general definition of zkSNARK we construct three proofs for each phase
 \caption{Circuit FDKG($|\GuardianSetOf{}|$ = guardian set size, t = threshold)}
 \label{alg:circuit_fdkg}
 
-\KwIn{Statement $\vec{s}$: (\PartialEncryptionKey{i}, \GuardianSetOf{} = \{\Party{1},\dots,\Party{|\GuardianSetOf{}|}\}, \{\EncryptedPartialDecryptionKeyShare{}{1},\dots, \EncryptedPartialDecryptionKeyShare{}{|\GuardianSetOf{}|})\}}
+\KwIn{Statement $\vec{s}: (\PartialEncryptionKey{i}, \GuardianSetOf{} = \{\Party{1},\dots,\Party{|\GuardianSetOf{}|}\}, \{\EncryptedPartialDecryptionKeyShare{}{1},\dots, \EncryptedPartialDecryptionKeyShare{}{|\GuardianSetOf{}|} \})$}
 
-\KwIn{Witness $\vec{w}$: (\{a_0, \dots, a_{t-1}\}, \{r1_1,\dots,r1_{|\GuardianSetOf{}|}\}, \{r2_1,\dots,r2_{|\GuardianSetOf{}|}\})}
+\KwIn{Witness $\vec{w}: (\{a_0, \dots, a_{t-1}\}, \{r1_1,\dots,r1_{|\GuardianSetOf{}|}\}, \{r2_1,\dots,r2_{|\GuardianSetOf{}|}\})$}
 
 \SetKwFunction{Num2Bits}{Num2Bits}
 \SetKwFunction{EscalarMulFix}{EscalarMulFix}
 \SetKwFunction{EscalarMulAny}{EscalarMulAny}
 \SetKwFunction{BabyAdd}{BabyAdd}
-\SetKwFunction{Assert}{Assert}
 \SetKw{KwTo}{to}
 \SetKw{KwIn}{in}
 \SetKw{KwDownTo}{down to}
@@ -608,12 +608,12 @@ Using the general definition of zkSNARK we construct three proofs for each phase
         $\Eval[i][j] \leftarrow (\Eval[i][j-1] + d)\ \%\ \BaseOrder$\;
     }
     
-    R $\leftarrow$ \EscalarMulAny(r1_i, \Party{i})\; % party in guardiansPubKeys[i]
+    $R \leftarrow \EscalarMulAny(r1_i, \Party{i})$\; % party in guardiansPubKeys[i]
     
-    F $\leftarrow$ \EscalarMulFix(r2_i, \G)\;
+    $F \leftarrow \EscalarMulFix(r2_i, \G)$\;
     
-    J $\leftarrow$ \BabyAdd(R, F)\;
-    \Delta $\leftarrow F_x - \Eval[i][\Threshold]$\;
+    $J \leftarrow \BabyAdd(R, F)$\;
+    $\Delta \leftarrow F_x - \Eval[i][\Threshold]$\;
 
     \Assert $\EncryptedPartialDecryptionKeyShare{}{i}.C1 = \EscalarMulFix{r1[i], \G}$\;
     \Assert $\EncryptedPartialDecryptionKeyShare{}{i}.C2 = J$\;
@@ -626,14 +626,13 @@ Using the general definition of zkSNARK we construct three proofs for each phase
 \caption{Circuit EncryptedBallot(m = the smallest integer s.t. $2^m > |\mathbb{P}|$ )}
 \label{alg:circuit_proof_ballot}
 
-\KwIn{Statement $\vec{s}$: (\EncryptionKey{}, \Ballot{i} = (C1, C2))}
-\KwOut{Witness $\vec{w}$: (\Vote{i}, r)}
+\KwIn{Statement $\vec{s}: (\EncryptionKey{}, \Ballot{i} = (C1, C2) )$}
+\KwOut{Witness $\vec{w}: (\Vote{i}, r)$}
 
 \SetKwFunction{Num2Bits}{Num2Bits}
 \SetKwFunction{EscalarMulFix}{EscalarMulFix}
 \SetKwFunction{EscalarMulAny}{EscalarMulAny}
 \SetKwFunction{BabyAdd}{BabyAdd}
-\SetKwFunction{Assert}{Assert}
 \SetKw{KwTo}{in}
 \SetKw{KwDownTo}{down to}
 \SetKw{Assert}{assert}
@@ -661,13 +660,12 @@ H $\leftarrow$ \EscalarMulFix{e, \G}\;
 \caption{Circuit PartialDecryption}
 \label{alg:circuit_proof_pd}
 
-\KwIn{Statement $\vec{s}$: (\TotalA{}, \PartialDecryptionFrom{i}, \PartialEncryptionKey{i})}
-\KwIn{Witness $\vec{w}$: (\PartialDecryptionKey{i})}
+\KwIn{Statement $\vec{s}: (\TotalA{}, \PartialDecryptionFrom{i}, \PartialEncryptionKey{i})$}
+\KwIn{Witness $\vec{w}: (\PartialDecryptionKey{i})$}
 \SetKwFunction{Num2Bits}{Num2Bits}
 \SetKwFunction{EscalarMulFix}{EscalarMulFix}
 \SetKwFunction{EscalarMulAny}{EscalarMulAny}
 \SetKwFunction{BabyAdd}{BabyAdd}
-\SetKwFunction{Assert}{Assert}
 \SetKw{KwTo}{in}
 \SetKw{KwDownTo}{down to}
 \SetKw{Assert}{assert}
@@ -683,8 +681,8 @@ H $\leftarrow$ \EscalarMulFix{e, \G}\;
 \caption{Circuit PartialDecryptionShare}
 \label{alg:circuit_proof_pds}
 
-\KwIn{Statement $\vec{s}$: (\TotalA{}, \SharePartialDecryptionFromTo{j}{i}, \EncryptedPartialDecryptionKeyShare{j}{i}, \Delta)}
-\KwIn{Witness $\vec{w}$: (\PartySecretKey{i})}
+\KwIn{Statement $\vec{s}: (\TotalA{}, \SharePartialDecryptionFromTo{j}{i}, \EncryptedPartialDecryptionKeyShare{j}{i}, \Delta)$}
+\KwIn{Witness $\vec{w}: (\PartySecretKey{i})$}
 \SetKwFunction{Num2Bits}{Num2Bits}
 \SetKwFunction{EscalarMulFix}{EscalarMulFix}
 \SetKwFunction{EscalarMulAny}{EscalarMulAny}
@@ -734,7 +732,7 @@ For a better understanding of the protocol and highlighting the improvements com
 
 \begin{figure}
     \centering
-    \includegraphics[width=\textwidth]{FDKG2.png}
+    \includegraphics[width=\textwidth]{FDKG.png}
     \caption{Federated Distributed Key Generation}
     \label{fig:FDKG}
 \end{figure}
@@ -786,107 +784,68 @@ The set $M$ ensures Decipherability because shares $\PartialDecryptionKey{3},\Pa
 \paragraph{Privacy}
 Privacy in the FDKG system is compromised when all parties from any Decipherability set collude. In this example, if all parties \(\{P_3, P_5, P_6\}\) collude, they can collectively reconstruct the secret \DecryptionKey and therefore decrypt each individual ballot \Ballot{i}.
 
+
 \section{Experimental Results}
 
-Our experimental evaluation was conducted on a MacBook Pro with an Apple M1 Pro processor and 16GB of RAM. The experiments focused on measuring the proving time and message size for two popular proving protocols Plonk and Groth16 provided in \texttt{snarkjs}\cite{ProvingCircuitsZK,Iden3Snarkjs2023} WASM implementation. We also measured execution time of solving the Discrete Logarithm Problem (DLP) as part of the offline tally process.
+This section presents an experimental evaluation of the Voter-to-Voter Internet Voting Protocol, focusing on the proving time and message size for two prevalent proving protocols: Plonk and Groth16, implemented using the \texttt{snarkjs} WebAssembly (WASM) framework. Additionally, the execution time for solving the Discrete Logarithm Problem (DLP) in the offline tally phase was measured. These experiments were conducted on a MacBook Pro equipped with an Apple M1 Pro processor and 16GB of RAM.
 
-\subsection{PLONK Proving System}
+\paragraph{Proving Time}
 
-The execution times for the Plonk prover are presented in Table \ref{table:plonk-time}. The results indicate that the proving time increases with the complexity of the proof. Specifically, for the \ProofFDKG{i}, the time ranged from 67.753 seconds for a simpler 1-of-2 configuration to 146.026 seconds for a more complex 3-of-4 configuration. The \ProofBALLOT{i} and \ProofPD{} required significantly less time, demonstrating a more efficient computation.
+Table~\ref{table:proving-time} showcases the time required to generate a zkSNARK proof for each message using both the Groth16 and Plonk proving systems. The measurements reveal a significant disparity between the two systems, with Groth16 consistently outperforming Plonk in terms of efficiency. Notably, in the FDKG phase, the Groth16 system required a maximum of 2.414 seconds for a 3-of-4 configuration, while the Plonk system demanded up to 146.026 seconds for the same task.
 
-\begin{table}
-\centering
-\label{table:plonk-time}
-\caption{Execution time of the PLONK prover in seconds.}
-\begin{tabular}{|c|c|c|c|c|}
+\begin{table}[!ht]
+    \centering
+    \begin{tabular}{|c|c|c|c|c|c|c|}
     \hline
-    \multicolumn{5}{|c|}{PLONK} \\
-    \hline
-    \multicolumn{3}{|c|}{\textrm{PROOF}_\textrm{FDKG}} & \multirow{2}{*}{\textrm{PROOF}_\textrm{BALLOT}} & \multirow{2}{*}{\textrm{PROOF}_\textrm{PD}} \\
-    \cline{1-3}
-    1 of 2 & 2 of 3 & 3 of 4 & & \\
-    \hline
-    67.753s & 71.902s & 146.026s & 16.822s & 8.602s/share\\
-    \hline
-\end{tabular}
+        \multirow{2}{*}{\textbf{\shortstack{Proving\\ System}}} & \multicolumn{3}{|c|}{\textbf{FDKG}}  & \multirow{2}{*}{\textbf{\shortstack{Encrypt\\ Ballot}}} & \multirow{2}{*}{\textbf{\shortstack{Partial\\ Decryption}}} & \multirow{2}{*}{\textbf{\shortstack{Partial Decryption\\ Share}}} \\ 
+        \cline{2-4}
+        & \textbf{1 of 2} & \textbf{2 of 3} & \textbf{3 of 4} & &  &  \\ 
+        \hline
+        \textbf{Groth16} & 1.388 s & 2.135 s & 2.414 s & 0.747 s & 0.619 s & 0.580 s/share \\ 
+        \hline
+        \textbf{Plonk} & 67.753 s & 71.902 s & 146.026 s & 16.822 s & 16.543 s & 8.137 s/share \\ 
+        \hline
+    \end{tabular}
+    \caption{Proving Time}
+    \label{table:proving-time}
 \end{table}
 
-\subsection{Groth16 Proving System}
+\paragraph{Message Size}
 
-In contrast, the Groth16 prover showed substantially shorter execution times as shown in Table \ref{table:groth16-time}. The times for the \ProofFDKG{i} ranged from 1.388 to 2.414 seconds, indicating a significant performance improvement over Plonk. The \ProofBALLOT{i} and \ProofPD{i} had even shorter proving times, further highlighting the efficiency of Groth16.
+Table~\ref{table:message-size} illustrates the sizes of messages each party needs to send in each round of the protocol. The messages using Groth16 are smaller as the proofs consist of just 3 elliptic-curve points, whereas proofs created with Plonk requires 9 points and 6 scalars~\cite{gabizonPLONKPermutationsLagrangebases2019}. 
 
-\begin{table}
-\centering
-\label{table:groth16-time}
-\caption{Execution time of the Groth16 prover in seconds.}
-\begin{tabular}{|c|c|c|c|c|}
+\begin{table}[!ht]
+    \centering
+    \begin{tabular}{|c|c|c|c|c|c|c|}
     \hline
-    \multicolumn{5}{|c|}{Groth16} \\
-    \hline
-    \multicolumn{3}{|c|}{\textrm{PROOF}_\textrm{FDKG}} & \multirow{2}{*}{\textrm{PROOF}_\textrm{BALLOT}} & \multirow{2}{*}{\textrm{PROOF}_\textrm{PD}} \\
-    \cline{1-3}
-    1 of 2 & 2 of 3 & 3 of 4 & & \\
-    \hline
-    1.388s & 2.135s & 2.414s & 0.747s & 0.506s/share\\
-    \hline
-\end{tabular}
+        \multirow{2}{*}{\textbf{\shortstack{Proving\\ System}}} & \multicolumn{3}{|c|}{\textbf{FDKG}}  & \multirow{2}{*}{ \textbf{\shortstack{Encrypt\\ Ballot}}} & \multirow{2}{*}{\textbf{\shortstack{Partial\\ Decryption}}} & \multirow{2}{*}{\textbf{\shortstack{Partial Decryption\\ Share}}} \\ 
+        \cline{2-4}
+        & \textbf{1 of 2} & \textbf{2 of 3} & \textbf{3 of 4} & &  &  \\ 
+        \hline
+        \textbf{Groth16} & 1152 B & 1568 B & 1984 B & 512 B & 576 B & 768 B/share \\ \hline
+        \textbf{Plonk} & 1472 B & 1888 B & 2304 B & 832 B & 896 B & 1088 B/share \\ \hline
+    \end{tabular}
+    \caption{Sizes of the Messages in Each Round}
+    \label{table:message-size}
 \end{table}
 
-\subsection{Message Size Analysis}
-
-Additionally, we analyzed the message sizes for each phase using both proving systems. As shown in Table \ref{table:groth16-size}, the Groth16 proving system maintained smaller message sizes across all phases, with the \ProofFDKG{i} varying from 6.476 KB to 11.412 KB. The PLONK proving system, detailed in Table \ref{table:plonk-size}, generally produced larger messages, especially for the \ProofFDKG{i}, which ranged from 7.825 KB to 12.817 KB.
-
-
-\begin{table}
-\centering
-\label{table:groth16-size}
-\caption{Message size for each phase using Groth16 proving system.}
-\begin{tabular}{|c|c|c|c|c|}
-    \hline
-    \multicolumn{5}{|c|}{Groth16} \\
-    \hline
-    \multicolumn{3}{|c|}{\textrm{PROOF}_\textrm{FDKG}} & \multirow{2}{*}{\textrm{PROOF}_\textrm{BALLOT}} & \multirow{2}{*}{\textrm{PROOF}_\textrm{PD}} \\
-    \cline{1-3}
-    1 of 2 & 2 of 3 & 3 of 4 & & \\
-    \hline
-    6.476 KB& 8.928 KB & 11.412 KB & 2.310 KB & 2.548 KB/share\\
-    \hline
-\end{tabular}
-\end{table}
-
-
-\begin{table}
-\centering
-\label{table:plonk-size}
-\caption{Message size for each phase using Plonk proving system.}
-\begin{tabular}{|c|c|c|c|c|}
-    \hline
-    \multicolumn{5}{|c|}{Plonk} \\
-    \hline
-    \multicolumn{3}{|c|}{\textrm{PROOF}_\textrm{FDKG}} & \multirow{2}{*}{\textrm{PROOF}_\textrm{BALLOT}} & \multirow{2}{*}{\textrm{PROOF}_\textrm{PD}} \\
-    \cline{1-3}
-    1 of 2 & 2 of 3 & 3 of 4 & & \\
-    \hline
-    7.825 KB& 10.332 KB & 12.817 KB & 3.671 KB & 3.920 KB/share\\
-    \hline
-\end{tabular}
-\end{table}
-
-These experimental results highlight the trade-offs between the Plonk and Groth16 proving systems in terms of execution time and message size. While Plonk offers a more transparent setup without a trusted ceremony, its longer proving times and larger message sizes may pose limitations for large-scale applications. On the other hand, Groth16, despite its reliance on a one-time trusted setup, provides a more efficient proving process, making it a favorable choice for common devices like smartphones and laptops.
-
-\subsection{Discrete Logarithm Problem Analysis}
+\paragraph{Discrete Logarithm Problem (DLP)}
 
 An integral part of our protocol's offline tally is the extraction of the number of voters for each candidate, which necessitates solving the Discrete Logarithm Problem (DLP). This process involves finding the scalar values $x_1, x_2, \dots, x_l$ $\sum_i v_i$ in the final output point $M = x_1 2^0 + x_2 2^j + \dots + x_l 2^{(l-1)j}$. While solving DLog is generally considered infeasible, ensuring the security of DLog-based systems, for a small number of voters this problem can be feasibly solved through exhaustive search. We applied the technique described in~\cite{haoAnonymousVotingTworound2010} for extracting each $x_i$. 
 
 As depicted in Figure~\ref{fig:dlog-search}, our analysis demonstrates that the time required to solve DLP aligns with the power-law \( Y = aX^b \), where \( b \) varies linearly with the number of options. This implies that the computation time is linear with the number of voters and exponential with the number of candidates, presenting potential scalability challenges for larger elections.
 
+
+
+
+% The offline tally phase of the protocol involves solving the Discrete Logarithm Problem (DLP) to extract the number of voters for each candidate. This process, depicted in Figure~\ref{fig:dlog-search}, reveals that the time required to solve DLP aligns with a power-law relationship \( Y = aX^b \), where \( b \) varies linearly with the number of options. The computation time is linear with the number of voters, but increases exponentially with the number of candidates. This relationship presents scalability challenges for larger elections, where the number of candidates can significantly impact the time required for tallying.
+
 \begin{figure}[H]
     \centering
-    \includegraphics[width=\textwidth]{dlog-search-time.png}
+    \includegraphics[width=\textwidth]{dlog-search-time2.png}
     \caption{Time required to solve DLP with respect to the number of candidates and number of voters (log-log scale).}
     \label{fig:dlog-search}
 \end{figure}
-
 
 
 \section{Discussion}
@@ -900,6 +859,13 @@ However, the implementation of zkSNARKs for message certification introduces eit
 
 Also, a critical aspect of our protocol is the final tally, which requires solving the Discrete Logarithm (DLOG) problem. The complexity of this problem follows the power-law \( Y = aX^b \), where the parameter \( X \) is directly proportional to the number of voters, and the exponent \( b \) increases with the number of candidates, indicating that the complexity grows linearly with voter count and exponentially with the number of candidates, thereby posing potential scalability issues. Future work could explore more efficient algorithms or approaches to address this challenge.
 
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{stack-bc.png}
+    \caption{Architecture of the system.}
+    \label{fig:stack-bc}
+\end{figure}
+
 We propose two possible deployments of the protocol (see Figure~\ref{fig:stack-bc}). First as a standalone peer-to-peer application built using open-source tools like IPFS\footnote{IPFS, An open system to manage data without a central server, \url{https://ipfs.tech/}} and Wesh Network\footnote{Wesh Network, Asynchronous mesh network protocol powered by Berty Technologies’ non-profit organisation, \url{https://wesh.network/}}. Second as a smart-contract on public blockchains. Employing the ERC-4337 standard~\cite{ERC4337AccountAbstraction} the voting costs can be covered by one entity called paymaster (e.g., organiser), while voters can enjoy casting votes for free.
 
 We also provide an open-source implementation of the protocol in TypeScript and Golang. This implementation allows for the deployment of the voting system across various platforms, broadening its accessibility and utility. The codebase is available at \url{https://github.com/delendum-xyz/private-voting}.
@@ -909,15 +875,6 @@ The second one is on implementing the solution on-chain but making it gasless wi
 
 \section{Conclusion}
 
-This paper introduces the Voter-to-Voter Internet Voting Protocol, which aims to enhance the security and decentralization of internet voting systems. Central to this protocol is the Federated Distributed Key Generation (FDKG), designed to decentralize the key generation process and improve robustness against node unavailability. The incorporation of threshold cryptography ensures that the decryption of voting results does not depend on any single node, thus maintaining the continuity of the voting process.
-
-The protocol employs zero-knowledge proofs (zkSNARKs) to maintain the integrity and privacy of the voting process. This cryptographic technique allows for the verification of the voting process's correctness while preserving voter anonymity, which is a critical aspect of democratic voting systems.
-
-The protocol's applicability extends to various modern governance models, including smart cities, Decentralised Autonomous Organisations (DAOs), and algorithmic governance systems. This adaptability underscores its potential utility in the evolving landscape of digital governance and democratic processes.
-
-Our security analysis, focusing on decipherability and privacy, demonstrates the protocol's robustness. Experimental results further support its practicality and scalability, suggesting its applicability across diverse voting scenarios. However, the research also highlights areas for future improvement, particularly in computational efficiency and scalability in the context of large-scale elections.
-
-In summary, the Voter-to-Voter Internet Voting Protocol contributes to the ongoing efforts in developing secure, decentralized, and privacy-preserving voting systems. While it presents several advancements, continued research is necessary to address its current limitations and to adapt the protocol for broader applications in complex electoral systems.
 
 \section{Acknowledgments}
 
