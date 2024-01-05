@@ -23,7 +23,7 @@
 \usepackage{multirow}
 
 
-\title{A Voter-to-Voter Internet Voting Protocol}
+\title{A Voter-to-Voter Internet Voting Protocol with Federated Distributed Key Generation}
 \author{Stanislaw Baranski\inst{1}}
 \institute{Gdansk University of Technology, Narutowicza 11/12 80-233, Gdansk, Poland \email{stanislaw.baranski@pg.edu.pl}}
 
@@ -31,12 +31,12 @@
 
 \maketitle
 
-\keywords{Internet Voting \and Digital Democracy \and Federated Distributed Key Generation \and Threshold Cryptography \and  Zero-Knowledge Proofs \and zkSNARKs \and Blockchain}
 
 \begin{abstract}
-This paper introduces an Voter-to-Voter Internet Voting Protocol, fundamentally shifting the paradigm in internet voting systems by eliminating reliance on centralized authorities or trusted intermediaries. We present a novel technique called Federated Distributed Key Generation (FDKG), which allows dynamic participant involvement in the key generation process, ensuring robustness against node unavailability. The protocol leverages threshold cryptography, ensuring that a subset of nodes can decrypt voting results, thereby preventing any single node from obstructing the voting process. Utilizing zero-knowledge proofs (zkSNARKs), the protocol guarantees the integrity and privacy of the voting process, allowing voters to verify the correctness of the process without compromising their anonymity. The paper also discusses the protocol's resilience to Byzantine nodes and its application in small-scale votings, where participants are familiar with each other, making it especially suitable for modern decentralized governance models like smart cities, DAOs, and algorithmic governance. The protocol is rigorously analyzed for security, decipherability, and privacy, and experimental results demonstrate its practical feasibility and scalability. This work not only contributes a significant advancement in secure and decentralized voting but also opens avenues for future research in optimizing computational demands and scalability for larger elections.
+This paper presents a voter-to-voter Internet voting protocol that uses a novel technique called Federated Distributed Key Generation (FDKG), which allows dynamic participation in the key generation process, ensuring robustness against node unavailability and enabling a flexible trust model among participants. The protocol can be implemented in a peer-to-peer environment with zero transaction fees, a significant advantage over protocols that require either a hosting fee or a per-vote fee. The protocol uses threshold cryptography, which ensures that a subset of nodes can decrypt voting results, preventing any single node from blocking the voting process. Using zero-knowledge proofs (zkSNARKs), the protocol guarantees the integrity and privacy of the voting process, allowing voters to verify the correctness of the process without compromising their anonymity. The paper also discusses the protocol's resilience to Byzantine nodes and its application to small-scale voting where participants know each other, making it particularly suitable for governance models such as non-government organizations, corporate boardrooms, homeowners' associations, and open-source projects. The protocol is rigorously analysed for security, decipherability and privacy, and experimental results demonstrate its practical feasibility and scalability. This work contributes to a significant advancement in trust models for secure and decentralised voting protocols.
 \end{abstract}
 
+\keywords{Internet Voting \and Digital Democracy \and Federated Distributed Key Generation \and Threshold Cryptography \and  zkSNARKs \and Blockchain}
 
 \section{Introduction}
 Voting is one of the most popular mechanisms for collective decision-making, prevalent in all types of communities including: non-government organizations, boardrooms, housing associations, regional contests and plebiscites, domestic presidential elections, as well as all forms of global voting that take place on the internet.
@@ -875,6 +875,13 @@ The second one is on implementing the solution on-chain but making it gasless wi
 
 \section{Conclusion}
 
+This paper introduces a voter-to-voter Internet voting protocol empowered by Federated Distributed Key Generation (FDKG), significantly enhancing internet voting's robustness and flexibility. Our protocol effectively combines threshold cryptography and zkSNARKs to ensure voting integrity and privacy, addressing critical trust and security challenges in digital democracies.
+
+The practical applications of this protocol are diverse and impactful. It is particularly suited for small-scale voting environments like local community elections, NGO decision-making, and corporate board resolutions. Its adaptability makes it a viable option for decentralized governance models in smart cities and Decentralised Autonomous Organisations (DAOs), where secure and transparent voting is paramount. Furthermore, the protocol's scalability and privacy features render it a promising candidate for larger-scale implementations, such as regional or national elections, where traditional voting methods face logistical and security challenges.
+
+T he protocol faces challenges in computational demand and scalability, particularly for large-scale applications. Future research should focus on optimizing zkSNARKs for efficiency and exploring scalable cryptographic solutions.
+
+In essence, this work marks a vital step towards secure, private, and democratic internet voting systems, setting a foundation for future advancements and broader implementation in various voting scenarios.
 
 \section{Acknowledgments}
 
