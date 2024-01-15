@@ -755,7 +755,7 @@ A critical aspect of our protocol is the offline tally, reliant on solving the D
 
 Two deployment options for our protocol are proposed (see Figure~\ref{fig:stack-bc}): as a peer-to-peer application using IPFS\footnote{IPFS, An open system to manage data without a central server, \url{https://ipfs.tech/}} and Wesh Network\footnote{Wesh Network, Asynchronous mesh network protocol powered by Berty Technologies’ non-profit organisation, \url{https://wesh.network/}}, or as a smart contract on public blockchains, employing ERC-4337~\cite{ERC4337AccountAbstraction} to centralize voting costs under a single paymaster (e.g., organiser), allowing gasless voting for participants.
 
-We have made our protocol's implementation in TypeScript and Golang open-source, facilitating widespread deployment and enhancing accessibility. The codebase is available at \url{https://github.com/delendum-xyz/private-voting}.
+We have made our protocol's implementation in TypeScript and Golang open-source, facilitating widespread deployment and enhancing accessibility. The codebase is available at \url{https://github.com/stanbar/v2v-private-voting}.
 
 Optimization avenues include improving proof times and sizes by batching proofs or reformulating them into more efficient Sigma Proofs. Another path involves on-chain implementation with gasless transactions, leveraging ERC-4337's paymaster concept.
 
