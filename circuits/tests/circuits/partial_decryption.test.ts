@@ -71,7 +71,7 @@ describe(`test ${CIRCUIT_NAME}`, () => {
             circuit = await circomkit.ProofTester(CIRCUIT_NAME);
         });
 
-        it.only("should verify a proof correctly", async () => {
+        it("should verify a proof correctly", async () => {
             await measureTime("Proof generation", async () => {
                 const { proof, publicSignals } = await circuit.prove(input)
                 console.log(`Size of proof object: ${Buffer.byteLength(JSON.stringify(proof))} bytes`);
