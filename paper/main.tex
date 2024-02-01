@@ -1,5 +1,5 @@
 \documentclass[runningheads]{llncs}
-\usepackage{graphicx} % Required for inserting images
+\usepackage{graphicx}
 \usepackage{amsmath,amssymb,amsfonts}
 \usepackage{algorithmic}
 \usepackage{textcomp}
@@ -22,18 +22,28 @@
 \usepackage{amssymb}
 \usepackage{multirow}
 
+\titlerunning{A Voter-to-Voter Internet Voting Protocol}
 
 \title{A Voter-to-Voter Internet Voting Protocol with Federated Distributed Key Generation}
-\author{Stanislaw Baranski\inst{1}}
-\institute{Gdansk University of Technology, Narutowicza 11/12 80-233, Gdansk, Poland \email{stanislaw.baranski@pg.edu.pl}}
+\author{Stanislaw Baranski\inst{1}, Julian Szymański\inst{1}}
+\institute{Gdansk University of Technology, Narutowicza 11/12 80-233, Gdansk, Poland \email{\{stanislaw.baranski,julian.szymanski\}@pg.edu.pl}}
 
 \begin{document}
 
 \maketitle
 
 
+% \begin{abstract}
+% This paper presents a voter-to-voter Internet voting protocol that uses a novel technique called Federated Distributed Key Generation (FDKG), which allows dynamic participation in the key generation process, ensuring robustness against node unavailability and enabling a flexible trust model among participants. The protocol can be implemented in a peer-to-peer environment with zero transaction fees, a significant advantage over protocols that require either a hosting fee or a per-vote fee. The protocol uses threshold cryptography, which ensures that a subset of nodes can decrypt voting results, preventing any single node from blocking the voting process. Using zero-knowledge proofs (zkSNARKs), the protocol guarantees the integrity and privacy of the voting process, allowing voters to verify the correctness of the process without compromising their anonymity. The paper also discusses the protocol's resilience to Byzantine nodes and its application to small-scale voting where participants know each other, making it particularly suitable for governance models such as non-government organizations, corporate boardrooms, homeowners' associations, and open-source projects. The protocol is rigorously analysed for security, decipherability and privacy, and experimental results demonstrate its practical feasibility and scalability. This work contributes to a significant advancement in trust models for secure and decentralised voting protocols.
+% \end{abstract}
+
 \begin{abstract}
-This paper presents a voter-to-voter Internet voting protocol that uses a novel technique called Federated Distributed Key Generation (FDKG), which allows dynamic participation in the key generation process, ensuring robustness against node unavailability and enabling a flexible trust model among participants. The protocol can be implemented in a peer-to-peer environment with zero transaction fees, a significant advantage over protocols that require either a hosting fee or a per-vote fee. The protocol uses threshold cryptography, which ensures that a subset of nodes can decrypt voting results, preventing any single node from blocking the voting process. Using zero-knowledge proofs (zkSNARKs), the protocol guarantees the integrity and privacy of the voting process, allowing voters to verify the correctness of the process without compromising their anonymity. The paper also discusses the protocol's resilience to Byzantine nodes and its application to small-scale voting where participants know each other, making it particularly suitable for governance models such as non-government organizations, corporate boardrooms, homeowners' associations, and open-source projects. The protocol is rigorously analysed for security, decipherability and privacy, and experimental results demonstrate its practical feasibility and scalability. This work contributes to a significant advancement in trust models for secure and decentralised voting protocols.
+This paper presents a voter-to-voter Internet voting protocol that uses a novel technique called Federated Distributed Key Generation (FDKG).
+FDKG allows for dynamic key generation, ensuring resilience against node unavailability and offering a flexible trust model among participants.
+Our protocol operates in a peer-to-peer environment, avoiding the typical costs associated with hosting or per-vote fees. It employs threshold cryptography to prevent any single node from blocking the voting process, with a group of nodes collaboratively decrypting the votes.
+The use of zero-knowledge proofs (zkSNARKs) ensures the voting process is private, verifiable and secure, allowing voters to cast confidential votes while detecting incorrect messages. 
+The protocol trust assumptions represents the trust structure in the group making it making it particularly suitable for governance models such as corporate boardrooms, homeowners' associations, and non-government organizations.
+The protocol is analysed for security, decipherability and privacy, and experimental results demonstrate its practical feasibility and scalability. This work contributes to a significant advancement in trust models for secure and decentralised voting protocols.
 \end{abstract}
 
 \keywords{Internet Voting \and Digital Democracy \and Federated Distributed Key Generation \and Threshold Cryptography \and  zkSNARKs \and Blockchain}
@@ -123,7 +133,7 @@ Protocols employing a distributed set of authorities typically leverage Distribu
 
 \section{Related Work}
 
-Internet voting protocols commonly depend on a trusted third party, with variations in server capabilities determining integrity, anonymity, privacy, censorship-resistance and coercion resistance based on the trustworthiness of this entity. Current research predominantly employs blockchain technology for its integrity and transparency in vote storage, as seen in systems like Voatz, Polys, Follow My Vote, Verify-Your-Vote, OpenVoteNetwork, TIVI, Stellot, Cicida, and MACI \cite{mooreWestVirginiaMobile2019, PolysOnlineVoting, SecureDecentralizedApplication2023, chaiebVerifyYourVoteVerifiableBlockchainBased2019, haoAnonymousVotingTworound2010, mccorrySmartContractBoardroom2017, seifelnasrScalableOpenVoteNetwork2020, elsheikhDisputefreeScalableOpen2022, TIVIPoweredSmartmatic, NowYouCan2016, baranskiPracticalIVotingStellar2020, BuildingCicadaPrivate, A16zCicada2023, ethereumfoundationMinimalAntiCollusionInfrastructure2022, PrivacyscalingexplorationsMaci2023}.
+Internet voting protocols commonly depend on a trusted third party, with variations in server capabilities determining integrity, anonymity, privacy, censorship-resistance and coercion resistance based on the trustworthiness of this entity. Current research predominantly employs blockchain technology for its integrity and transparency in vote storage, as seen in systems like Voatz, Polys, Follow My Vote, Verify-Your-Vote, OpenVoteNetwork, TIVI, Stellot, Cicada, and MACI \cite{mooreWestVirginiaMobile2019, PolysOnlineVoting, SecureDecentralizedApplication2023, chaiebVerifyYourVoteVerifiableBlockchainBased2019, haoAnonymousVotingTworound2010, mccorrySmartContractBoardroom2017, seifelnasrScalableOpenVoteNetwork2020, elsheikhDisputefreeScalableOpen2022, TIVIPoweredSmartmatic, NowYouCan2016, baranskiPracticalIVotingStellar2020, BuildingCicadaPrivate, A16zCicada2023, ethereumfoundationMinimalAntiCollusionInfrastructure2022, PrivacyscalingexplorationsMaci2023}.
 
 Alternatively, projects like Helios, Civitas, Swisspost/Scytl, iVoting, and ElectionGuard utilize distributed authorities and Multi-Party Computation (MPC) protocols without explicitly depending on blockchain technology \cite{adidaHeliosWebbasedOpenAudit2008, clarksonCivitasSecureVoting2008, roenneJCJImprovedVerifiability2016, ElectionGuard}. These systems are not fully decentralized, relying on a closed set of trusted entities known as Guardians.
 
@@ -252,21 +262,42 @@ In designing the protocol, we focused on key objectives to meet the essential ch
 \newcommand{\SharePartialDecryptionFromTo}[2]{\ensuremath{[\mathrm{PD}_{#1}]_{#2}}}
 
 \newcommand{\PartialDecryptionFrom}[1]{\ensuremath{\mathrm{PD}_{#1}}}
-\section{Voting Protocol}
 
-Our protocol integrates the three-round voting scheme from \cite{schoenmakersLectureNotesCryptographic2018}, the multi-candidate encoding method from \cite{haoAnonymousVotingTworound2010}, and the Federated Distributed Key Generation (FDKG) introduced in this paper. We employ the Threshold ElGamal Cryptosystem, ensuring decryptability even in the absence of some guardians.
+\section{Preliminaries}
+In this section, we outline essential cryptographic concepts and tools that underpin the voter-to-voter Internet voting protocol presented in this paper. These preliminaries provide the necessary background for understanding our protocol's structure and functionality.
 
-\paragraph*{Assumptions}
-The protocol is based on the following assumptions:
-\begin{enumerate}
-\item All communications occur over a public message board.
-\item Authenticated public channels are available to every participant, established through the public message board and digital signatures.
-\item Private channels for each participant are secured using the public message board and ElGamal public key encryption.
-\item Each participant, denoted \Party{i}, has a key pair (\PartySecretKey{i}, \Party{i}), with $\PartySecretKey{i} \in_\$ \mathbb{Z}_q$ as a randomly selected secret key, and $\Party{i} = \PartySecretKey{i} \G$ as the corresponding public key. Parties are identified solely by their public keys.
-\item The protocol uses Elliptic Curve Cryptography, specifically the BabyJubJub curve~\cite{whitehatBabyJubjubElliptic2020}.
-\item Participants consent to certain cryptographic parameters, including the Elliptic Curve $E(\mathbb{Z}_p)$ with a defined curve finite field modulus $p$, a base point $G$ on the curve, and the order of the base point $q$. Additionally, they agree to the set of eligible voters $\mathbb{P}$ and the set of candidates $\vec{C}$.
-\item The ElGamal cryptosystem is employed for public-key encryption, with $\texttt{Enc}_{\Party{i}}$ as the encryption function for a public key $\Party{i}$, and $\texttt{Dec}_{\PartySecretKey{i}}$ for decryption with the corresponding secret key $s$.
-\end{enumerate}
+% Table of Notations
+\begin{table}[h]
+\centering
+\caption{Summary of Notations}
+\label{tab:notations}
+\begin{tabular}{|c|l|}
+\hline
+\textbf{Notation} & \multicolumn{1}{c|}{\textbf{Description}} \\ \hline
+P                 & Set of all participants in the voting process \\ \hline
+D                 & Subset of participants involved in Distributed Key Generation \\ \hline
+G                 & Guardian set in Federated DKG \\ \hline
+E                 & Public key in the ElGamal cryptosystem \\ \hline
+d                 & Private key in the ElGamal cryptosystem \\ \hline
+zkSNARK           & Zero-Knowledge Succinct Non-Interactive Argument of Knowledge \\ \hline
+C1, C2            & Components of an ElGamal encrypted message \\ \hline
+Bi                & Encrypted ballot of participant i \\ \hline
+si                & Secret key of participant i \\ \hline
+Pi                & Public key of participant i \\ \hline
+t                 & Threshold number of participants required for certain operations \\ \hline
+k                 & Number of participants in a guardian set \\ \hline
+r                 & Random blinding factor in ballot encryption \\ \hline
+vi                & Encoded vote of participant i \\ \hline
+$\Delta$          & Difference term in ElGamal encryption/decryption \\ \hline
+$\lambda$         & Lagrange coefficient in polynomial interpolation \\ \hline
+M                 & Message space in cryptosystem \\ \hline
+q                 & Order of the base point in ECC \\ \hline
+\end{tabular}
+\end{table}
+
+Following this, we delve into the detailed explanation of each of these cryptographic components, which are crucial for the understanding of our protocol...
+
+
 
 \subsubsection{Private Channel}
 Each user employs a private, authenticated channel for sending encrypted messages to others. We utilize ElGamal encryption on the BabyJub curve as described in \cite{ElGamalEncryptionDecryption2020,jieWeijiekohElgamalbabyjub2023}. The encryption process starts with a plaintext scalar $m$, transformed into a point on the BabyJub elliptic curve. The ciphertext consists of two elliptic curve points and one field element $(C_1, C_2, \Delta=rG.x - m)$. The complete encryption process is detailed in Algorithm~\ref{alg:encryption}.
@@ -312,6 +343,21 @@ Decryption of the ciphertext $(C_1, C_2, \Delta)$ follows the standard ElGamal m
 \end{algorithm}
 
 
+
+
+\subsection{zk-SNARK}
+
+zk-SNARKs are cryptographic tools that allow one party (the prover) to demonstrate to another (the verifier) the truth of a statement without revealing any information beyond the statement's validity \cite{grothSizePairingbasedNoninteractive2016}.
+
+Consider an arithmetic circuit $C$ characterized by a relation $\mathcal{R}_C$ and a language $\mathcal{L}_C$. This circuit accepts a statement $\vec{s}$ and a witness $\vec{w}$ such that $(\vec{s}, \vec{w}) \in \mathcal{R}_C$. A zk-SNARK for the satisfiability of this circuit is defined by three polynomial time algorithms ~\cite{grothSizePairingbasedNoninteractive2016,parnoPinocchioNearlyPractical2013}:
+
+\begin{itemize}
+    \item $\textrm{(pk,vk)} \gets \textrm{Setup}(1^\lambda,C)$. For a given security parameter $\lambda$ and the circuit $C$, this algorithm produces a common reference string (CRS) comprising a proving key $\textrm{pk}$ and a verifying key $\textrm{vk}$, both of which are public parameters associated with the circuit $C$.
+    \item $\pi \gets \textrm{Prove}(\textrm{pk}, \vec{s}, \vec{w})$. Using the proving key $\textrm{pk}$, the statement $\vec{s}$, and the witness $\vec{w}$ such that $(\vec{s}, \vec{w}) \in \mathcal{R}_C$, this algorithm generates a non-interactive zero-knowledge proof $\pi$ for the statement $\vec{s} \in \mathcal{L}_C$, demonstrating the relationship between $\vec{s}$ and $\vec{w}$.
+    \item $0/1 \gets \textrm{Verify}(\textrm{vk}, \vec{s}, \pi)$. With the verifying key $\textrm{vk}$, the statement $\vec{s}$, and the proof $\pi$, this algorithm outputs 1 if $\pi$ is a valid proof for the statement $\vec{s} \in \mathcal{L}_C$, and outputs 0 otherwise.
+\end{itemize}
+
+
 \subsection{Federated Distributed Key Generation}
 The Distributed Key Generation (DKG) protocol aims to collectively generate a voting key-pair without any participant learning the secret (decryption) key. Each party $P_i \in \mathbb{P}$ learns only its share of this key, while the public (encryption) key is widely known. The protocol is designed with a threshold property, allowing for flexibility in participant involvement during the tally phase.
 
@@ -326,6 +372,23 @@ To prevent arbitrary submissions by parties, Publicly Verifiable Secret Sharing 
 Traditional DKG requires a known, fixed number of participants, due to its reliance on SSS with pre-defined polynomial degrees. Since we aim for an optional DKG phase with an unpredictable number of participants, we need a mechanism that allows dynamic adjustments to participant numbers and the threshold $t$.
 
 Existing dynamic DKG schemes, such as the one in \cite{delerableeDynamicThresholdPublickey2008}, necessitate continuous online presence of all parties, which we find impractical. Our objective is a non-interactive protocol where parties send only a single message and are then free to leave.
+
+\section{Voting Protocol}
+
+Our protocol integrates the three-round voting scheme from \cite{schoenmakersLectureNotesCryptographic2018}, the multi-candidate encoding method from \cite{haoAnonymousVotingTworound2010}, and the Federated Distributed Key Generation (FDKG) introduced in this paper. We employ the Threshold ElGamal Cryptosystem, ensuring decryptability even in the absence of some guardians.
+
+\paragraph*{Assumptions}
+The protocol is based on the following assumptions:
+\begin{enumerate}
+\item All communications occur over a public message board.
+\item Authenticated public channels are available to every participant, established through the public message board and digital signatures.
+\item Private channels for each participant are secured using the public message board and ElGamal public key encryption.
+\item Each participant, denoted \Party{i}, has a key pair (\PartySecretKey{i}, \Party{i}), with $\PartySecretKey{i} \in_\$ \mathbb{Z}_q$ as a randomly selected secret key, and $\Party{i} = \PartySecretKey{i} \G$ as the corresponding public key. Parties are identified solely by their public keys.
+\item The protocol uses Elliptic Curve Cryptography, specifically the BabyJubJub curve~\cite{whitehatBabyJubjubElliptic2020}.
+\item Participants consent to certain cryptographic parameters, including the Elliptic Curve $E(\mathbb{Z}_p)$ with a defined curve finite field modulus $p$, a base point $G$ on the curve, and the order of the base point $q$. Additionally, they agree to the set of eligible voters $\mathbb{P}$ and the set of candidates $\vec{C}$.
+\item The ElGamal cryptosystem is employed for public-key encryption, with $\texttt{Enc}_{\Party{i}}$ as the encryption function for a public key $\Party{i}$, and $\texttt{Dec}_{\PartySecretKey{i}}$ for decryption with the corresponding secret key $s$.
+\end{enumerate}
+
 
 \subsection{Round 1: Federated Distributed Key Generation}
 We propose a dynamic DKG technique similar to the Federated Byzantine Agreement (FBA) used in the Stellar Consensus Protocol \cite{mazieresStellarConsensusProtocol2015}. This technique does not require every party to participate in the DKG phase. The protocol works as follows. For each participating party $\Party{i} \in \mathbb{D}$, where $\mathbb{D} \subseteq  \mathbb{P}$:
@@ -375,12 +438,12 @@ The tally process comprises two distinct phases: online and offline.
 
 \subsubsection{Online Tally}
 
-In the online tally phase, the subset of parties $\mathbb{T} \subseteq  \mathbb{D}$ engaged in Threshold ElGamal Decryption includes at least $t \leq k$ parties from every guardian set \GuardianSetOf{1},\dots,\GuardianSetOf{|\mathbb{D}|}.
+In the online tally phase, the subset of parties $\mathbb{T} \subseteq  \mathbb{D}$ engaged in Threshold ElGamal Decryption includes at least $t$ parties from every guardian set \GuardianSetOf{1},\dots,\GuardianSetOf{|\mathbb{D}|}. For each party $\Party{i} \in \mathbb{T}$:
 
 \begin{enumerate}
     \item Sum the first component of all ballots $\TotalA = \sum_{i=1}^{|\mathbb{V}|} \BallotA{i}$, where (\BallotA{i},\BallotB{i})=\Ballot{i}.
 
-    \item For $\Party{i} \in \SetOfFDKG$:
+    \item If $\Party{i} \in \SetOfFDKG$:
         \begin{enumerate}
             \item Compute the partial decryption $\PartialDecryptionFrom{i} = \PartialDecryptionKey{i} \TotalA$.
             \item Generate a zero-knowledge proof \ProofPD{i} (as described in Section~\ref{sec:proof-pd}).
@@ -425,24 +488,13 @@ The offline tally phase is accessible to anyone and involves the following steps
 
 
 
-\section{zk-SNARK}
-
-zk-SNARKs are cryptographic tools that allow one party (the prover) to demonstrate to another (the verifier) the truth of a statement without revealing any information beyond the statement's validity \cite{grothSizePairingbasedNoninteractive2016}.
-
-Consider an arithmetic circuit $C$ characterized by a relation $\mathcal{R}_C$ and a language $\mathcal{L}_C$. This circuit accepts a statement $\vec{s}$ and a witness $\vec{w}$ such that $(\vec{s}, \vec{w}) \in \mathcal{R}_C$. A zk-SNARK for the satisfiability of this circuit is defined by three polynomial time algorithms ~\cite{grothSizePairingbasedNoninteractive2016,parnoPinocchioNearlyPractical2013}:
-
-\begin{itemize}
-    \item $\textrm{(pk,vk)} \gets \textrm{Setup}(1^\lambda,C)$. For a given security parameter $\lambda$ and the circuit $C$, this algorithm produces a common reference string (CRS) comprising a proving key $\textrm{pk}$ and a verifying key $\textrm{vk}$, both of which are public parameters associated with the circuit $C$.
-    \item $\pi \gets \textrm{Prove}(\textrm{pk}, \vec{s}, \vec{w})$. Using the proving key $\textrm{pk}$, the statement $\vec{s}$, and the witness $\vec{w}$ such that $(\vec{s}, \vec{w}) \in \mathcal{R}_C$, this algorithm generates a non-interactive zero-knowledge proof $\pi$ for the statement $\vec{s} \in \mathcal{L}_C$, demonstrating the relationship between $\vec{s}$ and $\vec{w}$.
-    \item $0/1 \gets \textrm{Verify}(\textrm{vk}, \vec{s}, \pi)$. With the verifying key $\textrm{vk}$, the statement $\vec{s}$, and the proof $\pi$, this algorithm outputs 1 if $\pi$ is a valid proof for the statement $\vec{s} \in \mathcal{L}_C$, and outputs 0 otherwise.
-\end{itemize}
 
 
-\paragraph{Proofs Constructions}\label{sec:proofs}
+\subsection{Proofs Constructions}\label{sec:proofs}
 
 In our protocol, we employ the general principles of zk-SNARK to construct specific proofs for each phase of the voting process. Each proof is defined by a circuit $C$ that verifies constraints, a public instance (statement) $\vec{s}$, and a private input (witness) $\vec{w}$.
 
-\subsection{\ProofFDKG{i}}\label{sec:proof-fdkg}
+\subsubsection{\ProofFDKG{i}}\label{sec:proof-fdkg}
 
 \begin{itemize}
     \item \textbf{Circuit} ($C$): Defined as \ProofFDKGInformal{}. The specifics of this circuit are detailed in Algorithm~\ref{alg:circuit_fdkg}.
@@ -450,7 +502,7 @@ In our protocol, we employ the general principles of zk-SNARK to construct speci
     \item \textbf{Private Input} ($\vec{w}$): Includes the coefficients of the polynomial $\{a_0, \dots, a_{t-1}\}$ and random values $\{r1_1,\dots,r1_{|\GuardianSetOf{}|}\}$, $\{r2_1,\dots,r2_{|\GuardianSetOf{}|}\}$.
 \end{itemize}
 
-\subsection{\ProofBALLOT{i}}\label{sec:proof-ballot}
+\subsubsection{\ProofBALLOT{i}}\label{sec:proof-ballot}
 
 \begin{itemize}
     \item \textbf{Circuit} ($C$): Defined as \ProofBALLOTInformal{}. Algorithm~\ref{alg:circuit_proof_ballot} elaborates on this circuit.
@@ -458,7 +510,7 @@ In our protocol, we employ the general principles of zk-SNARK to construct speci
     \item \textbf{Private Input} ($\vec{w}$): Encompasses the vote $\Vote{i}$ and the random blinding factor $r_i$.
 \end{itemize}
 
-\subsection{\ProofPD{i}}\label{sec:proof-pd}
+\subsubsection{\ProofPD{i}}\label{sec:proof-pd}
 
 \begin{itemize}
     \item \textbf{Circuit} ($C$): Specified as \ProofPDInformal{}. Details of this circuit can be found in Algorithm~\ref{alg:circuit_proof_pd}.
@@ -466,7 +518,7 @@ In our protocol, we employ the general principles of zk-SNARK to construct speci
     \item \textbf{Private Input} ($\vec{w}$): Contains the partial decryption key $\PartialDecryptionKey{i}$.
 \end{itemize}
 
-\subsection{\ProofPDS{i}{j}}\label{sec:proof-pds}
+\subsubsection{\ProofPDS{i}{j}}\label{sec:proof-pds}
 
 \begin{itemize}
     \item \textbf{Circuit} ($C$): Outlined as \ProofPDSInformal{}. For more information, refer to Algorithm~\ref{alg:circuit_proof_pds}.
@@ -629,61 +681,6 @@ This section analyzes key security properties of the FDKG system, namely Deciphe
 \end{definition}
 
 
-\section{FDKG Example}
-
-To elucidate the FDKG process and underscore its advancements over traditional methods, consider a scenario involving a set of parties $\{P_1, \ldots, P_{10}\}$. In this example, we have $k = 3$ and $t = 2$. A subset of these parties, namely $\mathbb{D} = \{P_1, P_3, P_5, P_7, P_9\}$, participates in the FDKG, each forming their respective guardian set. This setup is depicted in Figure \ref{fig:FDKG}.
-
-\begin{figure}
-    \centering
-    \includegraphics[width=\textwidth]{FDKG.png}
-    \caption{Federated Distributed Key Generation}
-    \label{fig:FDKG}
-\end{figure}
-
-The FDKG process for each participating party unfolds as follows:
-
-\begin{enumerate}
-    \item \textbf{Party $P_1$}:
-        \begin{itemize}
-            \item Chooses Guardian Set $\mathbb{G}_1 = \{P_2, P_3, P_5\}$.
-            \item Samples a random polynomial $f_1(X) \in_R \mathbb{Z}_q[X]$, computes decryption key $d_1 = f_1(0)$.
-            \item Distributes $d_1$ among $\mathbb{G}_1$, yielding shares $\PartialDecryptionKeyShare{1}{2}, \PartialDecryptionKeyShare{1}{3}, \PartialDecryptionKeyShare{1}{5}$.
-        \end{itemize}
-
-    \item \textbf{Party $P_3$}:
-        \begin{itemize}
-            \item Chooses Guardian Set $\mathbb{G}_3 = \{P_1, P_2, P_4\}$.
-            \item Samples $f_3(X)$, computes $d_3$, and distributes it among $\mathbb{G}_3$, resulting in shares $\PartialDecryptionKeyShare{3}{1}, \PartialDecryptionKeyShare{3}{2}, \PartialDecryptionKeyShare{3}{4}$.
-        \end{itemize}
-
-    \item \textbf{Party $P_5$}:
-        \begin{itemize}
-            \item Chooses Guardian Set $\mathbb{G}_5 = \{P_3, P_6, P_7\}$.
-            \item Samples $f_5(X)$, computes $d_5$, and distributes it among $\mathbb{G}_5$, producing shares $\PartialDecryptionKeyShare{5}{3}, \PartialDecryptionKeyShare{5}{6}, \PartialDecryptionKeyShare{5}{7}$.
-        \end{itemize}
-
-    \item \textbf{Party $P_7$}:
-        \begin{itemize}
-            \item Chooses Guardian Set $\mathbb{G}_7 = \{P_8, P_9, P_{10}\}$.
-            \item Samples $f_7(X)$, computes $d_7$, and distributes it among $\mathbb{G}_7$, resulting in shares $\PartialDecryptionKeyShare{7}{8}, \PartialDecryptionKeyShare{7}{9}, \PartialDecryptionKeyShare{7}{10}$.
-        \end{itemize}
-
-    \item \textbf{Party $P_9$}:
-        \begin{itemize}
-            \item Chooses Guardian Set $\mathbb{G}_9 = \{P_5, P_7, P_{10}\}$.
-            \item Samples $f_9(X)$, computes $d_9$, and distributes it among $\mathbb{G}_9$, resulting in shares $\PartialDecryptionKeyShare{9}{5}, \PartialDecryptionKeyShare{9}{7}, \PartialDecryptionKeyShare{9}{10}$.
-        \end{itemize}
-\end{enumerate}
-
-In a traditional DKG protocol, the minimal set of parties needed to achieve Decipherability would be \(\{P_1, P_3, P_5, P_7, P_9 \}\). However, with the FDKG approach and the use of Guardian Sets, this minimum set is reduced to \(M = \{P_3, P_5, P_6\}\), demonstrating the protocol's efficiency in reducing the number of participants required for successful decryption.
-
-\paragraph{Decipherability}
-The set $M$ ensures Decipherability because shares $\PartialDecryptionKey{3},\PartialDecryptionKey{5},\PartialDecryptionKey{6}$ are published directly by those parties, whereas \PartialDecryptionKey{1} is recoverable by shares of \(\{P_3, P_5\}\) and \PartialDecryptionKey{9} is recoverable by shares of \(\{P_5, P_7\}\).
-
-\paragraph{Privacy}
-Privacy in the FDKG system is compromised when all parties from any Decipherability set collude. In this example, if all parties \(\{P_3, P_5, P_6\}\) collude, they can collectively reconstruct the secret \DecryptionKey{} and therefore decrypt each individual ballot \Ballot{i}.
-
-
 \section{Experimental Results}
 
 This section evaluates our voter-to-voter Internet voting protocol experimentally, focusing on proving times and message sizes for two prominent proving protocols: Plonk and Groth16, as implemented in the \texttt{snarkjs} WebAssembly (WASM) framework. The execution time for solving the Discrete Logarithm Problem (DLP) in the offline tally phase was also assessed. These experiments were conducted on a MacBook Pro with an Apple M1 Pro processor and 16GB of RAM.
@@ -778,9 +775,67 @@ Looking ahead, we envision two primary deployment scenarios for our protocol: as
 In conclusion, our protocol represents a meaningful step forward in the evolution of Internet voting systems. By embracing decentralization, enhancing security, and prioritizing privacy, we aim to contribute to the development of more resilient, trustworthy, and inclusive voting mechanisms in the digital age. As we continue to refine and optimize our protocol, we remain focused on the broader goal of modernizing democratic processes and empowering communities with reliable and accessible voting technologies.
 
 \section{Acknowledgments}
-We gratefully acknowledge Lev Soukhanov for his crucial role in designing the voting protocol and the Delendum team for their support and valuable insights during our research and development fellowship.
+We gratefully acknowledge Lev Soukhanov for his crucial role in designing the voting protocol and the Delendum team for their support and valuable insights during our research and development fellowship. We are grateful to Maya Dotan for her detailed review and helpful feedback, especially on the DLP issue, which notably improved the quality and thoroughness of our work.
 
 \bibliographystyle{IEEEtran}
 \bibliography{bibliography}
+
+\appendix
+
+\section{FDKG Example}
+
+To elucidate the FDKG process and underscore its advancements over traditional methods, consider a scenario involving a set of parties $\{P_1, \ldots, P_{10}\}$. In this example, we have $k = 3$ and $t = 2$. A subset of these parties, namely $\mathbb{D} = \{P_1, P_3, P_5, P_7, P_9\}$, participates in the FDKG, each forming their respective guardian set. This setup is depicted in Figure \ref{fig:FDKG}.
+
+\begin{figure}
+    \centering
+    \includegraphics[width=\textwidth]{FDKG.png}
+    \caption{Federated Distributed Key Generation}
+    \label{fig:FDKG}
+\end{figure}
+
+The FDKG process for each participating party unfolds as follows:
+
+\begin{enumerate}
+    \item \textbf{Party $P_1$}:
+        \begin{itemize}
+            \item Chooses Guardian Set $\mathbb{G}_1 = \{P_2, P_3, P_5\}$.
+            \item Samples a random polynomial $f_1(X) \in_R \mathbb{Z}_q[X]$, computes decryption key $d_1 = f_1(0)$.
+            \item Distributes $d_1$ among $\mathbb{G}_1$, yielding shares $\PartialDecryptionKeyShare{1}{2}, \PartialDecryptionKeyShare{1}{3}, \PartialDecryptionKeyShare{1}{5}$.
+        \end{itemize}
+
+    \item \textbf{Party $P_3$}:
+        \begin{itemize}
+            \item Chooses Guardian Set $\mathbb{G}_3 = \{P_1, P_2, P_4\}$.
+            \item Samples $f_3(X)$, computes $d_3$, and distributes it among $\mathbb{G}_3$, resulting in shares $\PartialDecryptionKeyShare{3}{1}, \PartialDecryptionKeyShare{3}{2}, \PartialDecryptionKeyShare{3}{4}$.
+        \end{itemize}
+
+    \item \textbf{Party $P_5$}:
+        \begin{itemize}
+            \item Chooses Guardian Set $\mathbb{G}_5 = \{P_3, P_6, P_7\}$.
+            \item Samples $f_5(X)$, computes $d_5$, and distributes it among $\mathbb{G}_5$, producing shares $\PartialDecryptionKeyShare{5}{3}, \PartialDecryptionKeyShare{5}{6}, \PartialDecryptionKeyShare{5}{7}$.
+        \end{itemize}
+
+    \item \textbf{Party $P_7$}:
+        \begin{itemize}
+            \item Chooses Guardian Set $\mathbb{G}_7 = \{P_8, P_9, P_{10}\}$.
+            \item Samples $f_7(X)$, computes $d_7$, and distributes it among $\mathbb{G}_7$, resulting in shares $\PartialDecryptionKeyShare{7}{8}, \PartialDecryptionKeyShare{7}{9}, \PartialDecryptionKeyShare{7}{10}$.
+        \end{itemize}
+
+    \item \textbf{Party $P_9$}:
+        \begin{itemize}
+            \item Chooses Guardian Set $\mathbb{G}_9 = \{P_5, P_7, P_{10}\}$.
+            \item Samples $f_9(X)$, computes $d_9$, and distributes it among $\mathbb{G}_9$, resulting in shares $\PartialDecryptionKeyShare{9}{5}, \PartialDecryptionKeyShare{9}{7}, \PartialDecryptionKeyShare{9}{10}$.
+        \end{itemize}
+\end{enumerate}
+
+In a traditional DKG protocol, the minimal set of parties needed to achieve Decipherability would be \(\{P_1, P_3, P_5, P_7, P_9 \}\). However, with the FDKG approach and the use of Guardian Sets, this minimum set is reduced to \(M = \{P_3, P_5, P_6\}\), demonstrating the protocol's efficiency in reducing the number of participants required for successful decryption.
+
+\paragraph{Decipherability}
+The set $M$ ensures Decipherability because shares $\PartialDecryptionKey{3},\PartialDecryptionKey{5},\PartialDecryptionKey{6}$ are published directly by those parties, whereas \PartialDecryptionKey{1} is recoverable by shares of \(\{P_3, P_5\}\) and \PartialDecryptionKey{9} is recoverable by shares of \(\{P_5, P_7\}\).
+
+\paragraph{Privacy}
+Privacy in the FDKG system is compromised when all parties from any Decipherability set collude. In this example, if all parties \(\{P_3, P_5, P_6\}\) collude, they can collectively reconstruct the secret \DecryptionKey{} and therefore decrypt each individual ballot \Ballot{i}.
+
+
 
 \end{document}
