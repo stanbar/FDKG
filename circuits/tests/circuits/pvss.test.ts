@@ -6,7 +6,7 @@ import { circomkit } from "../common/index.js";
 import { F, genPubKey, genKeypair, genRandomSalt, ElGamalCiphertext, decryptShare, encryptShare, PVSSCircuitInput, sss } from "shared-crypto";
 import { measureTime } from '../common/utils.js';
 
-describe("batch PVSS for 3-of-4 access structure", () => {
+describe.only("batch PVSS for 3-of-4 access structure", () => {
   const N = 4;
   const threshold = 3;
   const coefficients = sss.randomPolynomialZ(threshold);
@@ -34,6 +34,8 @@ describe("batch PVSS for 3-of-4 access structure", () => {
         ciphertext.xIncrement].map(F.toBigint)
     })
   }
+
+  console.log(JSON.stringify(input))
 
   const CIRCUIT_NAME = `pvss_${threshold}_of_${N}`
   const CIRCUIT_CONFIG = {
