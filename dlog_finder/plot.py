@@ -61,6 +61,7 @@ for idx, option in enumerate(sorted(data["Options"].unique())):
             fit_X[-1],
             fit_Y[-1],
             equation_text,
+            fontsize=14,
             color=color_palette[idx],
             horizontalalignment="left",
             verticalalignment="bottom",
@@ -68,11 +69,12 @@ for idx, option in enumerate(sorted(data["Options"].unique())):
 
 # Adding plot details
 # plt.title("Time [minutes] vs. Number of voters (Log-Log Scale)")
-plt.xlabel("Number of voters")
+plt.xlabel("Number of voters", fontsize=16)
+plt.ylabel("Time (in minutes)", fontsize=16)
 plt.ylabel("Time (in minutes)")
 plt.xscale("log")  # Using log scale for x-axis
 plt.yscale("log")  # Also using log scale for y-axis for better visualization
-plt.legend()
+plt.legend(loc='upper left')
 plt.grid(True)
 
 # Show the plot
