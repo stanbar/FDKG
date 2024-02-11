@@ -31,11 +31,11 @@ template PVSS(guardian_set_size, threshold) {
         5299619240641551281634865583518297030282874472190772894086521144482721001553,
         16950150798460657717958625567821834550301663161624707787222815936182638968203
     ];
-    signal C1[2] <== EscalarMulFix(253, BASE8)(e <== privKeyBits);
+    signal outVotingPublicKey[2] <== EscalarMulFix(253, BASE8)(e <== privKeyBits);
 
     
-    votingPublicKey[0] === C1[0];
-    votingPublicKey[1] === C1[1];
+    votingPublicKey[0] === outVotingPublicKey[0];
+    votingPublicKey[1] === outVotingPublicKey[1];
 
     var EXPONENTS[6][10] = [
         [ 1,1,1,1,1,1,1,1,1,1 ], // guardianIndex = 0

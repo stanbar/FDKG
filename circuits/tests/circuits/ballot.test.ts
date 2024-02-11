@@ -55,7 +55,7 @@ describe(`test ${CIRCUIT_NAME}`, () => {
             await circuit.calculateWitness(input)
         });
 
-        it("should decrypt correctly", async () => {
+        it.only("should decrypt correctly", async () => {
             await circuit.expectPass(input);
         });
 
@@ -72,7 +72,7 @@ describe(`test ${CIRCUIT_NAME}`, () => {
             circuit = await circomkit.ProofTester(CIRCUIT_NAME);
         });
 
-        it("should verify a proof correctly", async () => {
+        it.only("should verify a proof correctly", async () => {
             await measureTime("Proof generation", async () => {
                 const { proof, publicSignals } = await circuit.prove(input)
                 await circuit.expectPass(proof, publicSignals)

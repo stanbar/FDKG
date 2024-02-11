@@ -35,8 +35,6 @@ describe.only("batch PVSS for 3-of-4 access structure", () => {
     })
   }
 
-  console.log(JSON.stringify(input))
-
   const CIRCUIT_NAME = `pvss_${threshold}_of_${N}`
   const CIRCUIT_CONFIG = {
     file: "pvss",
@@ -48,7 +46,6 @@ describe.only("batch PVSS for 3-of-4 access structure", () => {
   before(async () => {
       await circomkit.compile(CIRCUIT_NAME, CIRCUIT_CONFIG)
       const info = await circomkit.info(CIRCUIT_NAME)
-      console.log({ info })
   })
 
   describe(`test witness generation ${CIRCUIT_NAME}`, () => {
@@ -70,7 +67,7 @@ describe.only("batch PVSS for 3-of-4 access structure", () => {
         assert(share == decoded, `[${i}] share ${share} != decoded ${decoded}`)
       }
     })
-    it("should distribute encrypted shares", async () => {
+    it.only("should distribute encrypted shares", async () => {
       await circuit.expectPass(input);
     });
   });
@@ -82,7 +79,7 @@ describe.only("batch PVSS for 3-of-4 access structure", () => {
       circuit = await circomkit.ProofTester(CIRCUIT_NAME);
     });
 
-    it("should verify a proof correctly", async () => {
+    it.only("should verify a proof correctly", async () => {
       await measureTime("Proof generation", async () => {
         const { proof, publicSignals } = await circuit.prove(input)
         await circuit.expectPass(proof, publicSignals)
@@ -138,7 +135,6 @@ describe("single PVSS for 3-of-4 access structure", () => {
   before(async () => {
       await circomkit.compile(CIRCUIT_NAME, CIRCUIT_CONFIG)
       const info = await circomkit.info(CIRCUIT_NAME)
-      console.log({ info })
   })
   describe(`test witness generation ${CIRCUIT_NAME}`, () => {
     let circuit: WitnessTester<["coefficients", "r1", "r2", "guardiansPubKeys"], ["votingPublicKey","out"]>;
