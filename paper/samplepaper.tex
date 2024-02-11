@@ -21,40 +21,54 @@
 \usepackage{amsmath}
 \usepackage{amssymb}
 \usepackage{multirow}
-
-\titlerunning{A Voter-to-Voter Internet Voting Protocol}
-
-\title{A Voter-to-Voter Internet Voting Protocol with Federated Distributed Key Generation}
-\author{Stanislaw Baranski\inst{1}, Julian Szymański\inst{1}}
-\institute{Gdansk University of Technology, Narutowicza 11/12 80-233, Gdansk, Poland \email{\{stanislaw.baranski,julian.szymanski\}@pg.edu.pl}}
+\usepackage{array}
 
 \begin{document}
 
-\maketitle
+\title{PeerVote: A Voter-to-Voter Internet Voting Protocol with Federated Distributed Key Generation}
+%
+\titlerunning{PeerVote: A Voter-to-Voter Internet Voting Protocol with FDKG}
+% If the paper title is too long for the running head, you can set
+% an abbreviated paper title here
+%
 
+
+% \author{Stanislaw Baranski\inst{1}\orcidID{0000-0001-7181-8860} \and
+% Julian Szymanski\inst{1}\orcidID{1111-2222-3333-4444}}
+% %
+% \authorrunning{S. Baranski and J. Szymanski}
+
+% \institute{Gdansk University of Technology, Narutowicza 11/12, 80-233, Gdansk, Poland
+% \email{\{stanislaw.baranski,julian.szymanski\}@pg.edu.pl}}
+
+\maketitle
 
 % \begin{abstract}
 % This paper presents a voter-to-voter Internet voting protocol that uses a novel technique called Federated Distributed Key Generation (FDKG), which allows dynamic participation in the key generation process, ensuring robustness against node unavailability and enabling a flexible trust model among participants. The protocol can be implemented in a peer-to-peer environment with zero transaction fees, a significant advantage over protocols that require either a hosting fee or a per-vote fee. The protocol uses threshold cryptography, which ensures that a subset of nodes can decrypt voting results, preventing any single node from blocking the voting process. Using zero-knowledge proofs (zkSNARKs), the protocol guarantees the integrity and privacy of the voting process, allowing voters to verify the correctness of the process without compromising their anonymity. The paper also discusses the protocol's resilience to Byzantine nodes and its application to small-scale voting where participants know each other, making it particularly suitable for governance models such as non-government organizations, corporate boardrooms, homeowners' associations, and open-source projects. The protocol is rigorously analysed for security, decipherability and privacy, and experimental results demonstrate its practical feasibility and scalability. This work contributes to a significant advancement in trust models for secure and decentralised voting protocols.
 % \end{abstract}
 
 \begin{abstract}
-This paper presents a voter-to-voter Internet voting protocol that uses a novel technique called Federated Distributed Key Generation (FDKG).
-FDKG allows for dynamic key generation, ensuring resilience against node unavailability and offering a flexible trust model among participants.
-Our protocol operates in a peer-to-peer environment, avoiding the typical costs associated with hosting or per-vote fees. It employs threshold cryptography to prevent any single node from blocking the voting process, with a group of nodes collaboratively decrypting the votes.
-The use of zero-knowledge proofs (zkSNARKs) ensures the voting process is private, verifiable and secure, allowing voters to cast confidential votes while detecting incorrect messages. 
-The protocol trust assumptions represents the trust structure in the group making it making it particularly suitable for governance models such as corporate boardrooms, homeowners' associations, and non-government organizations.
-The protocol is analysed for security, decipherability and privacy, and experimental results demonstrate its practical feasibility and scalability. This work contributes to a significant advancement in trust models for secure and decentralised voting protocols.
-\end{abstract}
+Voting is a fundamental tool for digital democracy. The current landscape of internet voting protocols consists of trusted centralised servers, private networks or costly public blockchains. This leaves a void for small organisations that want a secure and free tool for democratic decision-making. 
 
-\keywords{Internet Voting \and Digital Democracy \and Federated Distributed Key Generation \and Threshold Cryptography \and  zkSNARKs \and Blockchain}
+This paper introduces PeerVote, an Internet voting protocol that fills this gap by enabling secure and free voting without trusted third parties. PeerVote uses Federated Distributed Key Generation (FDKG), which ensures resilience to node unavailability and provides a flexible trust model, making it suitable for practical use.
+
+
+% FDKG allows for dynamic key generation, ensuring resilience against node unavailability and offering a flexible trust model among participants.
+% Our protocol operates in a peer-to-peer environment, avoiding the typical costs associated with hosting or per-vote fees. It employs threshold cryptography to prevent any single node from blocking the voting process, with a group of nodes collaboratively decrypting the votes.
+% The use of zero-knowledge proofs ensures the voting process is private, verifiable and secure, allowing voters to cast confidential votes while detecting incorrect messages. 
+% The protocol trust assumptions represents the trust structure in the group making it making it particularly suitable for governance models such as corporate boardrooms, homeowners' associations, and non-government organizations.
+% The protocol is analysed for security, decipherability and privacy, and experimental results demonstrate its practical feasibility and scalability. This work contributes to a significant advancement in trust models for secure and decentralised voting protocols.
+
+\keywords{Internet Voting \and Digital Democracy \and Federated Distributed Key Generation \and Threshold Cryptography \and zkSNARKs \and Blockchain}
+\end{abstract}
 
 \section{Introduction}
 
-Voting serves as a fundamental mechanism for collective decision-making, employed across diverse contexts ranging from non-government organizations and corporate boardrooms to domestic presidential elections and global online polls.
+Voting serves as a fundamental mechanism for collective decision-making and is used in contexts ranging from non-governmental organisations and corporate boardrooms to national presidential elections and global online polls.
 
-The methodologies of voting vary widely, encompassing traditional paper-based voting, mail-in ballots, electronic systems such as direct-recording electronic (DRE) machines, and internet-based voting processes \cite{parkGoingBadWorse2021}.
+Voting methods are diverse and include traditional paper-based voting, mail-in ballots, electronic systems such as direct recording electronic (DRE) machines, and Internet voting~\cite{parkGoingBadWorse2021}.
 
-As articulated by Vitalik Buterin \cite{buterinBlockchainVotingOverrated2021}, each voting system encounters a trilemma, necessitating a choice between two of three critical attributes:
+As stated by Vitalik Buterin \cite{buterinBlockchainVotingOverrated2021}, every voting system faces a trilemma, requiring a choice between two of three critical attributes:
 
 \begin{itemize}
 \item \textbf{Democratic}: Ensuring equitable and accessible participation for all eligible voters.
@@ -66,9 +80,9 @@ In conventional political elections, the emphasis on security and democracy ofte
 
 The inherent inefficiencies in traditional voting methods result in substantial costs and infrequent election cycles, typically ranging from annual to once every six years \cite{buterinBlockchainVotingOverrated2021}.
 
-Internet voting (i-voting) emerges as a seemingly ideal solution, paralleling the widespread adoption of online banking. Particularly during events like the COVID-19 pandemic, i-voting presents as a conventional, cost-effective, swift, and safe alternative. Its potential to enhance voter turnout, increase the frequency of elections, and facilitate various democratic models such as direct democracy, liquid democracy, and alternative voting systems is significant \cite{laslierLoserPluralityVoting2011}.
+Internet voting (i-voting) emerges as a seemingly ideal solution, especially when online banking is so prevalent nowadays. Particularly during events like the COVID-19 pandemic, i-voting presents as a conventional, cost-effective, swift, and safe alternative. Its potential to enhance voter turnout, increase the frequency of elections, and facilitate various democratic models such as direct democracy, liquid democracy, and alternative voting systems is significant \cite{laslierLoserPluralityVoting2011}.
 
-Furthermore, the evolution of smart cities, crypto cities \cite{buterinCryptoCities2021}, Decentralized Autonomous Organizations (DAOs) \cite{wangDecentralizedAutonomousOrganizations2019}, and other algorithmic governance models \cite{GovernmentAlgorithm2022} are intrinsically linked to the advancement of electronic voting systems. Despite the pressing need for such systems, as evidenced in countries like Switzerland \cite{ElectronicVotingSwitzerland2023} and Estonia \cite{ElectronicVotingEstonia2023}, the global progress in adopting these modern democratic tools lags behind other digital transformations, such as online banking.
+Furthermore, the evolution of smart cities, crypto cities \cite{buterinCryptoCities2021}, Decentralized Autonomous Organizations (DAOs) \cite{wangDecentralizedAutonomousOrganizations2019}, and other algorithmic governance models are intrinsically linked to the advancement of electronic voting systems. Despite the pressing need for such systems, as evidenced in countries like Switzerland \cite{ElectronicVotingSwitzerland2023} and Estonia \cite{ElectronicVotingEstonia2023}, the global progress in adopting these modern democratic tools lags behind other digital transformations, such as online banking.
 
 The feasibility of internet voting has been a subject of extensive research, particularly in the field of cryptography, a critical aspect of system security. However, skepticism persists regarding the viability of public internet voting \cite{parkGoingBadWorse2021, mearianWhyBlockchainbasedVoting2019, shanklandNoBlockchainIsn2018, leeBlockchainbasedElectionsWould2018, schneierBlockchainVoting2020, schneierBlockchainTrust2019}. In Germany, for instance, e-voting development ceased following a judicial ruling against electronic voting machines, citing their contradiction to the public nature of elections \cite{ElectronicVotingCountry2023}. The reluctance towards e-voting stems from technology trust issues and the reliance on authoritative control over the voting process.
 
@@ -82,7 +96,7 @@ Criticism of internet voting predominantly revolves around two arguments:
 Recent research by MIT scholars posits that any paperless voting system is inherently flawed \cite{parkGoingBadWorse2021}. Notably, even high-quality software, ranking in the 90th percentile within the industry, contains an average of one defect per ten thousand lines of code \cite{llaguno2017CoverityScan2017}. These defects can lead to either malfunctions or exploitable vulnerabilities, potentially compromising the voting process. The critical concern is that software flaws should not precipitate undetectable alterations in election outcomes, a guarantee seemingly unattainable given the nature of software development.
 Recent developments in cryptography, particularly zero-knowledge proofs, offer promising solutions to ensure the integrity of voting software \cite{parnoPinocchioNearlyPractical2013}. Zero-knowledge proofs enable public verification of the voting process's correctness without compromising voter privacy. This approach, utilizing cryptographic verification, aligns with the software independence requirement outlined in \cite{parkGoingBadWorse2021}, allowing for third-party verification without relying on the voting system's internal software.
 
-However, trust in the software is only part of the equation; the reliability of the hardware used by voters is also crucial. Critics argue that the security of internet voting protocols depends on the assumption that voter devices are uncompromised and function as intended, a premise often considered unrealistic \cite{parkGoingBadWorse2021}. Despite vulnerabilities in hardware, including trusted platforms like Intel® Software Guard Extensions \cite{mckeenIntelSoftwareGuard2016} that have been compromised \cite{goodinIntelSGXVulnerable2020, IntelSGXBroken2019, bulckForeshadowExtractingKeys}, there is a trend towards enhancing hardware security. Notably, smartphones are increasingly equipped with Trusted Execution Environments (TEE), such as Apple's Secure Enclaves \cite{SecureEnclave}, Samsung's Knox \cite{kanonovSecureContainersAndroid2016}, HTC's Zion \cite{exodusZION}, and ARM's TrustZone \cite{ARMSecurityTechnology}. These developments suggest a positive trajectory in cybersecurity \cite{golombBelieveItCybersecurity2018}.
+However, trust in the software is only part of the equation; the reliability of the hardware used by voters is also crucial. Critics argue that the security of internet voting protocols depends on the assumption that voter devices are uncompromised and function as intended, a premise often considered unrealistic \cite{parkGoingBadWorse2021}. However, despite vulnerabilities in hardware, including trusted platforms like Intel® Software Guard Extensions \cite{mckeenIntelSoftwareGuard2016} that have been compromised \cite{goodinIntelSGXVulnerable2020, IntelSGXBroken2019, bulckForeshadowExtractingKeys}, there is a trend towards enhancing hardware security which suggest a positive trajectory in cybersecurity \cite{golombBelieveItCybersecurity2018}.
 
 Moreover, Appel et al. \cite{appelEvidenceBasedElectionsCreate2019} highlight that no vote counting method is infallible, whether it be optical scanning, touchscreen systems, or manual counting. The critical issue is not the absence of security but rather the degree of security and the nature of trust assumptions involved.
 
@@ -105,35 +119,35 @@ Blockchain technology has gained prominence in decentralizing trust, offering in
 
 Even in scenarios where blockchain is not utilized, and instead, a distributed set of authorities (referred to as Guardians) administer the voting system—as seen in Helios~\cite{adidaHeliosWebbasedOpenAudit2008} or ElectionGuard~\cite{ElectionGuard}—the challenge of involving external organizers remains. These systems still necessitate a mechanism to ensure that the guardians themselves are trustworthy and that their collective actions yield a reliable and verifiable election outcome.
 
-In this paper, we introduce a novel peer-to-peer voting protocol, employing a generalized trust model that empowers participants to autonomously select their trusted guardians within the system. 
+In this paper, we introduce PeerVote: a novel peer-to-peer voting protocol, employing a generalized trust model that empowers participants to autonomously select their trusted guardians within the system. 
 
 Figure~\ref{fig:trust-models} illustrates the evolution of internet voting trust models, progressing from reliance on a singular trusted third party to distributed third parties, and culminating in the peer-to-peer and delegated voter-to-voter models that we explore herein.
 
-\begin{figure}
+\begin{figure*}
     \centering
     \includegraphics[width=\textwidth]{trust-models-voting.pdf}
     \caption{Four trust models: trusted third party, distributed authorities, peer-to-peer, delegated voter-to-voter}
     \label{fig:trust-models}
-\end{figure}
+\end{figure*}
 
 Protocols employing a distributed set of authorities typically leverage Distributed Key Generation (DKG) \cite{gennaroSecureDistributedKey1999} to allocate keys among participants. The integrity of the voting process is maintained under the assumption of an 'honest majority', where privacy is preserved provided there is no collusion among parties. However, the conventional DKG model faces challenges in voting systems, particularly when parties involved in the DKG are unavailable, potentially disrupting the voting process \cite{haoAnonymousVotingTworound2010}. While some methods use collateral deposits to incentivize participation \cite{elsheikhDisputefreeScalableOpen2022}, we find this approach impractical for broader applications. Instead, we propose a protocol based on threshold cryptography, which tolerates a certain level of node unavailability. Our contributions are as follows:
 
 \begin{enumerate}
-    \item We introduce an innovative internet voting protocol based on a delegated voter-to-voter trust model. This model reflects the trust relationships within a group, translating them into the system’s security and availability features. It is particularly apt for small-scale elections where participants are familiar with each other and existing trust lines are well-established.
+    \item We introduce an internet voting protocol based on a delegated voter-to-voter trust model. This model reflects the trust relationships within a group, translating them into the system’s security and availability features. It is particularly apt for small-scale elections where participants are familiar with each other and existing trust lines are well-established.
     
     \item We develop a new technique for Dynamic Distributed Key Generation (DKG), termed Federated DKG (FDKG). FDKG facilitates joint key-pair establishment by members with a single message exchange, without prior knowledge of all participants.
-            
+
+    \item We propose a novel solution to address the issue of node unavailability, which can hinder the election process. By employing threshold cryptography and the concept of Guardian Sets, each participant divides their secret among a selected group of trusted nodes. Assuming these Guardian Sets consist of reputable and reliable network members, the risk of failure or collusion is minimized. This ensures that our protocol’s improved availability does not compromise its security.
+    
     \item We detail a practical implementation strategy for a peer-to-peer environment with no transaction fees, and an alternative public blockchain implementation using a single paymaster. This approach offers a significant advantage over existing protocols that require hosting or per-vote fees.
 
     \item We present an open-source implementation of our protocol in TypeScript and Golang, enhancing its adaptability across various platforms and thereby expanding its accessibility and practical utility.
-    
-    \item We propose a novel solution to address the issue of node unavailability, which can hinder the election process. By employing threshold cryptography and the concept of Guardian Sets, each participant divides their secret among a selected group of trusted nodes. Assuming these Guardian Sets consist of reputable and reliable network members, the risk of failure or collusion is minimized. This ensures that our protocol’s improved availability does not compromise its security.
 \end{enumerate}
 
 
 \section{Related Work}
 
-Internet voting protocols commonly depend on a trusted third party, with variations in server capabilities determining integrity, anonymity, privacy, censorship-resistance and coercion resistance based on the trustworthiness of this entity. Current research predominantly employs blockchain technology for its integrity and transparency in vote storage, as seen in systems like Voatz, Polys, Follow My Vote, Verify-Your-Vote, OpenVoteNetwork, TIVI, Stellot, Cicada, and MACI \cite{mooreWestVirginiaMobile2019, PolysOnlineVoting, SecureDecentralizedApplication2023, chaiebVerifyYourVoteVerifiableBlockchainBased2019, haoAnonymousVotingTworound2010, mccorrySmartContractBoardroom2017, seifelnasrScalableOpenVoteNetwork2020, elsheikhDisputefreeScalableOpen2022, TIVIPoweredSmartmatic, NowYouCan2016, baranskiPracticalIVotingStellar2020, BuildingCicadaPrivate, A16zCicada2023, ethereumfoundationMinimalAntiCollusionInfrastructure2022, PrivacyscalingexplorationsMaci2023}.
+Internet voting protocols commonly depend on a trusted third party, with variations in server capabilities determining integrity, anonymity, privacy, censorship-resistance and coercion resistance based on the trustworthiness of this entity. Current research predominantly employs blockchain technology for its integrity and transparency in vote storage, as seen in systems like Voatz, Polys, Follow My Vote, Verify-Your-Vote, OpenVoteNetwork, TIVI, Stellot, Cicada, Aragon's Vocdoni, and MACI \cite{mooreWestVirginiaMobile2019, PolysOnlineVoting, SecureDecentralizedApplication2023, chaiebVerifyYourVoteVerifiableBlockchainBased2019, haoAnonymousVotingTworound2010, mccorrySmartContractBoardroom2017, seifelnasrScalableOpenVoteNetwork2020, elsheikhDisputefreeScalableOpen2022, TIVIPoweredSmartmatic, NowYouCan2016, baranskiPracticalIVotingStellar2020, BuildingCicadaPrivate, A16zCicada2023, ethereumfoundationMinimalAntiCollusionInfrastructure2022, VocdoniIntroductionVocdoni, PrivacyscalingexplorationsMaci2023}.
 
 Alternatively, projects like Helios, Civitas, Swisspost/Scytl, iVoting, and ElectionGuard utilize distributed authorities and Multi-Party Computation (MPC) protocols without explicitly depending on blockchain technology \cite{adidaHeliosWebbasedOpenAudit2008, clarksonCivitasSecureVoting2008, roenneJCJImprovedVerifiability2016, ElectionGuard}. These systems are not fully decentralized, relying on a closed set of trusted entities known as Guardians.
 
@@ -170,12 +184,12 @@ Trust to\footnote{Trust is a broad term that refers to different properties of t
 \hline
 \end{tabular}
 
-\caption{A comparative analysis of four types of Internet voting protocols: centralised server, public blockchain-based, private infrastructure-based, and voter-to-voter network-based, highlighting their differences in transaction fees, service costs, user-friendliness, and trust dynamics, where trust refers to an entity that guarantees properties of censorship resistance, privacy, and/or correctness. Service costs include all costs related to implementation, maintenance and fees.}
+\caption{A comparative analysis of four types of Internet voting protocols: central server, private network, public blockchain, and voter-to-voter network, highlighting their differences in transaction fees, service costs, user-friendliness, and trust dynamics, where trust refers to an entity that guarantees properties of censorship resistance, privacy, and correctness. Service costs include all costs related to running the voting software by organisers.}
 \label{table-comparision}
 
 \end{table*}
 
-Moreover, different systems achieve varying security and privacy properties based on their underlying assumptions. For instance, OpenVoteNetwork eliminates the need for trusted third parties by adopting a self-tally scheme, ensuring perfect ballot secrecy but is susceptible to denial of service attacks \cite{haoAnonymousVotingTworound2010, mccorrySmartContractBoardroom2017, seifelnasrScalableOpenVoteNetwork2020, elsheikhDisputefreeScalableOpen2022}. Cicida achieves voter anonymity using homomorphic time-lock puzzles combined with Semaphore for zero-knowledge set membership proofs \cite{BuildingCicadaPrivate, A16zCicada2023}. MACI, offering coercion-resistance, relies on a single coordinator server for ballot privacy \cite{ethereumfoundationMinimalAntiCollusionInfrastructure2022, PrivacyscalingexplorationsMaci2023}.
+Moreover, different systems achieve varying security and privacy properties based on their underlying assumptions. For instance, OpenVoteNetwork eliminates the need for trusted third parties by adopting a self-tally scheme, ensuring perfect ballot secrecy but is susceptible to denial of service attacks \cite{haoAnonymousVotingTworound2010, mccorrySmartContractBoardroom2017, seifelnasrScalableOpenVoteNetwork2020, elsheikhDisputefreeScalableOpen2022}. Cicida achieves ballot secrecy using homomorphic time-lock puzzles and voter anonimity using Semaphore for zero-knowledge set membership proofs \cite{BuildingCicadaPrivate, A16zCicada2023}. Aragon's Vocdoni, similary to Cicida, achieves voters anonimity using zero-knowledge set membership proofs, however voting secrecy is achieved using trusted nodes called KeyKeepers. When a new election is created, each keykeeper creates an encryption key, and publish the public part via transaction (setProcessKeysTx). The voters will select up to N (at least one) of the keys and encrypt the vote with the N keys in onion mode. ~\cite{williamsRemoteVotingAge2022, VocdoniIntroductionVocdoni}. Minimal Anti-collusion Infrastructure (MACI), guarantees censorship resistance, voter anonimity, and coersion-resistance, however it relies on a single coordinator server for ballot privacy \cite{ethereumfoundationMinimalAntiCollusionInfrastructure2022, PrivacyscalingexplorationsMaci2023}.
 
 ElectionGuard distributes encryption keys among Guardians, using Distributed Key Generation and multi-party computation for decryption, with a quorum parameter to ensure completion even if some Guardians are absent \cite{ElectionGuard}.
 
@@ -213,7 +227,8 @@ In designing the protocol, we focused on key objectives to meet the essential ch
 \newcommand{\SetOfEncryptedPartialDecryptionKeys}{\ensuremath{\mathbb{C}}}
 \newcommand{\SetOfFDKG}{\ensuremath{\mathbb{D}}}
 \newcommand{\SetOfSharesOfPartialDecryption}{\ensuremath{\mathbb{C}}}
-
+\newcommand{\Voters}{\ensuremath{\mathbb{V}}}
+\newcommand{\Tallies}{\ensuremath{\mathbb{T}}}
 % Shares
 \newcommand{\IthDecryptionKey}[1]{\ensuremath{d_{#1}}}
 \newcommand{\IthEncryptionKey}[1]{E_{#1}}
@@ -229,7 +244,7 @@ In designing the protocol, we focused on key objectives to meet the essential ch
 
 \newcommand{\ProofFDKGInformal}{"Given \PartialEncryptionKey{i}, \EncryptedPartialDecryptionKeyShare{i}{j} and $\Party{j} \in \GuardianSetOf{i}$, I know $f_i = a_0, \dots, a_{t-1}$, $r1_1,\dots,r1_k$, and $r2_1,\dots,r2_k$, s.t. $\PartialEncryptionKey{i}=a_0G$ and the \EncryptedPartialDecryptionKeyShare{i}{j} is an encrypted value of a polynomial $f_i(\cdot)$ applied to $j$"}
 
-\newcommand{\ProofBALLOT}[1]{\ensuremath{\textrm{PROOF}_{#1,\textrm{BALLOT}}}}
+\newcommand{\ProofBALLOT}[1]{\ensuremath{\textrm{PROOF}_{#1,\textrm{B}}}}
 
 \newcommand{\ProofBALLOTInformal}{"Given \EncryptionKey{} and \Ballot{i} = $(C1, C2)$, I know \BlindingFactor{i}, and \Vote{i} s.t. $\Vote{i} \in \{2^0, 2^j, \ldots, 2^{(l-1)j}\}$ and $\Ballot{i} = (\BlindingFactor{i} G,\ \BlindingFactor{i} \EncryptionKey{} + \Vote{i})$"}
 
@@ -266,43 +281,91 @@ In designing the protocol, we focused on key objectives to meet the essential ch
 \section{Preliminaries}
 In this section, we outline essential cryptographic concepts and tools that underpin the voter-to-voter Internet voting protocol presented in this paper. These preliminaries provide the necessary background for understanding our protocol's structure and functionality.
 
+
 % Table of Notations
 \begin{table}[h]
-\centering
+
 \caption{Summary of Notations}
 \label{tab:notations}
-\begin{tabular}{|c|l|}
+\begin{tabular}{>{\centering\arraybackslash}p{.2\linewidth}p{.8\linewidth}}
+
 \hline
-\textbf{Notation} & \multicolumn{1}{c|}{\textbf{Description}} \\ \hline
-P                 & Set of all participants in the voting process \\ \hline
-D                 & Subset of participants involved in Distributed Key Generation \\ \hline
-G                 & Guardian set in Federated DKG \\ \hline
-E                 & Public key in the ElGamal cryptosystem \\ \hline
-d                 & Private key in the ElGamal cryptosystem \\ \hline
-zkSNARK           & Zero-Knowledge Succinct Non-Interactive Argument of Knowledge \\ \hline
-C1, C2            & Components of an ElGamal encrypted message \\ \hline
-Bi                & Encrypted ballot of participant i \\ \hline
-si                & Secret key of participant i \\ \hline
-Pi                & Public key of participant i \\ \hline
-t                 & Threshold number of participants required for certain operations \\ \hline
-k                 & Number of participants in a guardian set \\ \hline
-r                 & Random blinding factor in ballot encryption \\ \hline
-vi                & Encoded vote of participant i \\ \hline
-$\Delta$          & Difference term in ElGamal encryption/decryption \\ \hline
-$\lambda$         & Lagrange coefficient in polynomial interpolation \\ \hline
-M                 & Message space in cryptosystem \\ \hline
-q                 & Order of the base point in ECC \\ \hline
+\textbf{Notation} & \multicolumn{1}{c}{\textbf{Description}} \\
+\hline
+
+\Parties          & Set of all parties $\Party{i} \in \Parties$ in the voting process \\
+
+\Party{i},\PartySecretKey{i} & Public and secret keys used to authenticate $i$-th party, where $\Party{i}=\PartySecretKey{i} \G$  \\
+
+\hline
+
+$\SetOfFDKG \subseteq \Parties$ & Subset of parties involved in the 1. FDKG phase  \\
+
+\PartialEncryptionKey{i},\PartialDecryptionKey{i}      & Partial encryption (public) and decryption (secret) keys, from \Party{i}. $\PartialEncryptionKey{i}=\PartialDecryptionKey{i} \G$, where $\PartialDecryptionKey{i}$ is an random ephemeral per-voting scalar value.  \\
+
+\EncryptionKey, \DecryptionKey    & Voting public (encryption) and secret (decryption) keys, that is a sum of partial encryption keys \PartialEncryptionKey{i}, and decryption keys \PartialDecryptionKey{i}, i.e., $\EncryptionKey = \sum_{\Party{i} \in \SetOfFDKG} \PartialEncryptionKey{i}$ and $\DecryptionKey = \sum_{\Party{i} \in \SetOfFDKG} \PartialDecryptionKey{i}$ \\
+
+$\GuardianSetOf{i}$ & Guardian set is a subset of parties  selected by \Party{i} that can recreate \Party{i}'s part of the decryption key \PartialDecryptionKey{i}.  $\GuardianSetOf{i} \subseteq \Parties \setminus \Party{i}$ \\
+
+$k = |\GuardianSetOf{}|$                 & Total number of parties in a guardian set \\
+
+$t$                 & Threshold number to reconstruct the shared secret \\
+
+\PartialDecryptionKeyShare{i}{j}      & Share of partial decryption (secret) key, from \Party{i} to \Party{j}   \\
+
+\hline
+
+$\Voters \subseteq \Parties$ & Subset of parties participating in the 2. Voting phase  \\
+
+$v_i$             & Encoded vote of \Party{i} \\
+
+$\BlindingFactor{i}$ & One-time random blinding factor used for secure ElGamal encryption by \Party{i} \\
+
+$\Ballot{i}=(\BallotA{i}, \BallotB{i})$     & Encrypted ballot of participant \Party{i} using ElGamal scheme consisting of $(\BallotA{i}, \BallotB{i})$, where $\BallotA{i}=\BlindingFactor{i} \G$, and $\BallotB{i} = \BlindingFactor{i} \EncryptionKey{} + \Vote{i} \G$ \\
+
+\hline
+
+$\Tallies \subseteq \Parties$ & Subset of parties  participating in the 3. Online Tally phase \\
+
+\TotalA     & Sum of the first parts of all the casted ballots, i.e., $\TotalA = \sum_{\Party{i} \in \Voters} \BallotA{i}$ \\
+
+\TotalB     & Sum of the second parts of all the casted ballots, i.e., $\TotalB = \sum_{\Party{i} \in \Voters} \BallotB{i}$ \\
+
+
+\PartialDecryptionFrom{i}      & Partial decryption from \Party{i}, i.e., $\PartialDecryptionFrom{i} = \PartialDecryptionKey{i} \TotalA$ \\
+
+\SharePartialDecryptionFromTo{i}{j} & Share of partial decryption, from \Party{i} to \Party{j}, i.e., $\SharePartialDecryptionFromTo{i}{j} = \PartialDecryptionKeyShare{i}{j} \TotalA$ \\
+
+\hline
+
+$\texttt{Enc}_{\Party{i}}(\cdot)$ & Public key encryption for \Party{i} \\
+
+$\texttt{Dec}_{\PartySecretKey{i}}(\cdot)$ & Public key decryption using the corresponding secret key $\PartySecretKey{i}$ \\
+
+$\Delta$ & A helper value used to encode a scalar value to the point on a curve \\
+
+\EncryptedPartialDecryptionKeyShare{i}{j} & Encrypted partial decryption key share, from \Party{i} to \Party{j}  \\
+
+\SetOfEncryptedPartialDecryptionKeys & Set of encrypted shares of the partial decryption key  \\
+
+\hline
+
+\ProofBALLOT{i} & zkSNARK for ballot \Ballot{i} correctness from \Party{i}  \\
+
+\ProofFDKG{i} & zkSNARK for (\PartialDecryptionKey{i}, \EncryptedPartialDecryptionKeyShare{i}{}) correctness from \Party{i}  \\
+
+\ProofPD{i} & zkSNARK for partial decryption \PartialDecryptionFrom{i} correctness from \Party{i}  \\
+
+\ProofPDS{i}{j} & zkSNARK for share of the partial decryption \SharePartialDecryptionFromTo{i}{j} correctness from \Party{i} to \Party{j}  \\
 \end{tabular}
 \end{table}
-
-Following this, we delve into the detailed explanation of each of these cryptographic components, which are crucial for the understanding of our protocol...
 
 
 
 \subsubsection{Private Channel}
-Each user employs a private, authenticated channel for sending encrypted messages to others. We utilize ElGamal encryption on the BabyJub curve as described in \cite{ElGamalEncryptionDecryption2020,jieWeijiekohElgamalbabyjub2023}. The encryption process starts with a plaintext scalar $m$, transformed into a point on the BabyJub elliptic curve. The ciphertext consists of two elliptic curve points and one field element $(C_1, C_2, \Delta=rG.x - m)$. The complete encryption process is detailed in Algorithm~\ref{alg:encryption}.
+Each user employs a private, authenticated channel for sending encrypted messages to other parties. We utilize ElGamal encryption on the BabyJub curve as described in \cite{ElGamalEncryptionDecryption2020,jieWeijiekohElgamalbabyjub2023}. The encryption process starts with a plaintext scalar $m$, transformed into a point on the BabyJub elliptic curve, by generating a random value $r$, computing message $M=r\G$ and x-increment $\Delta$ that must be added to the plaintext to obtain the x-value of $M$. Therefore, the ciphertext consists of two elliptic curve points and one field element $(C_1, C_2, \Delta=M.x - m)$. The complete encryption process is detailed in Algorithm~\ref{alg:encryption}.
 
-Decryption of the ciphertext $(C_1, C_2, \Delta)$ follows the standard ElGamal method, with the addition of the x-delta $\Delta$ to the x-coordinate of the output point, as outlined in Algorithm~\ref{alg:decryption}.
+Decryption of the ciphertext $(C_1, C_2, \Delta)$ follows the standard ElGamal method, with the addition of the $\Delta$ to the x-coordinate of the output point, as outlined in Algorithm~\ref{alg:decryption}.
 
 \begin{algorithm}
     \SetAlgoNlRelativeSize{0}
@@ -359,7 +422,7 @@ Consider an arithmetic circuit $C$ characterized by a relation $\mathcal{R}_C$ a
 
 
 \subsection{Federated Distributed Key Generation}
-The Distributed Key Generation (DKG) protocol aims to collectively generate a voting key-pair without any participant learning the secret (decryption) key. Each party $P_i \in \mathbb{P}$ learns only its share of this key, while the public (encryption) key is widely known. The protocol is designed with a threshold property, allowing for flexibility in participant involvement during the tally phase.
+The Distributed Key Generation (DKG) protocol aims to collectively generate a voting key-pair without any participant learning the secret (decryption) key. Each party $P_i \in \mathbb{P}$ learns only its share of this key, while the public (encryption) key is widely known. The protocol uses threshold cryptography, allowing for flexibility in participant involvement during the tally phase.
 
 \subsubsection*{Secret Sharing}
 Secret sharing via Shamir's Secret Sharing (SSS) scheme enables a dealer to distribute a secret key $s$ across a randomly chosen polynomial $\mathbf{f}(X) = a_0 + a_1X + a_2X^2 + \dots + a_{t-1}X^{t-1}$, where coefficients $a_0,a_1,\dots,a_{t-1} \in_R \mathbb{F}_q$. Here, the secret key $s=a_0=\mathbf{f}(0)$ and $t-1$ denotes the polynomial's degree. Shares are computed by evaluating $\mathbf{f}(i)$ for $i \neq 0$. Utilizing Lagrange's Theorem, reconstructing $\mathbf{f}(X)$ and hence extracting $s = \mathbf{f}(0)$ is possible with $t$ points on the polynomial.
@@ -371,7 +434,7 @@ To prevent arbitrary submissions by parties, Publicly Verifiable Secret Sharing 
 \subsubsection*{Dynamic Distributed Key Generation}
 Traditional DKG requires a known, fixed number of participants, due to its reliance on SSS with pre-defined polynomial degrees. Since we aim for an optional DKG phase with an unpredictable number of participants, we need a mechanism that allows dynamic adjustments to participant numbers and the threshold $t$.
 
-Existing dynamic DKG schemes, such as the one in \cite{delerableeDynamicThresholdPublickey2008}, necessitate continuous online presence of all parties, which we find impractical. Our objective is a non-interactive protocol where parties send only a single message and are then free to leave.
+Existing dynamic DKG schemes, such as the one in \cite{delerableeDynamicThresholdPublickey2008}, necessitate continuous online presence of all parties, which we find impractical. Our objective is a non-interactive protocol where parties send only a single message and are then free to leave. We propose Federated DKG which facilitates joint key establishment by members with a single message, without prior knowledge of all participants.
 
 \section{Voting Protocol}
 
@@ -380,15 +443,12 @@ Our protocol integrates the three-round voting scheme from \cite{schoenmakersLec
 \paragraph*{Assumptions}
 The protocol is based on the following assumptions:
 \begin{enumerate}
-\item All communications occur over a public message board.
-\item Authenticated public channels are available to every participant, established through the public message board and digital signatures.
-\item Private channels for each participant are secured using the public message board and ElGamal public key encryption.
+\item All communications occur over a public message board available to all parties.
+\item Private channels for each participant are secured using the public message board and encryption functions $\texttt{Enc}_{\Party{i}}$ and $\texttt{Dec}_{\PartySecretKey{i}}$
 \item Each participant, denoted \Party{i}, has a key pair (\PartySecretKey{i}, \Party{i}), with $\PartySecretKey{i} \in_\$ \mathbb{Z}_q$ as a randomly selected secret key, and $\Party{i} = \PartySecretKey{i} \G$ as the corresponding public key. Parties are identified solely by their public keys.
 \item The protocol uses Elliptic Curve Cryptography, specifically the BabyJubJub curve~\cite{whitehatBabyJubjubElliptic2020}.
-\item Participants consent to certain cryptographic parameters, including the Elliptic Curve $E(\mathbb{Z}_p)$ with a defined curve finite field modulus $p$, a base point $G$ on the curve, and the order of the base point $q$. Additionally, they agree to the set of eligible voters $\mathbb{P}$ and the set of candidates $\vec{C}$.
-\item The ElGamal cryptosystem is employed for public-key encryption, with $\texttt{Enc}_{\Party{i}}$ as the encryption function for a public key $\Party{i}$, and $\texttt{Dec}_{\PartySecretKey{i}}$ for decryption with the corresponding secret key $s$.
+\item Participants consent to certain cryptographic parameters, including the Elliptic Curve $E(\mathbb{Z}_p)$ with a defined curve finite field modulus $p$, a base point $G$ on the curve, and the order of the base point $q$. Additionally, they agree to the set of eligible voters $\mathbb{P}$ and the set of candidates.
 \end{enumerate}
-
 
 \subsection{Round 1: Federated Distributed Key Generation}
 We propose a dynamic DKG technique similar to the Federated Byzantine Agreement (FBA) used in the Stellar Consensus Protocol \cite{mazieresStellarConsensusProtocol2015}. This technique does not require every party to participate in the DKG phase. The protocol works as follows. For each participating party $\Party{i} \in \mathbb{D}$, where $\mathbb{D} \subseteq  \mathbb{P}$:
@@ -416,7 +476,7 @@ Participation in the voting phase is optional for each party. For each voter $\P
 \begin{enumerate}
     \item Encode a multi-candidate ballot using the method outlined in \cite{baudronPracticalMulticandidateElection2001}. The encoding assigns a power of two to each candidate: a vote for candidate 1 as $2^0$, for candidate 2 as $2^m$, for candidate $c$ as $2^{(c-1)m}$. The parameter $m$ is selected as the smallest integer where $2^m > |\Parties{}|$. Thus, a vote is defined as \[\Vote{i}\ =\ \begin{cases} 2^0 & \text{if } \Party{i} \text{ votes for candidate 1} \\ 2^m & \text{if } \Party{i} \text{ votes for candidate 2} \\ \vdots & \vdots \\ 2^{(c-1)m} & \text{if } \Party{i} \text{ votes for candidate $c$}\end{cases}\]
     
-    \item Encrypt the vote using ElGamal encryption as $\Ballot{i} = (\BlindingFactor{i} \G,\ \BlindingFactor{i} \EncryptionKey{} + \Vote{i})$, where $\BlindingFactor{i} \in_{\$} \mathbb{Z}_q$ serves as a blinding factor for party $\Party{i}$.
+    \item Encrypt the vote using ElGamal encryption as $\Ballot{i} = (\BlindingFactor{i} \G,\ \BlindingFactor{i} \EncryptionKey{} + \Vote{i} \G)$, where $\BlindingFactor{i} \in_{\$} \mathbb{Z}_q$ serves as a blinding factor for party $\Party{i}$.
     
     \item Compute a zero-knowledge proof \ProofBALLOT{i}, as described in Section~\ref{sec:proof-ballot}.
     
@@ -438,7 +498,7 @@ The tally process comprises two distinct phases: online and offline.
 
 \subsubsection{Online Tally}
 
-In the online tally phase, the subset of parties $\mathbb{T} \subseteq  \mathbb{D}$ engaged in Threshold ElGamal Decryption includes at least $t$ parties from every guardian set \GuardianSetOf{1},\dots,\GuardianSetOf{|\mathbb{D}|}. For each party $\Party{i} \in \mathbb{T}$:
+In the online tally phase, the subset of parties $\Tallies \subseteq  \Parties$ engaged in Threshold ElGamal Decryption includes at least $t$ parties from every guardian set \GuardianSetOf{1},\dots,\GuardianSetOf{|\SetOfFDKG|}. For each party $\Party{i} \in \mathbb{T}$:
 
 \begin{enumerate}
     \item Sum the first component of all ballots $\TotalA = \sum_{i=1}^{|\mathbb{V}|} \BallotA{i}$, where (\BallotA{i},\BallotB{i})=\Ballot{i}.
@@ -476,7 +536,8 @@ The offline tally phase is accessible to anyone and involves the following steps
     
     \item Calculate the sum of either partial decryptions or their reconstructions from shares: \[Z = \sum\{\PartialDecryptionFrom{i} \textrm{ or } \sum_{1 \leq k \leq t}(\SharePartialDecryptionFromTo{i}{k} \lambda_{k}) | \Party{i} \in \mathbb{D}\} = \DecryptionKey{} \TotalA = \mathbf{d} \sum_i^{\VotesSize} r_i G \] where $\lambda_{i}=\Pi_{j \neq i}\frac{j}{j-i}$ represents the Lagrange coefficient.
 
-    \item The decryption is $M=\TotalB{} - Z=x_1 2^0 + x_2 2^j + \dots + x_l 2^{(l-1)j}$, because $\begin{aligned} M&=\TotalB-Z \\
+    \item The decryption is $M=\TotalB{} - Z=x_1 2^0 + x_2 2^j + \dots + x_l 2^{(l-1)j}$, where $x_i$ is the number of votes for candidate $i$. It is because 
+    $\begin{aligned} M=\TotalB&-Z \\
         &= (\sum_{i=1}^{\VotesSize} r_{i} \mathbf{E} + \sum^{x_1} 2^0 + \sum^{x_2} 2^j + \dots + \sum^{x_l} 2^{(l-1)j}) - Z\\
         &= (\sum_{i=1}^{\VotesSize} r_{i} \mathbf{E} + x_1 2^0 + x_2 2^j + \dots + x_l 2^{(l-1)j}) - \mathbf{d} \sum_i^{\VotesSize{}} r_i G \\
         &= \sum_{i=1}^{\VotesSize} r_{i} \mathbf{E} + x_1 2^0 + x_2 2^j + \dots + x_l 2^{(l-1)j} - \sum_{i=1}^{\VotesSize} r_{i} \mathbf{E}\\
@@ -527,7 +588,7 @@ In our protocol, we employ the general principles of zk-SNARK to construct speci
 \end{itemize}
 
 
-\begin{algorithm}[H]
+\begin{algorithm}
 \caption{Circuit FDKG($|\GuardianSetOf{}|$ = guardian set size, t = threshold)}
 \label{alg:circuit_fdkg}
 
@@ -662,136 +723,49 @@ $\PartialDecryptionKeyShare{j}{i} \leftarrow M_x - \Delta$\;
 
 \section{Security Analysis}
 
-This section analyzes key security properties of the FDKG system, namely Decipherability and Privacy.
+This section analyzes key security properties of the PeerVote protocol, focusing on Decipherability, Privacy, Integrity and Availability as crucial aspects underpinning the system's security. We discuss the conditions under which these properties are maintained or violated, particularly in the context of honest and dishonest parties within a distributed, multi-party computation framework.
 
 \begin{definition}[Decipherability] \label{def:decipherability}
-    Decipherability in an FDKG system is achieved if for each participant $\Party{i} \in \mathbb{D}$, either the participant publishes the full partial decryption, or a subset of its guardian set $\mathbb{G}_i$, with at least $t$ members, publishes their respective shares of partial decryption. Formally: 
-    \[
-    \forall \Party{i} \in \mathbb{D}, \left( \textrm{publish}(\PartialDecryptionFrom{i}) \lor \exists \mathbb{S}_i \subseteq \mathbb{G}_i : |\mathbb{S}_i| \geq t \land \forall P_{j} \in \mathbb{S}_i, \textrm{publish}(\SharePartialDecryptionFromTo{i}{j}) \right)
-    \]
+    Decipherability is achieved if for each participant $\Party{i} \in \mathbb{D}$, either the participant publishes the full partial decryption, or a subset of its guardian set $\mathbb{G}_i$, with at least $t$ members, publishes their respective shares of partial decryption. Formally: 
+    \begin{align*}\forall \Party{i} \in \mathbb{D},  \textrm{publish}(\PartialDecryptionFrom{i}) \lor & \\ \exists \mathbb{S}_i \subseteq  \mathbb{G}_i & : |\mathbb{S}_i| \geq t \land \forall P_{j} \in \mathbb{S}_i, \textrm{publish}(\SharePartialDecryptionFromTo{i}{j}) \end{align*}
     where \(\textrm{publish}(\cdot)\) denotes the publication of either the full partial decryption $\PartialDecryptionFrom{i}$ or the share of partial decryption $\SharePartialDecryptionFromTo{i}{j}$ in the Online Tally phase.
 \end{definition}
 
+Decipherability is guaranteed when a sufficient number of parties act honestly and fulfill their role in the decryption process. If the set of honest and available parties drops below the decipherability set threshold, the protocol's ability to ensure decipherability is compromised, potentially leading to an inability to decrypt the final tally.
+
 \begin{definition}[Privacy] \label{def:privacy}
-    The FDKG system achieves privacy if and only if there does not exist any Decipherability set that is malicious. A Decipherability set is a set of parties \( \mathbb{A} \) within the system that satisfies the condition for Decipherability. Formally, privacy is achieved when:
+    Privacy is achieved if and only if there does not exist any collusion that achieves Decipherability. Formally, privacy is achieved when:
     \[
-    \nexists \mathbb{A} \subseteq \mathbb{P} : (\text{Decipherability}(\mathbb{A}) \land \text{Malicious}(\mathbb{A}))
+    \nexists \mathbb{A} \subseteq \mathbb{P} : (\text{Decipherability}(\mathbb{A}) \land \text{Colludes}(\mathbb{A}))
     \]
-    where \( \mathbb{A} \) is a Decipherability set, \( \text{Decipherability}(\mathbb{A}) \) denotes that the set \( \mathbb{A} \) achieves Decipherability, and \( \text{Malicious}(\mathbb{A}) \) indicates that the set \( \mathbb{A} \) is malicious.
+    where \( \text{Decipherability}(\mathbb{A}) \) denotes that the set \( \mathbb{A} \) achieves Decipherability, and \( \text{Colludes}(\mathbb{A}) \) indicates that the set \( \mathbb{A} \) colludes.
 \end{definition}
 
-
-\section{Experimental Results}
-
-This section evaluates our voter-to-voter Internet voting protocol experimentally, focusing on proving times and message sizes for two prominent proving protocols: Plonk and Groth16, as implemented in the \texttt{snarkjs} WebAssembly (WASM) framework. The execution time for solving the Discrete Logarithm Problem (DLP) in the offline tally phase was also assessed. These experiments were conducted on a MacBook Pro with an Apple M1 Pro processor and 16GB of RAM.
-
-\paragraph{Proving Time}
-
-Table~\ref{table:proving-time} presents the time taken to generate a zkSNARK proof for each message using Groth16 and Plonk. The results indicate a significant performance difference between the two, with Groth16 showing superior efficiency. Notably, during the FDKG phase, Groth16 required a maximum of 2.414 seconds for a 3-of-4 configuration, compared to Plonk's 146.026 seconds for the same setup.
+Privacy depends on the assumption that there is no collusion that achieves Decipherability. The presence of such subset could lead to the compromise of vote confidentiality, as such parties could collude to decipher individual votes, and count votes before the official tally.
 
 
-\begin{table}[!ht]
-    \centering
-    \begin{tabular}{|c|c|c|c|c|c|c|}
-    \hline
-        \multirow{2}{*}{\textbf{\shortstack{Proving\\ System}}} & \multicolumn{3}{|c|}{\textbf{FDKG}}  & \multirow{2}{*}{\textbf{\shortstack{Encrypt\\ Ballot}}} & \multirow{2}{*}{\textbf{\shortstack{Partial\\ Decryption}}} & \multirow{2}{*}{\textbf{\shortstack{Partial Decryption\\ Share}}} \\ 
-        \cline{2-4}
-        & \textbf{1 of 2} & \textbf{2 of 3} & \textbf{3 of 4} & &  &  \\ 
-        \hline
-        \textbf{Groth16} & 1.388 s & 2.135 s & 2.414 s & 0.747 s & 0.619 s & 0.580 s/share \\ 
-        \hline
-        \textbf{Plonk} & 67.753 s & 71.902 s & 146.026 s & 16.822 s & 16.543 s & 8.137 s/share \\ 
-        \hline
-    \end{tabular}
-    \caption{Proving Time}
-    \label{table:proving-time}
-\end{table}
+\begin{definition}[Censorship resistance]
+    Censorship resistance is achieved if the network accept messages from all eligible voters.
+\end{definition}
 
-\paragraph{Message Size}
+Censorship resistance should be guaranteed by the message board platform used to run the protocol on. In practice it's achieved by the consensus protocol and honest majority of the parties that runs it. 
 
-Table~\ref{table:message-size} details the message sizes required in each round of the protocol. Messages using Groth16 are smaller due to their proofs comprising only 3 elliptic-curve points, whereas Plonk-based proofs require 9 points and 6 scalars \cite{gabizonPLONKPermutationsLagrangebases2019}.
+\begin{definition}[Integrity]
+    Integrity ensures that votes are counted accurately and are unalterable by unauthorized parties. Integrity is achieved as long as everyone verifies all messages from other parties, and eligibility of the voters submitting the ballot. Moreover, the property relies on the security of all crypto primitives used in the protocol.
+\end{definition}
 
-\begin{table}[!ht]
-    \centering
-    \begin{tabular}{|c|c|c|c|c|c|c|}
-    \hline
-        \multirow{2}{*}{\textbf{\shortstack{Proving\\ System}}} & \multicolumn{3}{|c|}{\textbf{FDKG}}  & \multirow{2}{*}{ \textbf{\shortstack{Encrypt\\ Ballot}}} & \multirow{2}{*}{\textbf{\shortstack{Partial\\ Decryption}}} & \multirow{2}{*}{\textbf{\shortstack{Partial Decryption\\ Share}}} \\ 
-        \cline{2-4}
-        & \textbf{1 of 2} & \textbf{2 of 3} & \textbf{3 of 4} & &  &  \\ 
-        \hline
-        \textbf{Groth16} & 1152 B & 1568 B & 1984 B & 512 B & 576 B & 768 B/share \\ \hline
-        \textbf{Plonk} & 1472 B & 1888 B & 2304 B & 832 B & 896 B & 1088 B/share \\ \hline
-    \end{tabular}
-    \caption{Sizes of the Messages in Each Round}
-    \label{table:message-size}
-\end{table}
-
-\paragraph{Discrete Logarithm Problem (DLP)}
-
-A critical part of the offline tally in our protocol involves solving the DLP to extract the number of votes for each candidate. Although typically infeasible, the DLP can be solved through exhaustive search for a small number of voters. Using the method described in \cite{haoAnonymousVotingTworound2010}, we extracted each $x_i$ from the final output point $M$. 
-
-Figure~\ref{fig:dlog-search} demonstrates that solving the DLP follows a power-law relation \( Y = aX^b \), with \( b \) varying linearly with the number of options. This finding suggests that while the time to solve DLP is linear with the number of voters, it grows exponentially with the number of candidates, posing scalability challenges in larger elections.
-
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=\textwidth]{dlog-search-time.png}
-    \caption{Time required to solve DLP with respect to the number of candidates and number of voters (log-log scale).}
-    \label{fig:dlog-search}
-\end{figure}
-
-
-\section{Discussion}
-
-Our work introduces a robust voting protocol that eliminates reliance on centralized entities and demonstrates resilience against node unavailability. The Federated Distributed Key Generation (FDKG) represents our principal innovation, extending traditional Distributed Key Generation (DKG) methods. FDKG uniquely allows for key reconstruction by parties within their Guardian sets, in addition to those participating in the original DKG. This generalization of DKG, where standard DKG equates to a 0-of-k FDKG protocol, significantly enhances protocol robustness by minimizing decipherability sets and maintaining privacy, with these sets including the network's most trusted parties.
-
-The protocol's resilience is particularly valuable in contexts with uncertain network reliability and participant availability, ensuring secure and uninterrupted voting processes. Future research might involve simulating real-world trust dynamics in communities to assess the protocol's applicability \cite{healdMathematicalDescriptionTrust2019}.
-
-However, implementing zkSNARKs for message certification introduces trade-offs between setup complexity and computational efficiency. Trusted setup ceremonies, such as those used in Groth16 \cite{grothSizePairingbasedNoninteractive2016}, offer greater efficiency compared to transparent, trustless setups like Plonk \cite{gabizonPlonkPermutationsLagrangebases2019a}. Our experiments indicated that, on a high-end personal computer, Groth16's proving time per message ranged from 1-3 seconds, while Plonk required 16-145 seconds. Although trusted setups entail strong assumptions, they are a one-time requirement and can be reused in future votings, a common practice in zkSNARK-based protocols.
-
-A critical aspect of our protocol is the offline tally, reliant on solving the Discrete Logarithm Problem (DLP). The complexity of this task follows a power-law \( Y = aX^b \), with \( X \) proportional to the number of voters and \( b \) increasing with candidate count, indicating linear growth with voter numbers and exponential growth with candidate numbers. Addressing this scalability challenge could be a focus of future enhancements, potentially through more efficient algorithms.
-
-Two deployment options for our protocol are proposed (see Figure~\ref{fig:stack-bc}): as a peer-to-peer application using IPFS\footnote{IPFS, An open system to manage data without a central server, \url{https://ipfs.tech/}} and Wesh Network\footnote{Wesh Network, Asynchronous mesh network protocol powered by Berty Technologies’ non-profit organisation, \url{https://wesh.network/}}, or as a smart contract on public blockchains, employing ERC-4337~\cite{ERC4337AccountAbstraction} to centralize voting costs under a single paymaster (e.g., organiser), allowing gasless voting for participants.
-
-We have made our protocol's implementation in TypeScript and Golang open-source, facilitating widespread deployment and enhancing accessibility. The codebase is available at \url{https://github.com/stanbar/v2v-private-voting}.
-
-Optimization avenues include improving proof times and sizes by batching proofs or reformulating them into more efficient Sigma Proofs. Another path involves on-chain implementation with gasless transactions, leveraging ERC-4337's paymaster concept.
-
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=\textwidth]{stack-bc.png}
-    \caption{Architecture of the system.}
-    \label{fig:stack-bc}
-\end{figure}
-
-\section{Conclusion}
-This paper presents a voter-to-voter Internet voting protocol based on Federated Distributed Key Generation (FDKG), which significantly enhances the robustness and flexibility of Internet voting. FDKG achieves this by allowing key reconstruction by guardian sets, a feature that not only strengthens the robustness of the system against node unavailability, but also preserves privacy by relying on the most trusted parties in a network.
-
-The practical applications of this protocol are many and powerful. It is particularly suited to small-scale voting environments such as local elections, NGO decision-making and corporate board resolutions. However, its adaptability also makes it a viable option for decentralised governance models in smart cities and DAOs, where secure and transparent voting is paramount. In addition, the protocol's scalability and privacy features make it a promising candidate for larger-scale implementations, such as regional or national elections, where traditional voting methods face logistical and security challenges.
-
-The protocol faces challenges in terms of computational requirements and scalability, particularly for large-scale applications. Future research should focus on optimising zkSNARKs for efficiency and exploring scalable cryptographic solutions.
-
-Looking ahead, we envision two primary deployment scenarios for our protocol: as a standalone peer-to-peer application utilizing open-source tools like IPFS and Wesh Network, or as a smart contract on public blockchains with gasless transactions enabled by the ERC-4337 standard. This flexibility in deployment options, coupled with our open-source implementation in TypeScript and Golang, underscores our commitment to accessibility and adaptability in various electoral contexts.
-
-In conclusion, our protocol represents a meaningful step forward in the evolution of Internet voting systems. By embracing decentralization, enhancing security, and prioritizing privacy, we aim to contribute to the development of more resilient, trustworthy, and inclusive voting mechanisms in the digital age. As we continue to refine and optimize our protocol, we remain focused on the broader goal of modernizing democratic processes and empowering communities with reliable and accessible voting technologies.
-
-\section{Acknowledgments}
-We gratefully acknowledge Lev Soukhanov for his crucial role in designing the voting protocol and the Delendum team for their support and valuable insights during our research and development fellowship. We are grateful to Maya Dotan for her detailed review and helpful feedback, especially on the DLP issue, which notably improved the quality and thoroughness of our work.
-
-\bibliographystyle{IEEEtran}
-\bibliography{bibliography}
-
-\appendix
+Integrity is maintained by the verification of proofs of correctness. Robust cryptographic mechanisms, including secure pseudo-random number generators, digital signatures, ElGamal encryption,  and zkSNARKs are utilized to safeguard integrity, ensuring that any unauthorized modifications are detectable.
 
 \section{FDKG Example}
 
 To elucidate the FDKG process and underscore its advancements over traditional methods, consider a scenario involving a set of parties $\{P_1, \ldots, P_{10}\}$. In this example, we have $k = 3$ and $t = 2$. A subset of these parties, namely $\mathbb{D} = \{P_1, P_3, P_5, P_7, P_9\}$, participates in the FDKG, each forming their respective guardian set. This setup is depicted in Figure \ref{fig:FDKG}.
 
-\begin{figure}
+\begin{figure*}
     \centering
-    \includegraphics[width=\textwidth]{FDKG.png}
+    \includegraphics[width=.7\textwidth]{FDKG.png}
     \caption{Federated Distributed Key Generation}
     \label{fig:FDKG}
-\end{figure}
+\end{figure*}
 
 The FDKG process for each participating party unfolds as follows:
 
@@ -838,4 +812,106 @@ Privacy in the FDKG system is compromised when all parties from any Decipherabil
 
 
 
+\section{Experimental Results}
+
+This section evaluates our voter-to-voter Internet voting protocol experimentally, focusing on proving times and message sizes for two prominent proving protocols: Plonk and Groth16, as implemented in the \texttt{snarkjs} WebAssembly (WASM) framework. The execution time for solving the Discrete Logarithm Problem (DLP) in the offline tally phase was also assessed. These experiments were conducted on a MacBook Pro with an Apple M1 Pro processor and 16GB of RAM.
+
+\paragraph{Proving Time}
+
+Table~\ref{table:proving-time} presents the time taken to generate a zkSNARK proof for each message using Groth16 and Plonk. The results indicate a significant performance difference between the two, with Groth16 showing superior efficiency. Notably, during the FDKG phase, Groth16 required a maximum of 2.414 seconds for a 3-of-4 configuration, compared to Plonk's 146.026 seconds for the same setup.
+
+
+\begin{table*}
+    \centering
+    \begin{tabular}{|c|c|c|c|c|c|c|}
+    \hline
+        \multirow{2}{*}{\textbf{\shortstack{Proving\\ System}}} & \multicolumn{3}{|c|}{\textbf{FDKG}}  & \multirow{2}{*}{\textbf{\shortstack{Encrypt\\ Ballot}}} & \multirow{2}{*}{\textbf{\shortstack{Partial\\ Decryption}}} & \multirow{2}{*}{\textbf{\shortstack{Partial Decryption\\ Share}}} \\ 
+        \cline{2-4}
+        & \textbf{1 of 2} & \textbf{2 of 3} & \textbf{3 of 4} & &  &  \\ 
+        \hline
+        \textbf{Groth16} & 1.388 s & 2.135 s & 2.414 s & 0.747 s & 0.619 s & 0.580 s/share \\ 
+        \hline
+        \textbf{Plonk} & 67.753 s & 71.902 s & 146.026 s & 16.822 s & 16.543 s & 8.137 s/share \\ 
+        \hline
+    \end{tabular}
+    \caption{Proving Time}
+    \label{table:proving-time}
+\end{table*}
+
+\paragraph{Message Size}
+
+Table~\ref{table:message-size} details the message sizes required in each round of the protocol. Messages using Groth16 are smaller due to their proofs comprising only 3 elliptic-curve points, whereas Plonk-based proofs require 9 points and 6 scalars \cite{gabizonPLONKPermutationsLagrangebases2019}.
+
+\begin{table*}
+    \centering
+    \begin{tabular}{|c|c|c|c|c|c|c|}
+    \hline
+        \multirow{2}{*}{\textbf{\shortstack{Proving\\ System}}} & \multicolumn{3}{|c|}{\textbf{FDKG}}  & \multirow{2}{*}{ \textbf{\shortstack{Encrypt\\ Ballot}}} & \multirow{2}{*}{\textbf{\shortstack{Partial\\ Decryption}}} & \multirow{2}{*}{\textbf{\shortstack{Partial Decryption\\ Share}}} \\ 
+        \cline{2-4}
+        & \textbf{1 of 2} & \textbf{2 of 3} & \textbf{3 of 4} & &  &  \\ 
+        \hline
+        \textbf{Groth16} & 1152 B & 1568 B & 1984 B & 512 B & 576 B & 768 B/share \\ \hline
+        \textbf{Plonk} & 1472 B & 1888 B & 2304 B & 832 B & 896 B & 1088 B/share \\ \hline
+    \end{tabular}
+    \caption{Sizes of the Messages in Each Round}
+    \label{table:message-size}
+\end{table*}
+
+\paragraph{Discrete Logarithm Problem (DLP)}
+
+A critical part of the offline tally in our protocol involves solving the DLP to extract the number of votes for each candidate. Although typically infeasible, the DLP can be solved through exhaustive search for a small number of voters. Using the method described in \cite{haoAnonymousVotingTworound2010}, we extracted each $x_i$ from the final output point $M$. 
+
+Figure~\ref{fig:dlog-search} demonstrates that solving the DLP follows a power-law relation \( Y = aX^b \), with \( b \) varying linearly with the number of options. This finding suggests that while the time to solve DLP is linear with the number of voters, it grows exponentially with the number of candidates, posing scalability challenges in larger elections.
+
+\begin{figure*}
+    \centering
+    \includegraphics[width=.9\textwidth]{dlog-search.png}
+    \caption{Time required to solve DLP with respect to the number of candidates and number of voters (log-log scale).}
+    \label{fig:dlog-search}
+\end{figure*}
+
+\section{Discussion}
+
+Our work introduces a robust voting protocol that eliminates reliance on centralized entities and demonstrates resilience against node unavailability. The Federated Distributed Key Generation (FDKG) represents our principal innovation, extending traditional Distributed Key Generation (DKG) methods. FDKG uniquely allows for key reconstruction by parties within their Guardian sets, in addition to those participating in the original DKG. This generalization of DKG—where standard DKG equates to a 0-of-k FDKG protocol—significantly enhances protocol robustness by minimizing decipherability sets and maintaining privacy, with these sets including the network's most trusted parties.
+
+The protocol's resilience is particularly valuable in contexts with uncertain network reliability and participant availability, ensuring secure and uninterrupted voting processes. Future research might involve simulating real-world trust dynamics in communities to assess the protocol's applicability \cite{healdMathematicalDescriptionTrust2019}.
+
+However, implementing zkSNARKs for message certification introduces trade-offs between setup complexity and computational efficiency. Trusted setup ceremonies, such as those used in Groth16 \cite{grothSizePairingbasedNoninteractive2016}, offer greater efficiency compared to transparent, trustless setups like Plonk \cite{gabizonPlonkPermutationsLagrangebases2019a}. Our experiments indicated that, on a high-end personal computer, Groth16's proving time per message ranged from 1-3 seconds, while Plonk required 16-145 seconds. Although trusted setups entail strong assumptions, they are a one-time requirement and can be reused in future votings, a common practice in zkSNARK-based protocols.
+
+A critical aspect of our protocol is the offline tally, reliant on solving the Discrete Logarithm Problem (DLP). The complexity of this task follows a power-law \( Y = aX^b \), with \( X \) proportional to the number of voters and \( b \) increasing with candidate count, indicating linear growth with voter numbers and exponential growth with candidate numbers. The computational challenge can be partially mitigated by subdividing the parties into smaller groups, parallelizing the operation across these groups and then aggregating the outcomes from each group's leader. This procedure needs to be repeated $\log{n}$ times, effectively reducing the number of discrete logarithms that need to be solved to $\mathcal{O}(\log{n})$. In terms of computational workload, this translates to $n\log{n}$ discrete logarithm calculations. However, due to parallelization, the overall time complexity is reduced to $\log{n}$ time. Addressing this scalability challenge remains an area for future enhancements, potentially through the development of more efficient algorithms.
+
+\paragraph{Deployments}
+The protocol can be deployed on any platform that supports message board functionality, meaning it supports the atomic broadcast. 
+Two deployment options for our protocol are proposed (see Figure~\ref{fig:stack-bc}): as a peer-to-peer application using Wesh Network\footnote{Wesh Network, Asynchronous mesh network protocol powered by Berty Technologies’ non-profit organisation, \url{https://wesh.network/}}, or as a smart contract on public blockchains, employing ERC-4337~\cite{ERC4337AccountAbstraction} to centralize voting costs under a single paymaster (e.g., organiser), allowing gasless voting for participants.
+
+We have made our protocol's implementation in TypeScript and Golang open-source, facilitating widespread deployment and enhancing accessibility. The codebase is available at \url{https://github.com/anonymised} % \url{https://github.com/stanbar/v2v-private-voting}.
+
+Optimization avenues include improving proof times and sizes by batching proofs or reformulating them into more efficient Sigma Proofs. Another path involves on-chain implementation with gasless transactions, leveraging ERC-4337's paymaster concept.
+
+In the future, the anonymity of the voters could be additionally protected from the collusion of the malicious parties by the use of zero-knowledge set membership proofs~\cite{Semaphorea} as seen in protocols like Cicada~\cite{BuildingCicadaPrivate} and Vocdoni~\cite{VocdoniIntroductionVocdoni}.
+
+\begin{figure}
+    \centering
+    \includegraphics[width=\textwidth]{stack-bc.png}
+    \caption{Possible deployments of the protocol.}
+    \label{fig:stack-bc}
+\end{figure}
+
+\section{Conclusion}
+This paper presents a voter-to-voter Internet voting protocol based on Federated Distributed Key Generation (FDKG), which significantly enhances the robustness and flexibility of Internet voting. FDKG achieves this by allowing key reconstruction by guardian sets, a feature that not only strengthens the robustness of the system against node unavailability, but also preserves privacy by relying on the most trusted parties in a network.
+
+The practical applications of this protocol are many and powerful. It is particularly suited to small-scale voting environments such as local elections, NGO decision-making and corporate board resolutions. However, its adaptability also makes it a viable option for decentralised governance models in smart cities and DAOs, where secure and transparent voting is paramount. In addition, the protocol's scalability and privacy features make it a promising candidate for larger-scale implementations, such as regional or national elections, where traditional voting methods face logistical and security challenges.
+
+The protocol faces challenges in terms of computational requirements and scalability, particularly for large-scale applications. Future research should focus on optimising zkSNARKs for efficiency and exploring scalable cryptographic solutions.
+
+Looking ahead, we envision two primary deployment scenarios for our protocol: as a standalone peer-to-peer application utilizing open-source tools like IPFS and Wesh Network, or as a smart contract on public blockchains with gasless transactions enabled by the ERC-4337 standard. This flexibility in deployment options, coupled with our open-source implementation in TypeScript and Golang, underscores our commitment to accessibility and adaptability in various electoral contexts.
+
+In conclusion, our protocol represents a meaningful step forward in the evolution of Internet voting systems. By embracing decentralization, enhancing security, and prioritizing privacy, we aim to contribute to the development of more resilient, trustworthy, and inclusive voting mechanisms in the digital age. As we continue to refine and optimize our protocol, we remain focused on the broader goal of modernizing democratic processes and empowering communities with reliable and accessible voting technologies.
+
+\section*{Acknowledge}
+We gratefully acknowledge Lev Soukhanov for his crucial role in designing the voting protocol and the Delendum team for their support and valuable insights during our research and development fellowship. We are grateful to Maya Dotan for her detailed review and helpful feedback, especially on the DLP issue, which notably improved the quality and thoroughness of our work.
+
+
+\bibliographystyle{splncs04}
+\bibliography{bibliography}
 \end{document}
