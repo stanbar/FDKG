@@ -1,1 +1,0 @@
-Our system is similar to [Polys](https://polys.vote)  we also use EC-ElGamal Homomorphic Encryption + Lookup table. [Poly's whitepaper](https://polysdocs.website.yandexcloud.net/Whitepaper/7262_WP_Polys_En_WEB_7.pdf). However, we use distributed counting in MPC + audibility.
