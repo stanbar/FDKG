@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>Network</title>
+    <script
+      type="text/javascript"
+      src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"
+    ></script>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style type="text/css">
+      #mynetwork {
+        width: 800px;
+        height: 600px;
+        border: 1px solid lightgray;
+      }
+    </style>
+  </head>
+  <body>
+    <div>
+        <label for="nodeSlider">Number of Nodes (N):</label>
+        <input type="range" id="nodeSlider" min="5" max="1000" value="500">
+        <span id="nodeValue">500</span>
+    </div>
+    <div>
+        <label for="guardianSlider">Number of Guardians (k):</label>
+        <input type="range" id="guardianSlider" min="1" max="10" value="3">
+        <span id="guardianValue">3</span>
+    </div>
+    <div>
+        <label for="trustSlider">Trustworthiness Mean (t):</label>
+        <input type="range" id="trustSlider" min="10" max="100" value="50">
+        <span id="trustValue">50</span>
+    </div>
+    <div>
+        <label for="physicsSwitch">Enable Physics:</label>
+        <input type="checkbox" id="physicsSwitch" checked>
+    </div>
+    <button id="generateButton">Generate Graph</button>
+    <button id="volunteerButton">Select FDKG Set</button>
+    <button id="secondSubsetButton">Select Talliers Set</button>
+
+    <div id="fdkgLabel" style="margin: 10px;">FDKG set size: 0</div>
+    <div id="talliersLabel" style="margin: 10px;">Talliers set size: 0</div>
+
+    <div id="mynetwork"></div>
+    
+    <script type="module" src="./index.ts"></script>
+
+    <script>
+        // Update slider values in real-time
+        document.getElementById('nodeSlider').addEventListener('input', function() {
+            document.getElementById('nodeValue').innerText = this.value;
+        });
+        document.getElementById('guardianSlider').addEventListener('input', function() {
+            document.getElementById('guardianValue').innerText = this.value;
+        });
+        document.getElementById('trustSlider').addEventListener('input', function() {
+            document.getElementById('trustValue').innerText = this.value;
+        });
+    </script>
+  </body>
+</html>
