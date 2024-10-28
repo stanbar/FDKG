@@ -4,14 +4,19 @@ import * as d3 from 'd3';
 
 let network: Network;
 let nodesDataset: DataSet<Node>;
-const fdkgSet: Set<number> = new Set();
+const guardianSets: Map<number, Set<number>> = new Map();
 const talliersSet: Set<number> = new Set();
+const fdkgSet: Set<number> = new Set(); // Add this line
+const decipherabilityStatus: Map<number, string> = new Map(); // Map to store Decipherability status
+
 
 // Color constants
 const COLOR_GREY = 'grey';
 const COLOR_YELLOW = 'yellow';
 const COLOR_GREEN = '#4D7A3A';
 const COLOR_BLUE = '#0000EC';
+const COLOR_HIGHLIGHT = '#00FF00'; // Bright green for decipherable nodes
+
 
 function generateDirectedGraph(N: number, k: number, t: number) {
     // Generate nodes with trustworthiness values from normal distribution
@@ -35,6 +40,7 @@ function generateDirectedGraph(N: number, k: number, t: number) {
     for (let i = 0; i < N; i++) {
         const potentialGuardians = nodes.filter(node => node.id !== i);
         const guardians = selectGuardians(potentialGuardians, k);
+        guardianSets.set(i, new Set(guardians.map(guardian => guardian.id)));
         guardians.forEach(guardian => {
             edges.push({ from: i, to: guardian.id });
         });
@@ -176,14 +182,72 @@ function selectTalliers(numVolunteers: number) {
     nodesDataset.update(updatedNodes);
 }
 
+function checkDecipherability(threshold: number) {
+    let decipherable = true;
+
+    fdkgSet.forEach(nodeId => {
+        const guardians = guardianSets.get(nodeId);
+        if (!guardians) return;
+
+        // Check if the node is in the talliers set or if at least 'threshold' guardians are in the talliers set
+        const participatingGuardians = Array.from(guardians).filter(guardianId => talliersSet.has(guardianId)).length;
+        if (!talliersSet.has(nodeId) && participatingGuardians < threshold) {
+            decipherable = false;
+        }
+    });
+
+    // Display result
+    const decipherabilityResult = document.getElementById('decipherabilityResult');
+    if (decipherabilityResult) {
+        decipherabilityResult.innerText = `Decipherability: ${decipherable ? 'Achieved' : 'Not Achieved'}`;
+    }
+}
+
 function updateLabels() {
     const fdkgLabel = document.getElementById('fdkgLabel');
     const talliersLabel = document.getElementById('talliersLabel');
+
     if (fdkgLabel) {
-        fdkgLabel.innerText = `FDKG set size: ${fdkgSet.size}`;
+        const fdkgIds = Array.from(fdkgSet).join(', ');
+        fdkgLabel.innerText = `FDKG set size: ${fdkgSet.size} | IDs: ${fdkgIds}`;
     }
+
     if (talliersLabel) {
-        talliersLabel.innerText = `Talliers set size: ${talliersSet.size}`;
+        const talliersIds = Array.from(talliersSet).join(', ');
+        talliersLabel.innerText = `Talliers set size: ${talliersSet.size} | IDs: ${talliersIds}`;
+    }
+}
+
+function highlightDecipherableNodes(threshold: number) {
+    decipherabilityStatus.clear(); // Clear the map before each check
+
+    fdkgSet.forEach(nodeId => {
+        const guardians = guardianSets.get(nodeId);
+        if (!guardians) return;
+
+        const participatingGuardians = Array.from(guardians).filter(guardianId => talliersSet.has(guardianId)).length;
+
+        if (talliersSet.has(nodeId)) {
+            // Node itself is present in talliersSet
+            decipherabilityStatus.set(nodeId, '1/1');
+        } else {
+            // Calculate x/t for guardians
+            const status = `${participatingGuardians}/${threshold}`;
+            decipherabilityStatus.set(nodeId, status);
+        }
+    });
+
+    updateDecipherabilityLabel(); // Update UI display of the Decipherability map
+}
+
+function updateDecipherabilityLabel() {
+    const decipherabilityLabel = document.getElementById('decipherabilityLabel');
+    if (decipherabilityLabel) {
+        let content = 'Decipherability Status:\n';
+        decipherabilityStatus.forEach((status, nodeId) => {
+            content += `Node ${nodeId}: ${status}\n`;
+        });
+        decipherabilityLabel.innerText = content.trim();
     }
 }
 
@@ -207,6 +271,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const guardianSlider = document.getElementById('guardianSlider') as HTMLInputElement;
     const trustSlider = document.getElementById('trustSlider') as HTMLInputElement;
     const physicsSwitch = document.getElementById('physicsSwitch') as HTMLInputElement;
+    const thresholdSlider = document.getElementById('thresholdSlider') as HTMLInputElement;
+    
+    // Add event listener for decipherability check
+    const decipherabilityButton = document.getElementById('decipherabilityButton');
+    decipherabilityButton?.addEventListener('click', () => {
+        const threshold = parseInt(thresholdSlider.value, 10);
+        checkDecipherability(threshold);
+        highlightDecipherableNodes(threshold); // Highlight nodes that achieve Decipherability
+    });
 
     generateButton?.addEventListener('click', () => {
         const N = parseInt(nodeSlider.value, 10);
@@ -214,18 +287,30 @@ document.addEventListener('DOMContentLoaded', () => {
         const t = parseInt(trustSlider.value, 10);
         generateDirectedGraph(N, k, t);
         updateLabels();
+
+        const threshold = parseInt(thresholdSlider.value, 10);
+        checkDecipherability(threshold);
+        highlightDecipherableNodes(threshold); // Highlight nodes that achieve Decipherability
     });
 
     volunteerButton?.addEventListener('click', () => {
         const k = parseInt(trustSlider.value, 10);
         selectFDKGSet(k);
         updateLabels();
+
+        const threshold = parseInt(thresholdSlider.value, 10);
+        checkDecipherability(threshold);
+        highlightDecipherableNodes(threshold); // Highlight nodes that achieve Decipherability
     });
 
     secondSubsetButton?.addEventListener('click', () => {
         const k = parseInt(trustSlider.value, 10);
         selectTalliers(k);
         updateLabels();
+
+        const threshold = parseInt(thresholdSlider.value, 10);
+        checkDecipherability(threshold);
+        highlightDecipherableNodes(threshold); // Highlight nodes that achieve Decipherability
     });
 
     physicsSwitch?.addEventListener('change', () => {
