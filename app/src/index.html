@@ -18,13 +18,13 @@
   <body>
     <div>
         <label for="nodeSlider">Number of Nodes (N):</label>
-        <input type="range" id="nodeSlider" min="5" max="1000" value="500">
-        <span id="nodeValue">500</span>
+        <input type="range" id="nodeSlider" min="5" max="1000" value="100">
+        <span id="nodeValue">100</span>
     </div>
     <div>
         <label for="guardianSlider">Number of Guardians (k):</label>
-        <input type="range" id="guardianSlider" min="1" max="10" value="3">
-        <span id="guardianValue">3</span>
+        <input type="range" id="guardianSlider" min="1" max="10" value="5">
+        <span id="guardianValue">5</span>
     </div>
     <div>
       <label for="thresholdSlider">Threshold (t):</label>
@@ -41,8 +41,8 @@
         <input type="checkbox" id="physicsSwitch" checked>
     </div>
     <button id="generateButton">Generate Graph</button>
-    <button id="volunteerButton">Select FDKG Set</button>
-    <button id="secondSubsetButton">Select Talliers Set</button>
+    <button id="selectFdkgButton">Select FDKG Set</button>
+    <button id="secondTalliersButton">Select Talliers Set</button>
     <button id="decipherabilityButton">Check Decipherability</button>
     <div id="decipherabilityResult" style="margin: 10px;">Decipherability: Pending</div>
 

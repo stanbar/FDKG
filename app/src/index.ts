@@ -4,11 +4,14 @@ import * as d3 from 'd3';
 
 let network: Network;
 let nodesDataset: DataSet<Node>;
-const guardianSets: Map<number, Set<number>> = new Map();
-const talliersSet: Set<number> = new Set();
-const fdkgSet: Set<number> = new Set(); // Add this line
-const decipherabilityStatus: Map<number, string> = new Map(); // Map to store Decipherability status
 
+type NodeID = number;
+type Trustworthiness = number
+const nodesTrustworthiness: Map<NodeID, Trustworthiness> = new Map();
+const fdkgSet: Set<NodeID> = new Set(); // Add this line
+const guardianSets: Map<NodeID, Set<NodeID>> = new Map();
+const talliersSet: Set<NodeID> = new Set();
+const decipherabilityStatus: Map<NodeID, string> = new Map(); // Map to store Decipherability status
 
 // Color constants
 const COLOR_GREY = 'grey';
@@ -24,9 +27,14 @@ function generateDirectedGraph(N: number, k: number, t: number) {
     const mean = t;
     const stdDev = t * 1.5;
     const normalDist = d3.randomNormal(mean, stdDev);
-    
+    fdkgSet.clear(); // Clear the FDKG set before generating new nodes
+    talliersSet.clear(); // Clear the Talliers set before generating new nodes
+    decipherabilityStatus.clear(); // Clear the Decipherability map before generating
+    nodesTrustworthiness.clear();
+
     for (let i = 0; i < N; i++) {
         const trustworthiness = Math.max(0, normalDist()); // Ensure non-negative trustworthiness
+        nodesTrustworthiness.set(i, trustworthiness);
         nodes.push({
             id: i,
             label: `Node ${i}`,
@@ -38,11 +46,13 @@ function generateDirectedGraph(N: number, k: number, t: number) {
     // Assign guardians to each node based on trustworthiness
     const edges: Edge[] = [];
     for (let i = 0; i < N; i++) {
-        const potentialGuardians = nodes.filter(node => node.id !== i);
+        const potentialGuardians = new Map<number, number>(
+            Array.from(nodesTrustworthiness.entries()).filter(([id, _]) => id !== i)
+        );
         const guardians = selectGuardians(potentialGuardians, k);
-        guardianSets.set(i, new Set(guardians.map(guardian => guardian.id)));
+        guardianSets.set(i, new Set(guardians));
         guardians.forEach(guardian => {
-            edges.push({ from: i, to: guardian.id });
+            edges.push({ from: i, to: guardian });
         });
     }
 
@@ -94,10 +104,10 @@ function generateDirectedGraph(N: number, k: number, t: number) {
 }
 
 // Helper function to select guardians based on trustworthiness
-function selectGuardians(potentialGuardians: Node[], k: number): Node[] {
-    const selectedGuardians: Node[] = [];
+function selectGuardians(potentialGuardiansIds: Map<NodeID, Trustworthiness>, k: number): NodeID[] {
+    const selectedGuardians: NodeID[] = [];
     while (selectedGuardians.length < k) {
-        const guardian = weightedRandomSelect(potentialGuardians);
+        const guardian = weightedRandomSelect(potentialGuardiansIds);
         if (!selectedGuardians.includes(guardian)) {
             selectedGuardians.push(guardian);
         }
@@ -106,65 +116,47 @@ function selectGuardians(potentialGuardians: Node[], k: number): Node[] {
 }
 
 // Helper function to perform weighted random selection based on trustworthiness
-function weightedRandomSelect(nodes: Node[]): Node {
-    const totalWeight = nodes.reduce((sum, node) => sum + node.value!, 0);
+function weightedRandomSelect(nodes : Map<NodeID, Trustworthiness> | undefined): NodeID {
+    if (!nodes) {
+        nodes = nodesTrustworthiness;
+    }
+    const totalWeight = nodes.values().reduce((sum, value) => sum + value, 0);
     const threshold = Math.random() * totalWeight;
     let cumulativeWeight = 0;
-    for (const node of nodes) {
-        cumulativeWeight += node.value!;
+    for (const [id, value] of nodes.entries()) {
+        cumulativeWeight += value!;
         if (cumulativeWeight >= threshold) {
-            return node;
+            return id;
         }
     }
-    return nodes[nodes.length - 1]; // Fallback to the last node
-}
-
-// Helper function to select volunteers based on trustworthiness
-function selectFDKGSet(numVolunteers: number) {
-    // Clear the existing FDKG set
-    fdkgSet.clear();
-
-    // Get all nodes and determine new volunteer selection
-    const nodes = nodesDataset.get();
-    const updatedNodes: Node[] = [];
-    const volunteerDist = d3.randomNormal(numVolunteers, numVolunteers * 0.5);
-    numVolunteers = Math.max(1, Math.min(nodes.length, Math.round(volunteerDist()))); // Ensure valid number of volunteers
-
-    while (fdkgSet.size < numVolunteers) {
-        const volunteer = weightedRandomSelect(nodes);
-        fdkgSet.add(volunteer.id);
-    }
-
-    // Update all nodes in a single update call, ensuring previous volunteers are deselected
-    nodes.forEach(node => {
-        updatedNodes.push({
-            ...node,
-            color: { background: fdkgSet.has(node.id) ? COLOR_YELLOW : COLOR_GREY },
-        });
-    });
-
-    nodesDataset.update(updatedNodes);
+    return nodesTrustworthiness.keys.length-1; // Fallback to the last node
 }
 
 // Helper function to select another subset based on trustworthiness
-function selectTalliers(numVolunteers: number) {
-    // Clear the existing Talliers set
-    talliersSet.clear();
-
+function selectVolunteers(numVolunteers: number): Set<NodeID> {
+    const volunteers = new Set<number>();
     // Get all nodes and determine new volunteer selection
-    const nodes = nodesDataset.get();
-    const updatedNodes: Node[] = [];
     const volunteerDist = d3.randomNormal(numVolunteers, numVolunteers * 0.5);
-    numVolunteers = Math.max(1, Math.min(nodes.length, Math.round(volunteerDist()))); // Ensure valid number of volunteers
+    numVolunteers = Math.max(1, Math.min(nodesTrustworthiness.keys.length, Math.round(volunteerDist()))); // Ensure valid number of volunteers
 
     while (talliersSet.size < numVolunteers) {
-        const volunteer = weightedRandomSelect(nodes);
-        talliersSet.add(volunteer.id);
+        const remainingNodesTrustworthiness = new Map(
+            Array.from(nodesTrustworthiness).filter(([id]) => !fdkgSet.has(id))
+        );
+        const volunteer = weightedRandomSelect(remainingNodesTrustworthiness);
+        talliersSet.add(volunteer);
     }
+    return volunteers
+}
 
+function rerenderNodes() {
     // Update all nodes in a single update call, ensuring correct color updates
-    nodes.forEach(node => {
+    const updatedNodes: Node[] = [];
+    nodesDataset.get().forEach(node => {
         let newColor = COLOR_GREY;
+        if (typeof node.id === "string") {
+            throw new Error("Node ID is not a number");
+        }
         if (fdkgSet.has(node.id) && talliersSet.has(node.id)) {
             newColor = COLOR_GREEN; // Node is in both FDKG and Talliers
         } else if (fdkgSet.has(node.id)) {
@@ -180,6 +172,7 @@ function selectTalliers(numVolunteers: number) {
     });
 
     nodesDataset.update(updatedNodes);
+
 }
 
 function checkDecipherability(threshold: number) {
@@ -265,14 +258,14 @@ document.addEventListener('DOMContentLoaded', () => {
     document.body.appendChild(talliersLabel);
 
     const generateButton = document.getElementById('generateButton');
-    const volunteerButton = document.getElementById('volunteerButton');
-    const secondSubsetButton = document.getElementById('secondSubsetButton');
+    const selectFdkgSubset = document.getElementById('selectFdkgButton');
+    const selectTalliersSubset = document.getElementById('secondTalliersButton');
     const nodeSlider = document.getElementById('nodeSlider') as HTMLInputElement;
     const guardianSlider = document.getElementById('guardianSlider') as HTMLInputElement;
     const trustSlider = document.getElementById('trustSlider') as HTMLInputElement;
     const physicsSwitch = document.getElementById('physicsSwitch') as HTMLInputElement;
     const thresholdSlider = document.getElementById('thresholdSlider') as HTMLInputElement;
-    
+
     // Add event listener for decipherability check
     const decipherabilityButton = document.getElementById('decipherabilityButton');
     decipherabilityButton?.addEventListener('click', () => {
@@ -293,9 +286,15 @@ document.addEventListener('DOMContentLoaded', () => {
         highlightDecipherableNodes(threshold); // Highlight nodes that achieve Decipherability
     });
 
-    volunteerButton?.addEventListener('click', () => {
+    selectFdkgSubset?.addEventListener('click', () => {
         const k = parseInt(trustSlider.value, 10);
-        selectFDKGSet(k);
+        const newFdkgSet = selectVolunteers(k);
+        fdkgSet.clear();
+        talliersSet.clear(); // Clear the Talliers set when selecting new FDKG set
+        newFdkgSet.forEach(volunteer => talliersSet.add(volunteer));
+        decipherabilityStatus.clear(); // Clear the Decipherability map when selecting new FDKG set
+
+        rerenderNodes();
         updateLabels();
 
         const threshold = parseInt(thresholdSlider.value, 10);
@@ -303,9 +302,14 @@ document.addEventListener('DOMContentLoaded', () => {
         highlightDecipherableNodes(threshold); // Highlight nodes that achieve Decipherability
     });
 
-    secondSubsetButton?.addEventListener('click', () => {
+    selectTalliersSubset?.addEventListener('click', () => {
         const k = parseInt(trustSlider.value, 10);
-        selectTalliers(k);
+        const newTalliers = selectVolunteers(k);
+        talliersSet.clear();
+        newTalliers.forEach(volunteer => talliersSet.add(volunteer));
+        decipherabilityStatus.clear(); // Clear the Decipherability map when selecting new FDKG set
+
+        rerenderNodes();
         updateLabels();
 
         const threshold = parseInt(thresholdSlider.value, 10);

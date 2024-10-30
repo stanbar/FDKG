@@ -4,7 +4,10 @@
         "lib": [
             "es6",
             "esnext",
-            "esnext.bigint"
+            "esnext.bigint", 
+            "dom",
+            "es2015",
+
         ],
         "moduleResolution": "node",
         "module": "esnext",
