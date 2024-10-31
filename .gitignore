@@ -2,6 +2,7 @@ pulldocs.sh
 Notes from meetings.md
 ieee-with-url.csl
 node_modules
+.parcel-cache
 
 # Go lang stuff
 go.mod
