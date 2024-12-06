@@ -99,6 +99,43 @@ def generate_heatmap(filtered_data):
     
     plt.show()
 
+
+def generate_heatmap(filtered_data, N, fdkgPct, retPct):
+    """
+    Generates and saves a heatmap showing success rates for different (t, k) combinations.
+
+    Parameters:
+        filtered_data (pd.DataFrame): The subset of simulation data.
+        save_path (str): Path to save the heatmap image.
+
+    Returns:
+        None
+    """
+    filtered_data['successRate'] = filtered_data['successRate'] * 100
+    pivot_table = filtered_data.pivot_table(
+        index='threshold',
+        columns='guardians',
+        values='successRate',
+        aggfunc='mean'
+    )
+    
+    plt.figure(figsize=(10, 8))
+    sns.heatmap(pivot_table, annot=True, fmt=".1f", cmap='YlGnBu', vmin=0, vmax=100, cbar_kws={'label': 'Success Rate (%)'})
+    plt.title(f'Success Rate Heatmap for (Threshold, Guardians)\nN={N}, FDKG Participation={fdkgPct*100}%, Retention={retPct*100}%')
+    plt.xlabel('Number of Guardians (k)')
+    plt.ylabel('Threshold (t)')
+    
+    # # Highlight cells that meet the success threshold
+    # for i in range(pivot_table.shape[0]):
+    #     for j in range(pivot_table.shape[1]):
+    #         if pivot_table.iloc[i, j] >= success_threshold:
+    #             plt.gca().add_patch(plt.Rectangle((j, i), 1, 1, fill=False, edgecolor='red', lw=3))
+    
+    save_path = f'parameter_heatmap_N{N}_fdkgPct{fdkgPct}_retPct{retPct}.png'
+    plt.savefig(save_path)
+    print(f"Heatmap saved as {save_path}.")
+    plt.show()
+
 def batch_recommendations(data, N_values, fdkgPct_values, retPct_values, success_threshold=90):
     """
     Generates a recommendation table for multiple input scenarios.
@@ -134,6 +171,7 @@ def batch_recommendations(data, N_values, fdkgPct_values, retPct_values, success
                         'Number of Guardians (k)': k_opt,
                         'Success Rate (%)': success
                     })
+                    generate_heatmap(filtered, N=N, fdkgPct=fdkgPct, retPct=retPct)
     
     recommendation_df = pd.DataFrame(recommendations)
     return recommendation_df
@@ -141,7 +179,7 @@ def batch_recommendations(data, N_values, fdkgPct_values, retPct_values, success
 
 def main():
     # Path to the simulation data CSV (update this path as necessary)
-    filepath = '../simulation_results_nodes_BarabasiAlbert_10000.csv'
+    filepath = '../new_simulation_results_nodes_BarabasiAlbert_10000.csv'
     
     # Load the simulation data
     data = load_simulation_data(filepath)
@@ -177,7 +215,6 @@ def main():
     
     # # Generate a heatmap (optional)
     # generate_heatmap(filtered)
-
 
     # Define parameter ranges for batch recommendations
     N_values = [10, 100, 500, 1000, 10000]  # Extend as needed
