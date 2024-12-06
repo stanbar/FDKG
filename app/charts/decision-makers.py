@@ -179,7 +179,7 @@ def batch_recommendations(data, N_values, fdkgPct_values, retPct_values, success
 
 def main():
     # Path to the simulation data CSV (update this path as necessary)
-    filepath = '../new_simulation_results_nodes_BarabasiAlbert_10000.csv'
+    filepath = '../simulation_results_nodes_BarabasiAlbert_10000.csv'
     
     # Load the simulation data
     data = load_simulation_data(filepath)

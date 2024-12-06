@@ -134,7 +134,7 @@ def train_and_evaluate_models(data):
 # 4. Main Function to Execute All Steps
 def main():
     # Filepath to the CSV data
-    filepath_barabasi = '../new_simulation_results_nodes_BarabasiAlbert_10000.csv'
+    filepath_barabasi = '../simulation_results_nodes_BarabasiAlbert_10000.csv'
     filepath_random = '../simulation_results_nodes_RandomGraph_10000.csv'
     
     # Load and preprocess data
