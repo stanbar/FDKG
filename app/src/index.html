@@ -32,9 +32,14 @@
       <span id="thresholdValue">3</span>
     </div>
     <div>
-        <label for="trustSlider">Trustworthiness Mean (t):</label>
-        <input type="range" id="trustSlider" min="10" max="100" value="50">
-        <span id="trustValue">50</span>
+      <label for="fdkgPctSlider">FDKG Percentage (fdkgPct):</label>
+      <input type="range" id="fdkgPctSlider" min="0" max="100" value="30">
+      <span id="fdkgPctValue">30</span>
+    </div>
+    <div>
+      <label for="retPctSlider">Ret Percentage (retPct):</label>
+      <input type="range" id="retPctSlider" min="10" max="100" value="90">
+      <span id="retPctValue">90</span>
     </div>
     <div>
         <label for="physicsSwitch">Enable Physics:</label>
@@ -63,8 +68,11 @@
         document.getElementById('guardianSlider').addEventListener('input', function() {
             document.getElementById('guardianValue').innerText = this.value;
         });
-        document.getElementById('trustSlider').addEventListener('input', function() {
-            document.getElementById('trustValue').innerText = this.value;
+        document.getElementById('fdkgPctSlider').addEventListener('input', function() {
+            document.getElementById('fdkgPctValue').innerText = this.value;
+        });
+        document.getElementById('retPctSlider').addEventListener('input', function() {
+            document.getElementById('retPctValue').innerText = this.value;
         });
         document.getElementById('thresholdSlider').addEventListener('input', function() {
             document.getElementById('thresholdValue').innerText = this.value;
