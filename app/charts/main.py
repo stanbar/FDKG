@@ -20,7 +20,7 @@ def load_and_preprocess(filepath, label):
 
     Parameters:
         filepath (str): Path to the CSV file.
-        label (str): Label to identify the dataset (e.g., 'Barabasi', 'Random').
+        label (str): Label to identify the dataset.
 
     Returns:
         pd.DataFrame: Preprocessed DataFrame with an added 'NetworkType' column.
@@ -56,19 +56,27 @@ def perform_eda(data):
     data_barabasi = data[data['NetworkType'] == 'Barabasi']
     data_random = data[data['NetworkType'] == 'Random']
 
-    # Correlation Analysis for each network type
     for network_type, df in [('Barabasi', data_barabasi), ('Random', data_random)]:
         print(f"Correlation Analysis for {network_type} Network:")
-        corr_matrix = df.corr()
+        corr_matrix = df.drop(columns=['NetworkType']).corr()
         print(corr_matrix['successRate'].sort_values(ascending=False), "\n")
 
-        # Optionally, plot the correlation matrix
+        # Plot the correlation matrix
         plt.figure(figsize=(10,8))
         sns.heatmap(corr_matrix, annot=True, cmap='coolwarm', fmt=".2f")
         plt.title(f'Correlation Matrix - {network_type} Network')
         plt.show()
 
+        # Distribution of Success Rate
+        plt.figure(figsize=(10,6))
+        sns.histplot(df['successRate'], bins=30, kde=True, color='skyblue')
+        plt.title(f'Distribution of Success Rate - {network_type} Network')
+        plt.xlabel('Success Rate (%)')
+        plt.ylabel('Frequency')
+        plt.show()
 
+
+# 3. Model Training and Evaluation
 def train_and_evaluate_models(data):
     """
     Trains and evaluates models for each network type.
