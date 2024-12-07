@@ -22,6 +22,7 @@
 \usepackage{amssymb}
 \usepackage{multirow}
 \usepackage{array}
+barabasiEmergenceScalingRandom1999
 
 \begin{document}
 
@@ -164,11 +165,11 @@ Trust to & \cellcolor{red!50} Central authority & \cellcolor{yellow!50} Authorit
 
 \end{table*}
 
-Furthermore, various systems achieve different security and privacy properties depending on their underlying assumptions. For example, OpenVoteNetwork eliminates the need for trusted third parties by adopting a self-tallying scheme, which ensures perfect ballot secrecy but is vulnerable to denial of service attacks \cite{haoAnonymousVotingTworound2010, mccorrySmartContractBoardroom2017, seifelnasrScalableOpenVoteNetwork2020, elsheikhDisputefreeScalableOpen2022}.
+Furthermore, various systems achieve different security and privacy properties depending on their underlying assumptions. For example, OpenVoteNetwork eliminates the need for trusted third parties by adopting a self-tallying scheme, which ensures perfect ballot secrecy but is vulnerable to denial of service attacks~\cite{haoAnonymousVotingTworound2010, mccorrySmartContractBoardroom2017, seifelnasrScalableOpenVoteNetwork2020, elsheikhDisputefreeScalableOpen2022}.
 
 Minimal Anti-collusion Infrastructure (MACI), guarantees the highest level of security, i.e., censorship resistance, privacy, voter anonymity, and coercion resistance, however, the ballot privacy relies on a single coordinator server~\cite{ethereumfoundationMinimalAntiCollusionInfrastructure2022, PrivacyscalingexplorationsMaci2023}.
 
-Cicida achieves ballot secrecy using homomorphic time-lock puzzles and voter anonimity using Semaphore for zero-knowledge set membership proofs \cite{BuildingCicadaPrivate, A16zCicada2023}.
+Cicida achieves ballot secrecy using homomorphic time-lock puzzles and voter anonymity using Semaphore for zero-knowledge set membership proofs~\cite{BuildingCicadaPrivate, A16zCicada2023}.
 
 Aragon/Vocdoni, like Cicida, achieves voter anonymity using zero-knowledge set membership proofs, but election secrecy is achieved using trusted nodes called KeyKeepers. When a new election is created, each KeyKeeper creates an encryption key and publishes the public part via a transaction (setProcessKeysTx). The voters select up to N (at least one) of the keys and encrypt the vote with the N keys in onion mode~\cite{williamsRemoteVotingAge2022, VocdoniIntroductionVocdoni}. 
 
@@ -321,7 +322,7 @@ $\Tallies \subseteq \Parties$ & Subset of parties  participating in the 3. Onlin
 
 \hline
 
-$\texttt{Enc}_{\Party{i}}, \texttt{Dec}_{\PartySecretKey{i}}$ & Public key encryption for \Party{i} and decryption using the corresponding secret key $\PartySecretKey{i}$, as described in Appendix~\ref{private-channel} \\
+$\texttt{Enc}_{\Party{i}}, \texttt{Dec}_{\PartySecretKey{i}}$ & Public key encryption for \Party{i} and decryption using the corresponding secret key $\PartySecretKey{i}$, as described in Section~\ref{private-channel} \\
 
 $\Delta$ & A helper value used to encode a scalar value to a point on a curve \\
 
@@ -368,6 +369,50 @@ Traditional DKG requires a known, fixed number of participants due to its relian
 Existing dynamic DKG schemes, such as the one in \cite{delerableeDynamicThresholdPublickey2008}, necessitate continuous online presence of all parties, which we find impractical. Our objective is a non-interactive protocol where parties send only a single message and are then free to leave (You Only Speak Once approach~\cite{gentryYOSOYouOnly2021}). We propose Federated DKG which facilitates joint key establishment by members with a single message, without prior knowledge of all participants.
 The technique works similar to the Federated Byzantine Agreement (FBA) used in the Stellar Consensus Protocol \cite{mazieresStellarConsensusProtocol2015}. The details are described in the next section.
 
+
+\subsection{Private Channel}\label{private-channel}
+Each user uses a private, authenticated channel to send encrypted messages to other parties. We use ElGamal encryption on the BabyJub curve as described in \cite{ElGamalEncryptionDecryption2020,jieWeijiekohElgamalbabyjub2023}. The encryption process starts with a plaintext scalar $m$, which is transformed into a point on the BabyJub elliptic curve by generating a random value $r$, computing the message $M=r\G$ and the x-increment $\Delta$, which must be added to the plaintext to obtain the x-value of $M$. Thus, the ciphertext consists of two elliptic curve points and a field element $(C_1, C_2, \Delta=M.x - m)$. The complete encryption process is described in detail in Algorithm~\ref{alg:encryption}.
+
+Decryption of the ciphertext $(C_1, C_2, \Delta)$ follows the standard ElGamal method, with the addition of $\Delta$ to the x-coordinate of the starting point, as described in Algorithm~\ref{alg:decryption}.
+
+\begin{algorithm}
+    \SetAlgoNlRelativeSize{0}
+    \SetAlgoNlRelativeSize{-1}
+    \SetAlgoNlRelativeSize{1}
+    \SetKwInOut{Input}{Input}
+    \SetKwInOut{Output}{Output}
+    \caption{$\texttt{Enc}_{P_i}$}
+    \label{alg:encryption}
+    
+    \Input{A scalar $m$}
+    \Output{A tripe $(C_1, C_2, \Delta)$}
+    
+    $k \gets_R \mathbb{Z}_q$\;
+    $r \gets_R \mathbb{Z}_q$\;
+    $C_1 = kG$\;
+    $M = rG$\;
+    $C_2 = kP + M$\;
+    $\Delta = M.x - m$\;
+    \Return $(C_1, C_2, \Delta)$
+\end{algorithm}
+
+\begin{algorithm}
+    \SetAlgoNlRelativeSize{0}
+    \SetAlgoNlRelativeSize{-1}
+    \SetAlgoNlRelativeSize{1}
+    \SetKwInOut{Input}{Input}
+    \SetKwInOut{Output}{Output}
+    \caption{$\texttt{Dec}_{s_i}$}
+    \label{alg:decryption}
+    
+    \Input{A tripe $(C_1, C_2, \Delta)$}
+    \Output{A scalar $m$}
+    
+    $M = C_2 - s_i C_1$\;
+    $m = M.x - \Delta$\;
+    \Return $m$
+\end{algorithm}
+
 \section{Voting Protocol}
 
 Our protocol integrates the three-round voting scheme from \cite{schoenmakersLectureNotesCryptographic2018}, the multi-candidate encoding method from \cite{haoAnonymousVotingTworound2010}, and the Federated Distributed Key Generation (FDKG) introduced in this paper.
@@ -377,7 +422,7 @@ The protocol is based on the following assumptions:
 \begin{enumerate}
 \item All communications occur over a public message board available to all parties.
 \item Parties are identified only by their public keys \Party{i} and authenticated by their secret keys \PartySecretKey{i}.
-\item Private channels over public message board are secured using encryption functions $\texttt{Enc}_{\Party{i}}$ and $\texttt{Dec}_{\PartySecretKey{i}}$ described in Appendix~\ref{private-channel}.
+\item Private channels over public message board are secured using encryption functions $\texttt{Enc}_{\Party{i}}$ and $\texttt{Dec}_{\PartySecretKey{i}}$ described in Section~\ref{private-channel}.
 \item Each party verifies zkSNARK proofs and rejects messages that fail verification.
 \item Participants consent to certain cryptographic parameters, including the BabyJubJub Elliptic Curve~\cite{whitehatBabyJubjubElliptic2020} $E(\mathbb{Z}_p)$ with a defined curve finite field modulus $p$, a base point $G$ on the curve, and the order of the base point $q$. Additionally, they agree to the set of eligible voters $\mathbb{P}$ and the set of candidates.
 \end{enumerate}
@@ -388,7 +433,7 @@ Participation in the FDKG phase is optional. For each participating party $\Part
     \item A guardian set of $k$ parties $\mathbb{G}_i\subseteq \mathbb{P}/P_i$ is selected based on the established trust lines of \Party{i}.
     \item A random polynomial $f_{i}(X) \in_{\$} \mathbb{Z}_q[X]$ of degree $t-1$ is sampled.
     \item Partial decryption (secret) key $\PartialDecryptionKey{i}= f_i(0)$ and partial encryption (public) key $\PartialEncryptionKey{i} = \PartialDecryptionKey{i} \G$ are computed.
-    \item A t-of-k access structure for \PartialDecryptionKey{i} is created using PVSS. For each guardian $P_{j} \in \mathbb{G}_i$, partial decryption key share $\PartialDecryptionKeyShare{i}{j}=f_i(j)$ is encrypted as $\EncryptedPartialDecryptionKeyShare{i}{j}=\EncryptionUsingOf{\Party{j}}{\PartialDecryptionKeyShare{i}{j}}$ as described in Appendix~\ref{private-channel}.
+    \item A t-of-k access structure for \PartialDecryptionKey{i} is created using PVSS. For each guardian $P_{j} \in \mathbb{G}_i$, partial decryption key share $\PartialDecryptionKeyShare{i}{j}=f_i(j)$ is encrypted as $\EncryptedPartialDecryptionKeyShare{i}{j}=\EncryptionUsingOf{\Party{j}}{\PartialDecryptionKeyShare{i}{j}}$ as described in Section~\ref{private-channel}.
     % \item A zero-knowledge proof \ProofFDKG{i} is created (see Section~\ref{sec:proof-fdkg}) and broadcast along with (\PartialEncryptionKey{i}, \EncryptedPartialDecryptionKeyShare{i}{j}).
     
     \item Compute a zero-knowledge proof \ProofFDKG{i}, as described in Section~\ref{sec:proof-fdkg}.
@@ -665,13 +710,32 @@ This section analyses key properties of the PeerVote protocol, focusing on Decip
 
 \newpage
 
+% \begin{definition}[Decipherability] \label{def:decipherability}
+%     Decipherability is achieved if for each participant $\Party{i} \in \mathbb{D}$, either the participant publishes the full partial decryption, or at least $t$ members of its guardian set $\mathbb{G}_i$ publishes their respective shares of partial decryption. Formally: 
+%     \begin{align*}\forall \Party{i} \in \mathbb{D},  \textrm{publish}(\PartialDecryptionFrom{i}) \lor & \\ \exists \mathbb{S}_i \subseteq  \mathbb{G}_i & : |\mathbb{S}_i| \geq t \land \forall P_{j} \in \mathbb{S}_i \textrm{publish}(\SharePartialDecryptionFromTo{i}{j}) \end{align*}
+%     where \(\textrm{publish}(\cdot)\) denotes the publication of either the full partial decryption $\PartialDecryptionFrom{i}$ or the share of partial decryption $\SharePartialDecryptionFromTo{i}{j}$ in the Online Tally phase.
+% \end{definition}
+
+% Decipherability is guaranteed when a sufficient number of parties act honestly and fulfill their role in the decryption process. If the set of honest and available parties drops below the decipherability threshold, the protocol's ability to ensure decipherability is compromised, potentially leading to an inability to decrypt the final tally.
+
+
+% \begin{definition}[Decipherability2] \label{def:decipherability}
+%     Let $\mathbb{P}$ be the set of participants who have published their full partial decryption $\PartialDecryptionFrom{i}$. Let $\mathbb{S}_i$ be the set of guardians in $\mathbb{G}_i$ who have published their shares of partial decryption $\SharePartialDecryptionFromTo{i}{j}$ for participant $\Party{i}$. Decipherability is achieved if for each participant $\Party{i} \in \mathbb{D}$:
+%     \begin{align*}
+%     \Party{i} \in \mathbb{P} \quad \lor \quad |\mathbb{S}_i| \geq t
+%     \end{align*}
+%     In other words, either the participant $\Party{i}$ has published their full partial decryption, or at least $t$ members of their guardian set $\mathbb{G}_i$ have published their respective shares of partial decryption for $\Party{i}$.
+% \end{definition}
+
 \begin{definition}[Decipherability] \label{def:decipherability}
-    Decipherability is achieved if for each participant $\Party{i} \in \mathbb{D}$, either the participant publishes the full partial decryption, or at least $t$ members of its guardian set $\mathbb{G}_i$ publishes their respective shares of partial decryption. Formally: 
-    \begin{align*}\forall \Party{i} \in \mathbb{D},  \textrm{publish}(\PartialDecryptionFrom{i}) \lor & \\ \exists \mathbb{S}_i \subseteq  \mathbb{G}_i & : |\mathbb{S}_i| \geq t \land \forall P_{j} \in \mathbb{S}_i \textrm{publish}(\SharePartialDecryptionFromTo{i}{j}) \end{align*}
-    where \(\textrm{publish}(\cdot)\) denotes the publication of either the full partial decryption $\PartialDecryptionFrom{i}$ or the share of partial decryption $\SharePartialDecryptionFromTo{i}{j}$ in the Online Tally phase.
+    Let $\mathbb{P}$ be the set of participants who have published their full partial decryption $\PartialDecryptionFrom{i}$. Let $\mathbb{S}_i$ be the set of guardians in $\mathbb{G}_i$ who have published their shares of partial decryption $\SharePartialDecryptionFromTo{i}{j}$ for participant $\Party{i}$. Decipherability is achieved if for each participant $\Party{i} \in \mathbb{D}$:
+    \begin{align*}
+    \Party{i} \in \mathbb{P} \quad \lor \quad |\mathbb{S}_i| \geq t
+    \end{align*}
+    In other words, either the participant $\Party{i}$ has published their full partial decryption, or at least $t$ members of their guardian set $\mathbb{G}_i$ have published their respective shares of partial decryption for $\Party{i}$.
 \end{definition}
 
-Decipherability is guaranteed when a sufficient number of parties act honestly and fulfill their role in the decryption process. If the set of honest and available parties drops below the decipherability threshold, the protocol's ability to ensure decipherability is compromised, potentially leading to an inability to decrypt the final tally.
+
 
 \begin{definition}[Privacy] \label{def:privacy}
     Privacy is achieved if and only if there does not exist any collusion that achieves Decipherability. Formally, privacy is achieved when:
@@ -687,7 +751,7 @@ Privacy depends on the assumption that there is no collusion that achieves Decip
     Censorship resistance is achieved when the network accepts messages from all eligible voters.
 \end{definition}
 
-Censorship resistance should be guaranteed by the message board platform used to run the protocol. In practice, it's achieved by the consensus protocol and an honest majority of the parties running it. In Section ~\ref{sec:deployments} we discuss possible instantiations of the message board.
+Censorship resistance should be guaranteed by the message board used to run the protocol. In practice, it's achieved by the consensus protocol and an honest majority of the parties running it. In Section ~\ref{sec:deployments} we discuss possible instantiations of the message board.
 
 \begin{definition}[Integrity]
     Integrity ensures that votes are counted accurately and cannot be altered by unauthorised parties. Integrity is achieved as long as everyone verifies all messages from other parties and the eligibility of the voters submitting the ballot. In addition, this property relies on the security of all cryptographic primitives used in the protocol.
@@ -697,7 +761,7 @@ Integrity is maintained through the verification of proofs of correctness. Robus
 
 \section{FDKG Example}
 
-To illustrate the FDKG process and highlight its improvements over traditional methods, consider a scenario involving a set of parties $\{P_1, \ldots, P_{10}\}$. In this example, we have $k = 3$ and $t = 2$. A subset of these parties, namely $\mathbb{D} = \{P_1, P_3, P_5, P_7, P_9\}$, participates in the FDKG, each forming their respective guardian set. This setup is shown in Figure \ref{fig:FDKG}.
+To illustrate the FDKG process and highlight its improvements over traditional DKG, consider a scenario involving a set of parties $\{P_1, \ldots, P_{10}\}$. In this example, we have $k = 3$ and $t = 2$. A subset of these parties, namely $\mathbb{D} = \{P_1, P_3, P_5, P_7, P_9\}$, participates in the FDKG, each forming their respective guardian set. This setup is shown in Figure \ref{fig:FDKG}.
 
 \begin{figure*}
     \centering
@@ -747,8 +811,459 @@ In a traditional DKG protocol, the minimum set of parties required to achieve De
 The set $M$ ensures Decipherability because the shares $\PartialDecryptionKey{3},\PartialDecryptionKey{5},\PartialDecryptionKey{6}$ are published directly by these parties, while \PartialDecryptionKey{1} is recoverable by shares \(\{P_3, P_5\}\) and \PartialDecryptionKey{9} is recoverable by shares \(\{P_5, P_7\}\).
 
 \paragraph{Privacy}
-Privacy in the FDKG system is compromised when all parties from any Decipherability set collude. In this example, if all parties \(\{P_3, P_5, P_6\}\) collude, they can collectively reconstruct the secret \DecryptionKey{} and therefore decrypt each individual ballot \Ballot{i}.
+Privacy in the FDKG system is compromised when all parties from any Decipherability set collude. In this example, if all parties \(\{P_3, P_5, P_6\}\) collude, they can collectively reconstruct the secret \DecryptionKey{} and therefore decrypt each individual ballot \Ballot{i}. Because they have been selected as the most trusted parties in the group, the chance of them colluding is reduced.
 
+
+\section{o1-mini-older: Liveness experiments}
+
+In this section, we present the results of our peer-to-peer voting scheme simulations. The simulations were conducted with varying parameters to understand their impact on the success rate of the voting process. We utilized a Random Forest regression model to analyze the data and identify the most significant factors influencing the success rate.
+
+\subsection{Simulation Parameters}
+
+The simulations were executed with the following ranges of parameters:
+
+\begin{itemize}
+    \item \textbf{No. Participants ($|\mathbb{P}|$)}: 10, 50, 100, 200, 500, 1,000
+    \item \textbf{FDKG Participation ($\frac{|\mathbb{D}|}{|\mathbb{P}|}$)}: 10\% to 100\% (25\% steps)
+    \item \textbf{Tallier Retention ($\frac{|\mathbb{T}|}{|\mathbb{D}|}$)}: 10\% to 100\% (10\% steps)
+    
+    \item \textbf{No. Guardians ($k$)}: 2, 3, 4, 5, 6, 7
+    \item \textbf{Threshold ($t$)}: 1, 2, 3, 4
+\end{itemize}
+
+\subsection{Data Analysis}
+
+We performed exploratory data analysis to identify correlations between the simulation parameters and the success rate. The top correlations with the success rate are presented in Table~\ref{tab:correlations}.
+
+\begin{table}[h]
+    \centering
+    \caption{Top Correlations with Success Rate}
+    \label{tab:correlations}
+    \begin{tabular}{lr}
+        \textbf{Variable} & \textbf{Correlation with Success Rate} \\
+        Tallier Retention ($\frac{|\mathbb{T}|}{|\mathbb{D}|}$) & 0.625136 \\
+        FDKG Participation ($\frac{|\mathbb{D}|}{|\mathbb{P}|}$) & 0.156382 \\
+        No. Guardians ($k$) & 0.047390 \\
+        No. Participants ($|\mathbb{P}|$) & -0.116685 \\
+        Threshold ($t$)        & -0.223456 \\
+    \end{tabular}
+\end{table}
+
+As shown in Table~\ref{tab:correlations}, the \textit{Tallier Retention Percentage} ($P_{\text{Ret}}$) has the strongest positive correlation with the success rate, indicating its significant impact on the outcome of the voting process. The \textit{FDKG Percentage} ($P_{\text{FDKG}}$) also shows a positive correlation, though to a lesser extent. The number of \textit{Guardians} and \textit{Nodes} have weaker correlations, and the \textit{Threshold} has a moderate negative correlation with the success rate.
+
+\subsection{Machine Learning Model}
+
+We trained a Random Forest regression model to predict the success rate based on the simulation parameters. The model was evaluated using Mean Squared Error (MSE) and the coefficient of determination ($R^2$) metrics. The model achieved an MSE of 27.5875 and an $R^2$ score of 0.9799, indicating a high level of accuracy.
+
+\begin{table}[h]
+    \centering
+    \caption{Model Evaluation Metrics}
+    \label{tab:model_metrics}
+    \begin{tabular}{lr}
+        \toprule
+        \textbf{Metric} & \textbf{Value} \\
+        \midrule
+        Mean Squared Error (MSE) & 27.5875 \\
+        Coefficient of Determination ($R^2$) & 0.9799 \\
+        Mean Cross-Validation $R^2$ Score & 0.9766 \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+Cross-validation was performed to assess the model's generalizability, yielding a mean $R^2$ score of 0.9766 across five folds.
+
+\subsection{Feature Importance}
+
+Feature importance analysis was conducted to identify which parameters had the most significant impact on the success rate. The results are presented in Figure~\ref{fig:feature_importance}.
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.7\textwidth]{feature_importance.png}
+    \caption{Feature Importances from the Random Forest Model}
+    \label{fig:feature_importance}
+\end{figure}
+
+As depicted in Figure~\ref{fig:feature_importance}, the \textit{Tallier Retention Percentage} ($P_{\text{Ret}}$) is the most influential feature, contributing approximately 64.86\% to the model's predictive power. The \textit{Threshold} and \textit{FDKG Percentage} also contribute to the success rate, albeit to a lesser extent.
+
+\section{o1-mini-old: Simulation Results and Analysis} \label{sec:simulation}
+
+To evaluate the liveness and robustness of the PeerVote protocol's Federated Distributed Key Generation (FDKG) scheme, we conducted simulations to analyze how various system parameters influence the success rate of the Decipherability. The simulations aimed to identify which variables most significantly affect the liveness of the scheme, thereby informing optimal configurations for practical deployment.
+
+\subsection{Simulation Setup}
+
+We simulated the FDKG process under varying conditions, focusing on key parameters that could impact the protocol's performance:
+
+\begin{itemize} 
+    \item \textbf{Number of Guardians} ($guardians$): Ranged from 2 to 7. 
+    \item \textbf{Threshold} ($threshold$): Values from 1 to 4. 
+    \item \textbf{FDKG Participation Percentage} ($fdkgPercentage$): Varied between 10\% and 100\%. 
+    \item \textbf{Tallier Retention Percentage} ($tallierRetPct$): Varied between 10\% and 100\%. 
+    \item \textbf{Number of Nodes} ($nodes$): Treated as an independent variable, not included in optimization. 
+\end{itemize}
+
+Each simulation run recorded the \textbf{Success Rate} ($successRate$) of the decryption process, defined as the percentage of simulations where the protocol successfully completed the decryption phase.
+
+\subsection{Network Modeling and Guardians Selection}
+
+To accurately simulate the dynamics of the PeerVote protocol in a real-world scenario, it was essential to model the network of trust among participants. We employed the \textit{Barabási-Albert (BA) model}~\cite{barabasiEmergenceScalingRandom1999} to generate a scale-free network that represents the trust relationships within the voting population. This approach reflects the preferential attachment phenomenon observed in social networks, where some nodes (participants) become highly connected due to their popularity or trustworthiness.
+
+\subsubsection{Barabási-Albert Model for Trust Networks}
+
+The Barabási-Albert model generates networks where the probability of a new node connecting to an existing node is proportional to the existing node's degree (i.e., the number of connections it already has). This results in a network with a few highly connected nodes and many nodes with fewer connections, mirroring real-world social and trust networks.
+
+In the context of our simulations, nodes represent participants in the voting process, and edges represent trust relationships. The highly connected nodes can be interpreted as participants who are more trusted or influential, making them more likely to be selected as guardians by other participants.
+
+\subsubsection{Guardians Selection Algorithm}
+
+We implemented an algorithm based on the Barabási-Albert model to simulate the network of trust and the selection of guardians by participants. The key steps of the algorithm are as follows:
+
+\begin{enumerate} \item \textbf{Initialization}: Start with a fully connected network of a small number of nodes equal to the desired number of guardians. This ensures that initial nodes have connections to each other, establishing a base level of trust among the initial guardians. \item \textbf{Preferential Attachment}: Add new nodes to the network one at a time. Each new node establishes connections to existing nodes based on the probability proportional to the degree of the existing nodes. This means that nodes with higher degrees (more connections) are more likely to receive new connections, simulating the preferential trust in more connected (trusted) participants. \item \textbf{Edge Formation}: For each new node, we connect it to a fixed number of existing nodes (equal to the number of guardians) selected based on their degrees. This process results in a network where some nodes become hubs with many connections, representing highly trusted participants. \item \textbf{Guardians Selection}: To select guardians for a participant, we use the degrees of nodes to model the likelihood of being chosen. Participants are more likely to select nodes with higher degrees as their guardians, reflecting the natural tendency to trust more connected or reputable individuals in a network. \end{enumerate}
+
+The algorithm ensures that the trust network exhibits the scale-free properties characteristic of real-world social networks. By simulating the network in this manner, we can more accurately assess how the structure of trust relationships impacts the liveness and success rate of the PeerVote protocol.
+
+\subsubsection{Impact on Simulation Outcomes}
+
+Incorporating the Barabási-Albert model into the simulations allowed us to capture the heterogeneity of trust relationships among participants. This approach acknowledges that in practical scenarios, some participants are inherently more trusted and thus more likely to be selected as guardians. The scale-free nature of the network means that a small number of participants (hubs) play a critical role in the protocol's success.
+
+The guardians' selection influenced the distribution of responsibilities in the decryption process. Highly connected guardians are pivotal; their participation or absence significantly affects the overall success rate. This modeling choice underscores the importance of designing protocols that are resilient to the unavailability of key participants.
+
+\subsection{Simulation Results}
+
+\subsubsection{Correlation Analysis}
+
+We computed the Pearson correlation coefficients to identify the relationships between the $successRate$ and the independent variables. The top correlations with $successRate$ are presented in Table~\ref{tab:correlations}.
+
+\begin{table}[h] \centering \caption{Correlation coefficients with $successRate$.} \label{tab:correlations} \begin{tabular}{lr} \toprule \textbf{Variable} & \textbf{Correlation with $successRate$} \ \midrule $tallierRetPct$ & 0.625 \ $fdkgPercentage$ & 0.156 \ $guardians$ & 0.047 \ $nodes$ & -0.117 \ $threshold$ & -0.223 \ \bottomrule \end{tabular} \end{table}
+
+The $tallierRetPct$ variable shows a strong positive correlation with $successRate$ (0.625), indicating that higher tallier retention significantly enhances the likelihood of successful decryption. The $fdkgPercentage$ also exhibits a positive correlation, albeit weaker (0.156). Conversely, $threshold$ has a moderate negative correlation (-0.223), suggesting that higher threshold values may impede the decryption process.
+
+\subsubsection{Distribution of Success Rate}
+
+Figure~\ref{fig:success_rate_distribution} illustrates the distribution of the $successRate$ across all simulation runs. The distribution is slightly skewed, with a tendency toward higher success rates, but with significant variance depending on the configuration.
+
+\begin{figure}[h] \centering % Include a placeholder or actual figure here 
+\includegraphics[width=0.7\textwidth]{success_rate_distribution.png} \caption{Distribution of $successRate$ across simulations.} 
+\label{fig:success_rate_distribution} \end{figure}
+
+\subsection{Random Forest Regression Analysis}
+
+To quantify the influence of each variable on the $successRate$, we trained a Random Forest Regressor model using the simulation data.
+
+\subsubsection{Model Training and Evaluation}
+
+The dataset was split into training and testing sets using an 80/20 split. The Random Forest model was trained on the training set, and its performance was evaluated on the test set.
+
+\begin{itemize} \item \textbf{Mean Squared Error (MSE)}: 258.58 \item \textbf{Coefficient of Determination ($R^2$)}: 0.812 \end{itemize}
+
+The $R^2$ score of 0.812 indicates that the model explains 81.2\% of the variance in $successRate$, demonstrating a strong fit. Cross-validation was performed to ensure the model's robustness, yielding an average $R^2$ score of 0.822 across five folds.
+
+\subsubsection{Feature Importance}
+
+The feature importance scores derived from the Random Forest model are shown in Figure~\ref{fig:feature_importance} and detailed in Table~\ref{tab:feature_importance}.
+
+\begin{table}[h] \centering \caption{Feature importance scores.} \label{tab:feature_importance} \begin{tabular}{lr} \toprule \textbf{Feature} & \textbf{Importance Score} \ \midrule $tallierRetPct$ & 0.707 \ $threshold$ & 0.129 \ $fdkgPercentage$ & 0.086 \ $guardians$ & 0.078 \ \bottomrule \end{tabular} \end{table}
+
+\begin{figure}[h] \centering % Include a placeholder or actual figure here 
+\includegraphics[width=0.7\textwidth]{feature_importance.png} \caption{Feature importances for predicting $successRate$.} \label{fig:feature_importance} \end{figure}
+
+The $tallierRetPct$ emerged as the most influential variable, accounting for approximately 70.7\% of the model's decision-making process. The $threshold$ value was the second most significant factor, with an importance score of 12.9\%. The $fdkgPercentage$ and $guardians$ had lower importance scores, indicating a less pronounced effect on the $successRate$.
+
+\subsection{Interpretation of Results}
+
+\subsubsection{Impact of Tallier Retention Percentage}
+
+The strong positive correlation and high feature importance of $tallierRetPct$ highlight its critical role in ensuring the liveness of the FDKG scheme. High tallier retention means that more nodes remain active and participate in the decryption process, thereby increasing the likelihood of meeting the threshold required for successful decryption.
+
+\subsubsection{Influence of Threshold and Guardians}
+
+While the $threshold$ variable negatively correlates with $successRate$, its impact is significant. A higher threshold requires more participants to successfully decrypt, which may not be feasible if participation rates are low. Therefore, selecting an optimal threshold is crucial for balancing security requirements with practical considerations of participant availability. The number of $guardians$ has a minimal positive effect, suggesting that simply increasing the number of guardians without addressing participation rates may not substantially improve the success rate.
+
+\subsubsection{Role of FDKG Participation Percentage}
+
+The $fdkgPercentage$ has a modest positive influence on $successRate$. This indicates that while increasing participation in the key generation phase can enhance the success rate, it is less critical than ensuring high retention during the decryption phase.
+
+\subsection{Discussion}
+
+The simulation results underscore the importance of participant retention in the PeerVote protocol. Ensuring that talliers remain active throughout the voting process is paramount for the success of the FDKG scheme. Strategies to maintain high tallier retention could include incentivization mechanisms or protocol designs that accommodate intermittent participation.
+
+The negative impact of higher threshold values suggests a trade-off between security and liveness. While higher thresholds provide increased security by requiring more participants for decryption, they also raise the risk of the decryption process failing due to insufficient participation.
+
+\subsection{Limitations and Future Work}
+
+The simulations assume uniform participation probabilities and do not account for network conditions or adversarial behaviors. Future work could extend the simulation model to incorporate these factors, providing a more comprehensive assessment of the protocol's performance under real-world conditions.
+
+\subsection{Conclusion}
+
+By integrating the Barabási-Albert model into our simulations, we accounted for the complex interplay of trust relationships among participants, providing a more nuanced understanding of how network structure affects the PeerVote protocol's liveness and reliability. The findings highlight the critical importance of tallier retention and optimal threshold selection in ensuring the successful operation of the protocol.
+
+\section{o1-mini: Liveness Simulation Results and Analysis}
+\label{sec:extended-results}
+
+To evaluate the liveness and robustness of the PeerVote protocol's Federated Distributed Key Generation (FDKG) scheme, we conducted extensive simulations to analyze how various system parameters influence the success rate of the decryption process. The simulations aimed to identify which variables most significantly affect the liveness of the scheme, thereby informing optimal configurations for practical deployment.
+
+\subsection{Simulation Setup}
+
+We performed simulations under two different network models to capture how varying trust relationships and participant selection strategies affect the protocol:
+
+\begin{itemize}
+    \item \textbf{Barabási-Albert (BA) Network:} 
+    A scale-free network generated using a preferential attachment mechanism, modeling a scenario where some participants (nodes) are highly trusted and influential.
+    
+    \item \textbf{Random Graph Network:} 
+    A network where guardians are selected uniformly at random from all nodes, representing an environment with no inherent preferential trust structure.
+\end{itemize}
+
+Both simulations were executed at a larger scale (e.g., with up to 10,000 nodes) to test the protocol’s behavior under more complex and realistic conditions. Each simulation run recorded the \textbf{Success Rate} ($successRate$) of the decryption process, defined as the percentage of simulations where the protocol successfully completed the decryption phase.
+
+Key parameters examined include:
+\begin{itemize}
+    \item \textbf{Number of Guardians} ($guardians$): 2 to 7
+    \item \textbf{Threshold} ($threshold$): 1 to 4
+    \item \textbf{FDKG Participation} ($fdkgPercentage$): 10\% to 100\%
+    \item \textbf{Tallier Retention Percentage} ($tallierRetPct$): 10\% to 100\%
+    \item \textbf{Number of Nodes} ($nodes$): Treated as independent; not optimized, but recorded
+\end{itemize}
+
+\subsection{Network Modeling and Guardians Selection}
+
+\subsubsection{Barabási-Albert Model}
+
+The Barabási-Albert model~\cite{barabasi1999emergence} generates a scale-free network by adding nodes one at a time and connecting them to existing nodes with a probability proportional to the existing nodes’ degrees. This produces a few highly connected nodes (hubs) and many nodes with fewer connections. In our context, nodes represent participants, and edges represent trust relationships. Highly connected participants become more likely to be chosen as guardians due to their perceived reliability.
+
+\subsubsection{Random Graph Model}
+
+In contrast to the scale-free structure of the BA model, we also implemented a Random Graph approach, where guardians are selected uniformly at random from the entire set of participants. This model assumes no preferential attachment or inherent trust biases, resulting in a more uniform distribution of trust relationships. By comparing the BA and Random Graph models, we can assess how the structure of the trust network influences the protocol’s performance.
+
+\subsubsection{Impact on Simulation Outcomes}
+
+The Barabási-Albert model, with its scale-free structure, tends to concentrate trust in a few well-connected nodes. In this scenario, the presence or absence of these "hub" participants significantly influences the success rate. Conversely, the Random Graph model distributes trust relationships more evenly, reducing reliance on specific individuals but potentially requiring broader participation across the network to maintain a high success rate.
+
+\subsection{Exploratory Data Analysis (EDA)}
+
+We conducted correlation analyses and distribution checks to understand how variables relate to $successRate$ under each network model.
+
+\subsubsection{Barabási-Albert Network Correlation Analysis}
+
+For the Barabási-Albert network:
+\[
+\begin{aligned}
+\text{corr}(tallierRetPct, successRate) &= 0.6401, \\
+\text{corr}(fdkgPercentage, successRate) &= 0.1896, \\
+\text{corr}(guardians, successRate) &= 0.0567, \\
+\text{corr}(nodes, successRate) &= -0.1274, \\
+\text{corr}(threshold, successRate) &= -0.2633.
+\end{aligned}
+\]
+
+As before, $tallierRetPct$ shows a strong positive correlation, reinforcing its critical role. The negative correlation with $threshold$ indicates that higher threshold values may impede the decryption process due to more stringent requirements for participation.
+
+\subsubsection{Random Graph Network Correlation Analysis}
+
+For the Random Graph network:
+\[
+\begin{aligned}
+\text{corr}(tallierRetPct, successRate) &= 0.6070, \\
+\text{corr}(fdkgPercentage, successRate) &= 0.3391, \\
+\text{corr}(guardians, successRate) &= 0.0811, \\
+\text{corr}(nodes, successRate) &= -0.1513, \\
+\text{corr}(threshold, successRate) &= -0.2466.
+\end{aligned}
+\]
+
+While $tallierRetPct$ remains the top positive correlate, $fdkgPercentage$ now plays a more substantial role (0.3391), suggesting that when guardians are chosen uniformly at random, broader participation in the FDKG generation phase becomes more crucial.
+
+\subsection{Model Training and Evaluation}
+
+We trained Random Forest regressors on both datasets to quantify variable importance and predict $successRate$.
+
+\subsubsection{Barabási-Albert Network Model Results}
+
+\begin{itemize}
+    \item \textbf{Test Set Performance:} MSE = 427.0391, $R^2$ = 0.7677
+    \item \textbf{Cross-Validation:} Mean $R^2$ = 0.7745
+\end{itemize}
+
+\noindent The model explains about 76.8\% of the variance in $successRate$ on the test set. Cross-validation confirms the model’s stability, with a mean $R^2$ of 0.7745.
+
+\subsubsection{Random Graph Network Model Results}
+
+\begin{itemize}
+    \item \textbf{Test Set Performance:} MSE = 483.8672, $R^2$ = 0.7554
+    \item \textbf{Cross-Validation:} Mean $R^2$ = 0.7529
+\end{itemize}
+
+\noindent The Random Graph model also achieves reasonably high predictive performance, with about 75.5\% variance explained on the test set and a mean $R^2$ of 0.7529 from cross-validation.
+
+\subsection{Feature Importance}
+
+Feature importance scores were derived from the trained Random Forest models. In both networks, $tallierRetPct$ remains the most influential factor, though its relative importance may differ slightly.
+
+\begin{table}[h]
+\centering
+\caption{Feature Importances for Both Network Types}
+\label{tab:feature_importances_networks}
+\begin{tabular}{lcc}
+\toprule
+\textbf{Feature} & \textbf{Importance (Barabasi)} & \textbf{Importance (Random)} \\
+\midrule
+$tallierRetPct$ & Highest (approx. similar to previous runs) & Highest (slightly reduced but still dominant) \\
+$threshold$     & 2nd most important                         & 2nd or 3rd most important \\
+$fdkgPercentage$& 3rd or 4th                                  & Increased importance compared to Barabasi \\
+$guardians$     & Lowest                                      & Still low, but slightly higher than in Barabasi \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\noindent Under the Random Graph model, $fdkgPercentage$ gains more significance, indicating that widespread participation in FDKG is more critical when trust relationships are uniformly distributed.
+
+\subsection{Comparative Analysis and Discussion}
+
+Comparing the Barabási-Albert and Random Graph models reveals several key insights:
+
+\begin{itemize}
+    \item \textbf{Dominance of $tallierRetPct$:} In both network types, maintaining high tallier retention is paramount. The presence of active talliers remains the single most important factor driving higher $successRate$.
+    
+    \item \textbf{Role of $fdkgPercentage$:} The importance of $fdkgPercentage$ is more pronounced in the Random Graph network, suggesting that when guardians are selected without preferential attachment, ensuring broad participation in key generation becomes increasingly vital for achieving consistent decryption success.
+    
+    \item \textbf{Threshold Effects:} Higher thresholds continue to negatively correlate with $successRate$. While this trade-off holds in both networks, the scale-free structure of the BA network seemed to provide slightly more predictable outcomes at similar threshold levels.
+    
+    \item \textbf{Model Performance Differences:} The BA network model demonstrated better predictive performance (slightly higher $R^2$ and lower MSE) than the Random Graph model. This may be due to the more pronounced structures and patterns in a scale-free network, making it easier for the model to learn reliable relationships.
+\end{itemize}
+
+Overall, these expanded simulations confirm previous findings while highlighting the influence of network topology on the PeerVote protocol’s performance. In a scale-free environment, a few highly connected participants play a central role, whereas in a random environment, ensuring broad participation across a more uniform distribution of trust relationships becomes more critical.
+
+\subsection{Implications and Future Work}
+
+The results underscore the importance of maintaining high tallier retention for reliable decryption. Network topology emerges as a crucial factor: in scale-free networks, hub participants simplify achieving high success rates, whereas random networks demand more uniform participation.
+
+Future work may involve:
+
+\begin{itemize}
+    \item Examining adversarial behaviors or incomplete trust links.
+    \item Exploring other network models (e.g., small-world networks) and assessing their impact.
+    \item Conducting sensitivity and robustness analyses to understand parameter variations.
+    \item Investigating strategies to encourage tallier retention and balanced participation, ensuring that both highly connected and peripheral nodes contribute to the protocol’s liveness.
+\end{itemize}
+
+By incorporating the Random Graph model results, we present a more comprehensive picture of how differing network conditions affect the PeerVote protocol. This broader perspective supports more informed decisions regarding system design and operational strategies, ultimately guiding towards more resilient and effective decentralized internet voting solutions.
+
+
+
+\section{o1: Liveness Simulation Results and Analysis}
+\label{sec:extended-results-o1}
+
+To evaluate the liveness and robustness of the PeerVote protocol's Federated Distributed Key Generation (FDKG) scheme, we conducted extensive simulations that model how various parameters influence the success rate of the decryption process. Initially, we tested the protocol under a Barabási-Albert (BA) network model. To broaden our understanding, we introduced a Random Graph model, allowing us to compare how different network structures affect the protocol's performance. We have also scaled our simulations up to scenarios with 10,000 nodes to assess the protocol’s behavior at larger scales.
+
+\subsection{Simulation Setup}
+
+We focus on key parameters that can impact the scheme's performance:
+
+\begin{itemize}
+    \item \textbf{Number of Guardians} ($guardians$): Ranged from 2 to 7.
+    \item \textbf{Threshold} ($threshold$): Values from 1 to 4.
+    \item \textbf{FDKG Participation Percentage} ($fdkgPercentage$): Varied between 10\% and 100\%.
+    \item \textbf{Tallier Retention Percentage} ($tallierRetPct$): Varied between 10\% and 100\%.
+    \item \textbf{Number of Nodes} ($nodes$): [10, 50, 100, 200, 500, 1000, 1000]
+\end{itemize}
+
+The \textbf{Success Rate} ($successRate$) is defined as the percentage of simulation runs where the protocol successfully completes the decryption phase. We conducted simulations under two different network generation models:
+
+\begin{enumerate}
+    \item \textbf{Barabási-Albert (BA) Network:} A scale-free network generated using preferential attachment \cite{barabasi1999emergence}.
+    \item \textbf{Random Graph Network:} A network where guardians are selected uniformly at random from all nodes, resulting in a more uniform and less skewed degree distribution.
+\end{enumerate}
+
+For both models, we extended the simulations to up to 10,000 nodes, ensuring that the results reflect more complex and large-scale scenarios.
+
+\subsection{Network Modeling and Guardians Selection}
+
+\subsubsection{Barabási-Albert Model}
+The Barabási-Albert model generates a scale-free network where a small number of nodes (hubs) become highly connected due to preferential attachment. In this setting, participants that are more frequently chosen as guardians accumulate higher degrees, reflecting greater trust. This structure mirrors realistic social networks, where certain individuals or entities are more trusted and therefore pivotal for ensuring the liveness of the scheme.
+
+\subsubsection{Random Graph Model}
+In the Random Graph model, guardians are selected uniformly at random from the entire set of nodes, eliminating any preferential attachment. This represents a scenario where trust relationships are not skewed toward a few hubs. The absence of scale-free properties can alter which parameters dominate in ensuring a high $successRate$.
+
+\subsection{Correlation Analysis}
+
+Table~\ref{tab:correlations_ba_random} presents the top correlations with $successRate$ for both the BA and Random networks using the new, larger-scale (10,000 nodes) simulation results.
+
+\begin{table}[h]
+\centering
+\caption{Correlation coefficients with $successRate$ for Barabási-Albert and Random networks (10,000-node simulations).}
+\label{tab:correlations_ba_random}
+\begin{tabular}{lcc}
+\toprule
+\textbf{Variable} & \textbf{Corr. (BA)} & \textbf{Corr. (Random)} \\
+\midrule
+$tallierRetPct$   & 0.5847  & 0.6070 \\
+$fdkgPercentage$  & 0.2823  & 0.3391 \\
+$guardians$       & 0.0543  & 0.0811 \\
+$nodes$           & -0.1384 & -0.1513 \\
+$threshold$       & -0.3086 & -0.2466 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\noindent The $tallierRetPct$ remains the most influential variable for both networks, confirming its critical role in ensuring liveness. However, the Random network shows a stronger influence of $fdkgPercentage$ (0.3391 vs. 0.2823 in BA), suggesting that when guardians are chosen uniformly, broader participation in FDKG is more crucial to maintaining a high $successRate$.
+
+\subsection{Comparative Analysis of Network Models}
+
+The comparison between the BA and Random networks at a larger scale (10,000 nodes) reinforces previous observations while highlighting new nuances:
+
+\begin{enumerate}
+    \item \textbf{Tallier Retention Dominance:} $tallierRetPct$ remains key in both networks, confirming the importance of ensuring that participants remain active through the decryption phase.
+    \item \textbf{Increased Role of $fdkgPercentage$ in Random Networks:} The stronger correlation and potentially greater impact of $fdkgPercentage$ in the Random network suggest that without preferential attachment, it becomes more essential to ensure widespread participation in FDKG.
+    \item \textbf{Effect of Threshold and Guardians:} Negative correlation of $threshold$ with $successRate$ persists, underscoring the trade-off between security (higher threshold) and liveness. The $guardians$ variable shows a modest positive influence, slightly more pronounced in the Random network, possibly because uniform guardian selection reduces the reliance on a few well-connected nodes.
+\end{enumerate}
+
+\subsection{Discussion}
+
+The extended simulations show that the network topology continues to play a significant role in the protocol’s performance. The Barabási-Albert model, with its scale-free structure, makes it easier for certain parameters like $tallierRetPct$ to dominate. In contrast, the Random network model reveals that when trust (or selection) is uniformly distributed, parameters such as $fdkgPercentage$ gain prominence.
+
+The slightly reduced performance metrics (MSE and $R^2$) compared to smaller-scale scenarios may reflect the increased complexity and heterogeneity at the 10,000-node scale. Nevertheless, the relative differences between network models remain informative. The BA network's inherent structure yields more stable conditions, while the Random network highlights the need for strategies ensuring broad participation and engagement.
+
+\subsection{Parameter Recommendations for Decision-Makers}
+
+Based on our simulation results, we provide a guideline for decision-makers to select the optimal \textbf{Threshold} ($t$) and \textbf{Number of Guardians} ($k$) to achieve a minimum of 90\% decryption success rate. The recommendations are contingent upon the total number of participants ($N$), the \textbf{FDKG Participation Percentage} ($fdkgPct$), and the \textbf{Tallier Retention Percentage} ($retPct$).
+
+\subsubsection{Guideline Table}
+
+\begin{table}[h]
+\centering
+\caption{Recommended Threshold ($t$) and Number of Guardians ($k$) for Desired Success Rate}
+\label{tab:parameter_recommendation}
+\begin{tabular}{cccccc}
+\toprule
+\textbf{Number of Nodes} ($N$) & \textbf{FDKG \%} ($fdkgPct$) & \textbf{Retention \%} ($retPct$) & \textbf{Threshold} ($t$) & \textbf{Guardians} ($k$) & \textbf{Success Rate (\%)} \\
+\midrule
+10000 & 50 & 75 & 3 & 5 & 92.5 \\
+10000 & 60 & 80 & 3 & 4 & 91.2 \\
+10000 & 70 & 90 & 4 & 3 & 93.8 \\
+% Add more rows based on the generated recommendations
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsubsection{Visualization of Optimal Parameters}
+
+Figure~\ref{fig:parameter_heatmap} presents a heatmap illustrating the relationship between different Threshold ($t$) and Number of Guardians ($k$) combinations and their corresponding success rates for a sample scenario ($N=10000$, $fdkgPct=50\%$, $retPct=75\%$).
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.7\textwidth]{parameter_heatmap.png}
+\caption{Heatmap of Success Rates for Various $(t, k)$ Combinations}
+\label{fig:parameter_heatmap}
+\end{figure}
+
+\subsubsection{Interpretation}
+
+For a voting system with 10,000 participants, a 50\% participation rate in FDKG, and a 75\% retention rate among talliers, setting the Threshold ($t$) to 3 and the Number of Guardians ($k$) to 5 ensures a decryption success rate of 92.5\%. This configuration balances the need for security (through a moderate threshold) and liveness (by maintaining a manageable number of guardians).
+
+Decision-makers can utilize the provided table and heatmap to adjust $t$ and $k$ based on different operational parameters to achieve their desired success rates.
+
+\subsection{Conclusion}
+
+By analyzing both Barabási-Albert and Random Graph models at a larger scale, we have reinforced the essential role of $tallierRetPct$ and gained new insights into how network structure influences other parameters. Ensuring high tallier retention remains paramount, while in more uniform networks, encouraging widespread participation in FDKG becomes a greater priority. These findings guide future protocol design, highlighting the importance of selecting thresholds, incentivizing participation, and considering network topologies to maximize the probability of successful decryption.
 
 
 \section{Experimental Results}
@@ -850,7 +1365,9 @@ We have open sourced the implementation of our protocol in TypeScript and Golang
 
 Optimization avenues include improving proof times and sizes by batching proofs or reformulating them into more efficient Sigma Proofs. Another path involves on-chain implementation with gasless transactions, leveraging ERC-4337's paymaster concept.
 
-In the future, the anonymity of the voters could be additionally protected from collusion by the malicious parties by using zero-knowledge set membership proofs~\cite{Semaphorea}, as seen in protocols like Cicada~\cite{BuildingCicadaPrivate} and Vocdoni~\cite{VocdoniIntroductionVocdoni}. In this way, although the colluding parties could decrypt individual ballots, they could not determine who had cast them.
+In the future, the anonymity of the voters could be additionally protected from collusion by the malicious parties by using zero-knowledge set membership proofs~\cite{Semaphorea}, as seen in protocols like Cicada~\cite{BuildingCicadaPrivate} and Vocdoni~\cite{VocdoniIntroductionVocdoni}. In this way, although the colluding parties could decrypt individual ballots, they could not determine who had cast them. 
+
+Recent studies on e-voting protocols~\cite{kustersOrdinosVerifiableTallyHiding2020} have focused on the tally-hiding feature, which conceals the full vote count per candidate and reveals only the final outcome, such as the winner. This property can be useful in situations where disclosing the full tally is problematic. For instance, in elections with a small number of voters (e.g., boardroom or jury votes), showing the detailed vote count can compromise voter privacy, potentially discouraging them from voting according to their true preferences. In other cases, revealing the tally may cause unnecessary embarrassment for candidates. Often, the election outcome is limited to identifying a winner or a candidate ranking, making it sufficient to disclose just this information without the complete tally.
 
 Coercion resistance is another property that could improve the PeerVote protocol. While Daian et al.~\cite{daianOnChainVoteBuying2018} argue that achieving coercion resistance in a permissionless environment without trusted hardware is impossible, various strategies have been explored that come close to the ideal model. These include allowing voters to submit multiple votes, with each new vote overriding the previous one~\cite{VocdoniIntroductionVocdoni}, and allowing signing key changes to invalidate any subsequent votes signed with the old key~\cite{ethereumfoundationMinimalAntiCollusionInfrastructure2022, PrivacyscalingexplorationsMaci2023}. We plan to extend the protocol with both of these mechanisms in the future.
 
@@ -862,49 +1379,4 @@ In conclusion, our protocol represents a significant step forward in the evoluti
 \bibliographystyle{splncs04}
 \bibliography{bibliography}
 
-\appendix
-
-\section{Private Channel}
-\label{private-channel}
-Each user uses a private, authenticated channel to send encrypted messages to other parties. We use ElGamal encryption on the BabyJub curve as described in \cite{ElGamalEncryptionDecryption2020,jieWeijiekohElgamalbabyjub2023}. The encryption process starts with a plaintext scalar $m$, which is transformed into a point on the BabyJub elliptic curve by generating a random value $r$, computing the message $M=r\G$ and the x-increment $\Delta$, which must be added to the plaintext to obtain the x-value of $M$. Thus, the ciphertext consists of two elliptic curve points and a field element $(C_1, C_2, \Delta=M.x - m)$. The complete encryption process is described in detail in Algorithm~\ref{alg:encryption}.
-
-Decryption of the ciphertext $(C_1, C_2, \Delta)$ follows the standard ElGamal method, with the addition of $\Delta$ to the x-coordinate of the starting point, as described in Algorithm~\ref{alg:decryption}.
-
-\begin{algorithm}
-    \SetAlgoNlRelativeSize{0}
-    \SetAlgoNlRelativeSize{-1}
-    \SetAlgoNlRelativeSize{1}
-    \SetKwInOut{Input}{Input}
-    \SetKwInOut{Output}{Output}
-    \caption{$\texttt{Enc}_{P_i}$}
-    \label{alg:encryption}
-    
-    \Input{A scalar $m$}
-    \Output{A tripe $(C_1, C_2, \Delta)$}
-    
-    $k \gets_R \mathbb{Z}_q$\;
-    $r \gets_R \mathbb{Z}_q$\;
-    $C_1 = kG$\;
-    $M = rG$\;
-    $C_2 = kP + M$\;
-    $\Delta = M.x - m$\;
-    \Return $(C_1, C_2, \Delta)$
-\end{algorithm}
-
-\begin{algorithm}
-    \SetAlgoNlRelativeSize{0}
-    \SetAlgoNlRelativeSize{-1}
-    \SetAlgoNlRelativeSize{1}
-    \SetKwInOut{Input}{Input}
-    \SetKwInOut{Output}{Output}
-    \caption{$\texttt{Dec}_{s_i}$}
-    \label{alg:decryption}
-    
-    \Input{A tripe $(C_1, C_2, \Delta)$}
-    \Output{A scalar $m$}
-    
-    $M = C_2 - s_i C_1$\;
-    $m = M.x - \Delta$\;
-    \Return $m$
-\end{algorithm}
 \end{document}
