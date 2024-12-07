@@ -16,3 +16,6 @@ out/
 *.log
 *.tmp
 .DS_Store
+*.csv
+!simulation_results_nodes_BarabasiAlbert_100000.csv
+!simulation_results_nodes_RandomGraph_100000.csv

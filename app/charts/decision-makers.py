@@ -179,7 +179,7 @@ def batch_recommendations(data, N_values, fdkgPct_values, retPct_values, success
 
 def main():
     # Path to the simulation data CSV (update this path as necessary)
-    filepath = '../simulation_results_nodes_BarabasiAlbert_10000.csv'
+    filepath = '../../liveness_sim/simulation_results_nodes_BarabasiAlbert_100000.csv'
     
     # Load the simulation data
     data = load_simulation_data(filepath)
@@ -217,7 +217,7 @@ def main():
     # generate_heatmap(filtered)
 
     # Define parameter ranges for batch recommendations
-    N_values = [10, 100, 500, 1000, 10000]  # Extend as needed
+    N_values = [10, 100, 500, 1_000, 10_000, 100_000]  # Extend as needed
     fdkgPct_values = [0.25, 0.5, 0.75]  # Example percentages
     retPct_values = [0.9]        # Example percentages
     
