@@ -7,7 +7,7 @@
     "scripts": {
         "start": "parcel src/index.html",
         "cli": "ts-node src/cli.ts",
-        "build": "parcel build src/index.html",
+        "build": "parcel build src/index.html --dist-dir ../public",
         "simulation": "npx ts-node ./src/main.ts",
         "simulation:groth16": "PROVER=groth16 npx ts-node ./src/main.ts",
         "simulation:plonk": "PROVER=plonk npx ts-node ./src/main.ts",
