@@ -1,8 +1,11 @@
+use indicatif::{ProgressBar, ProgressStyle};
 use rand::Rng;
 use rayon::prelude::*;
 use std::error::Error;
 use std::fs::File;
 use std::io::Write;
+use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::Arc;
 
 #[derive(Debug, Clone, Copy)]
 enum NetworkModel {
@@ -42,13 +45,13 @@ struct NetworkSimulation {
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
-    let node_ranges = [10, 100, 200, 500, 1000, 10_000];
+    let node_ranges = [10, 50, 100, 200, 500, 1_000, 10_000, 100_000];
     let guardian_ranges = [2, 3, 4, 5, 6, 7];
     let fdkg_percentages = [0.1, 0.25, 0.50, 0.75, 1.0];
     let tallier_returning_percentages = [0.5, 0.6, 0.7, 0.8, 0.9, 1.0];
     let tallier_new_percentages = [0.05];
 
-    let network_model = NetworkModel::BarabasiAlbert;
+    let network_model = NetworkModel::RandomGraph;
     let iterations_per_config = 1000;
 
     let mut results = Vec::new();
@@ -79,11 +82,19 @@ fn main() -> Result<(), Box<dyn Error>> {
             }
         }
 
+        // Set up a progress bar for all configs * iterations
+        let total_work = configurations.len() * iterations_per_config;
+        let pb = ProgressBar::new(total_work as u64);
+        pb.set_style(ProgressStyle::with_template(
+            "[{elapsed_precise}] [{bar:40.cyan/blue}] {pos:>7}/{len:7} ({percent}%) ETA: {eta_precise}"
+        ).unwrap());
+
+        let progress_count = Arc::new(AtomicUsize::new(0));
+
         // Process configurations in parallel
         let chunk_results: Vec<ExperimentResult> = configurations
             .par_iter()
             .map(|config| {
-                // Process iterations in parallel as well
                 let success_count: usize = (0..iterations_per_config)
                     .into_par_iter()
                     .map(|_| {
@@ -95,11 +106,13 @@ fn main() -> Result<(), Box<dyn Error>> {
                         );
                         simulation.select_fdkg_set(config.fdkg_pct);
                         simulation.select_talliers_set(config.tallier_ret_pct, config.tallier_new_pct);
-                        if simulation.check_decipherability() {
-                            1
-                        } else {
-                            0
-                        }
+                        let res = if simulation.check_decipherability() { 1 } else { 0 };
+
+                        // Increment progress
+                        progress_count.fetch_add(1, Ordering::Relaxed);
+                        pb.inc(1);
+
+                        res
                     })
                     .sum();
 
@@ -115,9 +128,15 @@ fn main() -> Result<(), Box<dyn Error>> {
             })
             .collect();
 
+        pb.finish_with_message("Done!");
+
         results.extend(chunk_results);
 
-        let intermediate_file_name = format!("simulation_results_nodes_BarabasiAlbert_{}.csv", nodes);
+        let network_model_name = match network_model {
+            NetworkModel::BarabasiAlbert => "BarabasiAlbert",
+            NetworkModel::RandomGraph => "RandomGraph",
+        };
+        let intermediate_file_name = format!("simulation_results_nodes_{}_{}.csv", network_model_name, nodes);
         let mut file = File::create(&intermediate_file_name)?;
         writeln!(file, "nodes,guardians,threshold,fdkgPercentage,tallierRetPct,tallierNewPct,successRate")?;
         for r in &results {
