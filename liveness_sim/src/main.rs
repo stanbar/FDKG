@@ -292,8 +292,6 @@ fn generate_barabasi_albert_graph(
             }
         }
     }
-    println!("Initial degree list: {:?}", degree_list);
-    println!("Number of guardians: {}", number_of_guardians);
 
     // Add new nodes
     for new_node in number_of_guardians..number_of_nodes {
