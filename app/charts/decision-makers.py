@@ -132,9 +132,9 @@ def generate_heatmap(filtered_data, N, fdkgPct, retPct):
     #             plt.gca().add_patch(plt.Rectangle((j, i), 1, 1, fill=False, edgecolor='red', lw=3))
     
     save_path = f'parameter_heatmap_N{N}_fdkgPct{fdkgPct}_retPct{retPct}.png'
-    plt.savefig(save_path)
-    print(f"Heatmap saved as {save_path}.")
-    plt.show()
+    # plt.savefig(save_path)
+    # print(f"Heatmap saved as {save_path}.")
+    # plt.show()
 
 def batch_recommendations(data, N_values, fdkgPct_values, retPct_values, success_threshold=90):
     """
@@ -179,57 +179,29 @@ def batch_recommendations(data, N_values, fdkgPct_values, retPct_values, success
 
 def main():
     # Path to the simulation data CSV (update this path as necessary)
-    filepath = '../../liveness_sim/simulation_results_nodes_BarabasiAlbert_100000.csv'
+    graph="BarabasiAlbert" # "RandomGraph" # BarabasiAlbert
+    filepath = f'../../liveness_sim/simulation_results_nodes_{graph}_100000.csv'
     
     # Load the simulation data
     data = load_simulation_data(filepath)
     if data is None:
         return
-    
-    # # User inputs
-    # try:
-    #     N = int(input("Enter the number of nodes (N): "))
-    #     fdkgPct = float(input("Enter the FDKG Participation Percentage (fdkgPct) [e.g., 50 for 50%]: "))
-    #     retPct = float(input("Enter the Tallier Retention Percentage (retPct) [e.g., 75 for 75%]: "))
-    # except ValueError:
-    #     print("Invalid input. Please enter numerical values for N, fdkgPct, and retPct.")
-    #     return
-    
-    # # Filter the data based on user inputs
-    # filtered = filter_data(data, N, fdkgPct, retPct)
-    # if filtered.empty:
-    #     return
-    
-    # # Find optimal (t, k) parameters
-    # optimal = find_optimal_parameters(filtered, success_threshold=0.8)
-    # if not optimal.empty:
-    #     t_opt = optimal['threshold'].values[0]
-    #     k_opt = optimal['guardians'].values[0]
-    #     success = optimal['successRate'].values[0]
-    #     print("\nOptimal Parameters to Achieve at least 90% Success Rate:")
-    #     print(f"Threshold (t): {t_opt}")
-    #     print(f"Number of Guardians (k): {k_opt}")
-    #     print(f"Achieved Success Rate: {success}%")
-    # else:
-    #     print("Consider adjusting your input parameters or accept a lower success rate.")
-    
-    # # Generate a heatmap (optional)
-    # generate_heatmap(filtered)
 
     # Define parameter ranges for batch recommendations
     N_values = [10, 100, 500, 1_000, 10_000, 100_000]  # Extend as needed
-    fdkgPct_values = [0.25, 0.5, 0.75]  # Example percentages
-    retPct_values = [0.9]        # Example percentages
+    fdkgPct_values = [.2, .3, .4, .5, .6, .7, .8]  # Example percentages
+    retPct_values = [0.5, 0.7, 0.9]        # Example percentages
     
     # Generate batch recommendations
-    recommendations = batch_recommendations(data, N_values, fdkgPct_values, retPct_values, success_threshold=0.8)
+    recommendations = batch_recommendations(data, N_values, fdkgPct_values, retPct_values, success_threshold=0.9)
     
     if not recommendations.empty:
         print("\nBatch Recommendations:")
         print(recommendations)
         # Save to CSV for inclusion in the paper
-        recommendations.to_csv('parameter_recommendations.csv', index=False)
-        print("\nRecommendations saved to parameter_recommendations.csv.")
+        file_name = f'parameter_recommendations_{graph}.csv'
+        recommendations.to_csv(file_name, index=False)
+        print(f"\nRecommendations saved to {file_name}")
     else:
         print("No recommendations could be made based on the provided simulation data.")
 
