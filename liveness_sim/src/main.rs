@@ -45,11 +45,13 @@ struct NetworkSimulation {
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
-    let node_ranges = [10, 50, 100, 200, 500, 1_000, 10_000, 100_000];
-    let guardian_ranges = [2, 3, 4, 5, 6, 7];
-    let fdkg_percentages = [0.1, 0.25, 0.50, 0.75, 1.0];
-    let tallier_returning_percentages = [0.5, 0.6, 0.7, 0.8, 0.9, 1.0];
-    let tallier_new_percentages = [0.05];
+    let node_ranges = [10, 100, 500, 1_000, 10_000, 100_000];
+
+    // Example parameter sets
+    let guardian_ranges = [1, 2, 3, 4, 5, 6, 7, 8];
+    let fdkg_percentages = [0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0];
+    let tallier_returning_percentages = [0.5, 0.7, 0.9];
+    let tallier_new_percentages = [0.0]; 
 
     let network_model = NetworkModel::RandomGraph;
     let iterations_per_config = 1000;
