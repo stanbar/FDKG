@@ -53,7 +53,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let tallier_returning_percentages = [0.5, 0.7, 0.9];
     let tallier_new_percentages = [0.0]; 
 
-    let network_model = NetworkModel::RandomGraph;
+    let network_model = NetworkModel::BarabasiAlbert;
     let iterations_per_config = 1000;
 
     let mut results = Vec::new();
@@ -269,17 +269,31 @@ fn generate_barabasi_albert_graph(
     let mut rng = rand::thread_rng();
 
     // Initial fully connected subnetwork
-    for i in 0..number_of_guardians {
-        for j in 0..number_of_guardians {
-            if i != j {
-                edges.push((i, j));
-                degrees[i] += 1;
-                degrees[j] += 1;
-                degree_list.push(i);
-                degree_list.push(j);
+    if number_of_guardians == 1 && number_of_nodes > 1 {
+        // Connect the single guardian to node 1
+        let i = 0;
+        let j = 1;
+        edges.push((i, j));
+        edges.push((j, i));
+        degrees[i] += 1;
+        degrees[j] += 1;
+        degree_list.push(i);
+        degree_list.push(j);
+    } else {
+        for i in 0..number_of_guardians {
+            for j in 0..number_of_guardians {
+                if i != j {
+                    edges.push((i, j));
+                    degrees[i] += 1;
+                    degrees[j] += 1;
+                    degree_list.push(i);
+                    degree_list.push(j);
+                }
             }
         }
     }
+    println!("Initial degree list: {:?}", degree_list);
+    println!("Number of guardians: {}", number_of_guardians);
 
     // Add new nodes
     for new_node in number_of_guardians..number_of_nodes {
