@@ -45,7 +45,7 @@ def filter_data(data, N, fdkgPct, retPct):
         print(f"Filtered data contains {len(filtered)} records.")
     return filtered
 
-def find_optimal_parameters(filtered_data, success_threshold=90):
+def find_optimal_parameters(filtered_data, success_threshold=0.9):
     """
     Identifies optimal (t, k) combinations that achieve at least the specified success rate.
 
@@ -63,14 +63,11 @@ def find_optimal_parameters(filtered_data, success_threshold=90):
         print(f"No (t, k) combinations achieve a success rate of {success_threshold}%.")
         return pd.DataFrame()
     
-    # Sort by number of guardians (ascending) and threshold (descending)
-    successful_sorted = successful.sort_values(by=['guardians', 'threshold'], ascending=[True, False])
+    # Sort by threshold (descending) and guardians (ascending)
+    successful_sorted = successful.sort_values(by=['threshold', 'guardians'], ascending=[False, True])
     
-    # Drop duplicates to keep the first occurrence of each (k, t) pair
-    optimal = successful_sorted.drop_duplicates(subset=['guardians', 'threshold'])
-    
-    # Select the combination with the smallest k and largest t
-    optimal = optimal.nsmallest(1, ['guardians']).sort_values(by='threshold', ascending=False).head(1)
+    # Select the combination with the largest t and smallest k
+    optimal = successful_sorted.head(1)
     
     return optimal[['threshold', 'guardians', 'successRate']]
 
@@ -158,7 +155,11 @@ def batch_recommendations(data, N_values, fdkgPct_values, retPct_values, success
                 filtered = filter_data(data, N, fdkgPct, retPct)
                 if filtered.empty:
                     continue
-                optimal = find_optimal_parameters(filtered, success_threshold)
+                # Count all successful configurations
+                successful_count = len(filtered[filtered['successRate'] >= (success_threshold / 100)])
+                if successful_count == 0:
+                    continue
+                optimal = find_optimal_parameters(filtered, success_threshold/100)
                 if not optimal.empty:
                     t_opt = optimal['threshold'].values[0]
                     k_opt = optimal['guardians'].values[0]
@@ -169,17 +170,17 @@ def batch_recommendations(data, N_values, fdkgPct_values, retPct_values, success
                         'Tallier Retention (%)': retPct,
                         'Threshold (t)': t_opt,
                         'Number of Guardians (k)': k_opt,
-                        'Success Rate (%)': success
+                        'Success Rate (%)': success,
+                        'Successfull Configurations Count': successful_count
                     })
                     generate_heatmap(filtered, N=N, fdkgPct=fdkgPct, retPct=retPct)
     
     recommendation_df = pd.DataFrame(recommendations)
     return recommendation_df
 
-
 def main():
     # Path to the simulation data CSV (update this path as necessary)
-    graph="BarabasiAlbert" # "RandomGraph" # BarabasiAlbert
+    graph="RandomGraph" # "RandomGraph" # BarabasiAlbert
     filepath = f'../../liveness_sim/simulation_results_nodes_{graph}_100000.csv'
     
     # Load the simulation data
@@ -189,17 +190,18 @@ def main():
 
     # Define parameter ranges for batch recommendations
     N_values = [10, 100, 500, 1_000, 10_000, 100_000]  # Extend as needed
-    fdkgPct_values = [.2, .3, .4, .5, .6, .7, .8]  # Example percentages
+    fdkgPct_values = [.2, .3, .4, .5, .6, .7, .8, .9, 1.0]  # Example percentages
     retPct_values = [0.5, 0.7, 0.9]        # Example percentages
     
+    success_threshold = 99
     # Generate batch recommendations
-    recommendations = batch_recommendations(data, N_values, fdkgPct_values, retPct_values, success_threshold=0.9)
+    recommendations = batch_recommendations(data, N_values, fdkgPct_values, retPct_values, success_threshold=success_threshold)
     
     if not recommendations.empty:
         print("\nBatch Recommendations:")
         print(recommendations)
         # Save to CSV for inclusion in the paper
-        file_name = f'parameter_recommendations_{graph}.csv'
+        file_name = f'parameter_recommendations_2_{graph}_{success_threshold}.csv'
         recommendations.to_csv(file_name, index=False)
         print(f"\nRecommendations saved to {file_name}")
     else:
