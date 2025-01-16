@@ -236,11 +236,11 @@ class NetworkSimulation {
             const isTallier = this.talliersArray[nodeId];
 
             if (isFDKG && isTallier) {
-                newColor = COLOR_GREEN;
+                newColor = '#4CAF50'; // Green for participation in both phases
             } else if (isFDKG) {
-                newColor = COLOR_YELLOW;
+                newColor = '#2196F3'; // Blue for first phase only
             } else if (isTallier) {
-                newColor = COLOR_BLUE;
+                newColor = '#FF9800'; // Orange for second phase only
             }
 
             return {
@@ -341,7 +341,7 @@ if (typeof window !== 'undefined') {
                                 max: 20,
                                 drawThreshold: 8,
                                 maxVisible: 20,
-                              },
+                            },
                         },
                     },
                     edges: {
@@ -360,13 +360,13 @@ if (typeof window !== 'undefined') {
                     physics: {
                         enabled: physicsSwitch?.checked || false,
                         forceAtlas2Based: {
-                            gravitationalConstant: -800, // Adjusted for better node repulsion
+                            gravitationalConstant: -700, // Adjusted for better node repulsion
                             centralGravity: 0.3,
                             springLength: 200, // Modified spring length for optimal spacing
                             springConstant: 0.05, // Adjusted spring constant for balanced edge tension
                         },
                         solver: "forceAtlas2Based",
-                        nodeMass: node => Math.max(1, (node.value as number) * 3), // Slightly reduced node mass
+                        nodeMass: (node: any) => Math.max(1, (node.value as number) * 3), // Slightly reduced node mass
                         maxVelocity: 300,
                         timestep: 0.35,
                         stabilization: { iterations: 10 }, // Increased iterations for better stabilization
