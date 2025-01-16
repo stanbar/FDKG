@@ -310,6 +310,7 @@ if (typeof window !== 'undefined') {
         const retPctSlider = document.getElementById('retPctSlider') as HTMLInputElement;
         const physicsSwitch = document.getElementById('physicsSwitch') as HTMLInputElement;
         const thresholdSlider = document.getElementById('thresholdSlider') as HTMLInputElement;
+        const graphModelSelect = document.getElementById('graphModelSelect') as HTMLSelectElement;
 
         let simulation: NetworkSimulation;
 
@@ -332,12 +333,12 @@ if (typeof window !== 'undefined') {
                             min: 10,
                             max: 50,
                             font: {
-                                size: 16,
+                                size: 11,
                                 color: '#ffffff',
                             },
                             label: {
                                 min: 8,
-                                max: 30,
+                                max: 20,
                                 drawThreshold: 8,
                                 maxVisible: 20,
                               },
@@ -388,7 +389,7 @@ if (typeof window !== 'undefined') {
                 numberOfGuardians: parseInt(guardianSlider.value, 10),
                 threshold: parseInt(thresholdSlider.value, 10),
                 physicsEnabled: physicsSwitch.checked,
-                networkModel: 'BarabasiAlbert',
+                networkModel: graphModelSelect.value as NetworkModel,
             };
         
             simulation = new NetworkSimulation(config, uiHandler);
