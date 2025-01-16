@@ -635,23 +635,45 @@ class NetworkSimulation {
         this.degrees = degrees;
         // Only create visual nodes if we're in UI mode
         if (this.uiHandler?.renderNetwork) {
+            // Determine the maximum node size for normalization
+            const maxNodeSize = Math.max(...this.degrees) || 1;
+            const minEdgeLength = 100; // Minimum edge length
+            const maxEdgeLength = 2000; // Maximum edge length
             for(let i = 0; i < numberOfNodes; i++){
                 const inDegree = degrees[i] - numberOfGuardians;
                 if (inDegree < 0) throw new Error(`Node ${i} has in-degree ${inDegree}`);
                 this.nodes.push({
                     id: i,
-                    label: `Node ${i}`,
+                    label: `Party ${i}`,
                     value: inDegree,
                     color: {
                         background: COLOR_GREY
                     }
                 });
             }
-            // Create edges
-            for(let from = 0; from < numberOfNodes; from++)for (const to of this.adjacencyList[from])this.edges.push({
-                from,
-                to
-            });
+            // Create edges with dynamic lengths based on node sizes
+            for(let from = 0; from < numberOfNodes; from++)for (const to of this.adjacencyList[from]){
+                const fromNode = this.nodes.find((node)=>node.id === from);
+                const toNode = this.nodes.find((node)=>node.id === to);
+                const fromSize = fromNode?.value || 1;
+                const toSize = toNode?.value || 1;
+                // Calculate normalized sizes
+                const normalizedFrom = fromSize / maxNodeSize;
+                const normalizedTo = toSize / maxNodeSize;
+                // Determine edge length based on node sizes
+                let length;
+                if (normalizedFrom > 0.7 && normalizedTo > 0.7) // Both nodes are large
+                length = minEdgeLength;
+                else if (normalizedFrom < 0.3 && normalizedTo < 0.3) // Both nodes are small
+                length = maxEdgeLength;
+                else // One large and one small node
+                length = minEdgeLength + (maxEdgeLength - minEdgeLength) * (1 - normalizedFrom + (1 - normalizedTo)) / 2;
+                this.edges.push({
+                    from,
+                    to,
+                    length
+                });
+            }
             // Update UI if handler exists
             this.uiHandler?.renderNetwork?.();
         }
@@ -745,9 +767,9 @@ class NetworkSimulation {
             let newColor = COLOR_GREY;
             const isFDKG = this.fdkgArray[nodeId];
             const isTallier = this.talliersArray[nodeId];
-            if (isFDKG && isTallier) newColor = COLOR_GREEN;
-            else if (isFDKG) newColor = COLOR_YELLOW;
-            else if (isTallier) newColor = COLOR_BLUE;
+            if (isFDKG && isTallier) newColor = "#4CAF50"; // Green for participation in both phases
+            else if (isFDKG) newColor = "#2196F3"; // Blue for first phase only
+            else if (isTallier) newColor = "#FF9800"; // Orange for second phase only
             return {
                 ...node,
                 color: {
@@ -799,6 +821,7 @@ if (typeof window !== "undefined") document.addEventListener("DOMContentLoaded",
     const retPctSlider = document.getElementById("retPctSlider");
     const physicsSwitch = document.getElementById("physicsSwitch");
     const thresholdSlider = document.getElementById("thresholdSlider");
+    const graphModelSelect = document.getElementById("graphModelSelect");
     let simulation;
     let network;
     // Create UI handler
@@ -814,28 +837,53 @@ if (typeof window !== "undefined") document.addEventListener("DOMContentLoaded",
                     shape: "dot",
                     scaling: {
                         min: 10,
-                        max: 100
-                    },
-                    font: {
-                        size: 16,
-                        color: "#ffffff"
+                        max: 50,
+                        font: {
+                            size: 11,
+                            color: "#ffffff"
+                        },
+                        label: {
+                            min: 8,
+                            max: 20,
+                            drawThreshold: 8,
+                            maxVisible: 20
+                        }
                     }
                 },
                 edges: {
                     arrows: "to",
-                    color: "#848484"
+                    width: 0.1,
+                    color: {
+                        inherit: "from"
+                    },
+                    smooth: {
+                        enabled: true,
+                        type: "continuous",
+                        roundness: 0.5
+                    }
                 },
                 layout: {
-                    randomSeed: 2
+                    improvedLayout: false
                 },
                 physics: {
                     enabled: physicsSwitch?.checked || false,
-                    stabilization: false,
                     forceAtlas2Based: {
-                        springConstant: 0.1
+                        gravitationalConstant: -700,
+                        centralGravity: 0.3,
+                        springLength: 200,
+                        springConstant: 0.05
                     },
-                    maxVelocity: 200,
-                    solver: "forceAtlas2Based"
+                    solver: "forceAtlas2Based",
+                    nodeMass: (node)=>Math.max(1, node.value * 3),
+                    maxVelocity: 300,
+                    timestep: 0.35,
+                    stabilization: {
+                        iterations: 10
+                    },
+                    overlap: {
+                        enabled: true,
+                        avoidOverlap: 0.5
+                    }
                 }
             };
             network = new (0, _visNetwork.Network)(container, {
@@ -850,7 +898,7 @@ if (typeof window !== "undefined") document.addEventListener("DOMContentLoaded",
             numberOfGuardians: parseInt(guardianSlider.value, 10),
             threshold: parseInt(thresholdSlider.value, 10),
             physicsEnabled: physicsSwitch.checked,
-            networkModel: "BarabasiAlbert"
+            networkModel: graphModelSelect.value
         };
         simulation = new NetworkSimulation(config, uiHandler);
         window.simulation = simulation;
