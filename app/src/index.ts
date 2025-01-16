@@ -71,6 +71,11 @@ class NetworkSimulation {
 
         // Only create visual nodes if we're in UI mode
         if (this.uiHandler?.renderNetwork) {
+            // Determine the maximum node size for normalization
+            const maxNodeSize = Math.max(...this.degrees) || 1;
+            const minEdgeLength = 100; // Minimum edge length
+            const maxEdgeLength = 2000; // Maximum edge length
+
             for (let i = 0; i < numberOfNodes; i++) {
                 const inDegree = degrees[i] - numberOfGuardians
                 if (inDegree < 0) {
@@ -78,16 +83,38 @@ class NetworkSimulation {
                 }
                 this.nodes.push({
                     id: i,
-                    label: `Node ${i}`,
+                    label: `Party ${i}`,
                     value: inDegree,
                     color: { background: COLOR_GREY },
                 });
             }
 
-            // Create edges
+            // Create edges with dynamic lengths based on node sizes
             for (let from = 0; from < numberOfNodes; from++) {
                 for (const to of this.adjacencyList[from]) {
-                    this.edges.push({ from, to });
+                    const fromNode = this.nodes.find(node => node.id === from);
+                    const toNode = this.nodes.find(node => node.id === to);
+                    const fromSize = fromNode?.value || 1;
+                    const toSize = toNode?.value || 1;
+
+                    // Calculate normalized sizes
+                    const normalizedFrom = fromSize / maxNodeSize;
+                    const normalizedTo = toSize / maxNodeSize;
+
+                    // Determine edge length based on node sizes
+                    let length: number;
+                    if (normalizedFrom > 0.7 && normalizedTo > 0.7) {
+                        // Both nodes are large
+                        length = minEdgeLength;
+                    } else if (normalizedFrom < 0.3 && normalizedTo < 0.3) {
+                        // Both nodes are small
+                        length = maxEdgeLength;
+                    } else {
+                        // One large and one small node
+                        length = minEdgeLength + (maxEdgeLength - minEdgeLength) * ((1 - normalizedFrom) + (1 - normalizedTo)) / 2;
+                    }
+
+                    this.edges.push({ from, to, length });
                 }
             }
             // Update UI if handler exists
@@ -303,28 +330,49 @@ if (typeof window !== 'undefined') {
                         shape: 'dot',
                         scaling: {
                             min: 10,
-                            max: 100,
-                        },
-                        font: {
-                            size: 16,
-                            color: '#ffffff',
+                            max: 50,
+                            font: {
+                                size: 16,
+                                color: '#ffffff',
+                            },
+                            label: {
+                                min: 8,
+                                max: 30,
+                                drawThreshold: 8,
+                                maxVisible: 20,
+                              },
                         },
                     },
                     edges: {
                         arrows: 'to',
-                        color: '#848484',
+                        width: 0.1,
+                        color: { inherit: "from" },
+                        smooth: {
+                            enabled: true,
+                            type: "continuous",
+                            roundness: 0.5,
+                        },
                     },
                     layout: {
-                        randomSeed: 2,
+                        improvedLayout: false, // Reverted to ForceAtlas2-based layout
                     },
                     physics: {
-                        enabled: physicsSwitch?.checked || false, // Disable physics initially
-                        stabilization: false,
+                        enabled: physicsSwitch?.checked || false,
                         forceAtlas2Based: {
-                            springConstant: 0.1,
+                            gravitationalConstant: -800, // Adjusted for better node repulsion
+                            centralGravity: 0.3,
+                            springLength: 200, // Modified spring length for optimal spacing
+                            springConstant: 0.05, // Adjusted spring constant for balanced edge tension
                         },
-                        maxVelocity: 200,
                         solver: "forceAtlas2Based",
+                        nodeMass: node => Math.max(1, (node.value as number) * 3), // Slightly reduced node mass
+                        maxVelocity: 300,
+                        timestep: 0.35,
+                        stabilization: { iterations: 10 }, // Increased iterations for better stabilization
+                        overlap: {
+                            enabled: true, // Enabled overlap prevention
+                            avoidOverlap: 0.5, // Adjusted overlap avoidance factor
+                        },
                     },
                 };
 
