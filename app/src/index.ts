@@ -6,10 +6,9 @@ type NodeID = number;
 
 // Color constants
 const COLOR_GREY = 'grey';
-const COLOR_YELLOW = 'yellow';
-const COLOR_GREEN = '#4D7A3A';
-const COLOR_BLUE = '#0000EC';
-const COLOR_HIGHLIGHT = '#00FF00'; // Bright green for decipherable nodes
+const FDKG_AND_TALLIER = '#4CAF50'
+const FDKG = '#2196F3'
+const TALLIER = '#FF9800'
 
 export type NetworkModel = "BarabasiAlbert" | "RandomGraph";
 // Configuration interface for both UI and CLI usage
@@ -235,12 +234,14 @@ class NetworkSimulation {
             const isFDKG = this.fdkgArray[nodeId];
             const isTallier = this.talliersArray[nodeId];
 
+            
+
             if (isFDKG && isTallier) {
-                newColor = '#4CAF50'; // Green for participation in both phases
+                newColor = FDKG_AND_TALLIER; // Green for participation in both phases
             } else if (isFDKG) {
-                newColor = '#2196F3'; // Blue for first phase only
+                newColor = FDKG; // Blue for first phase only
             } else if (isTallier) {
-                newColor = '#FF9800'; // Orange for second phase only
+                newColor = TALLIER; // Orange for second phase only
             }
 
             return {
