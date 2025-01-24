@@ -39,7 +39,7 @@ def generate_heatmap(parameters_recommendations_df, optimal_configurations_df, n
     for n_value, pivoted_df in pivoted_dfs.items():
         for row_index, row in pivoted_df.iterrows():
             row_dict = {'Number of nodes': n_value, 'Retention Percentage\\FDKG Percentage': row_index}
-            row_dict.update({int(col * 100): value for col, value in row.items()})
+            row_dict.update({col: value for col, value in row.items()})
             output_rows.append(row_dict)
 
     # Create the final output DataFrame
@@ -127,6 +127,7 @@ def generate_heatmap(parameters_recommendations_df, optimal_configurations_df, n
 
     # Plot the heatmap with values overlaid and detailed caption
     plt.figure(figsize=(15, 10))
+    plt.rcParams.update({"font.size": 14})
     sns.heatmap(
         heatmap_df_sorted, 
         cmap='YlGnBu', 
@@ -136,12 +137,13 @@ def generate_heatmap(parameters_recommendations_df, optimal_configurations_df, n
         square=False, 
         annot=optimal_config_heatmap_df_sorted, 
         fmt='s', 
-        cbar_kws={'label': 'Count of successful unique (k,t) configurations'}
+        cbar_kws={'label': 'Count of successful unique (k,t) configurations'},
+        vmax=36
     )
 
     plt.title(f'Heatmap of Successful Configurations Count and Optimal (k,t) Configurations for {network_type}')
-    plt.xlabel('FDKG Participation (%)')
-    plt.ylabel('Tallier Retention (%) & N')
+    plt.xlabel('p')
+    plt.ylabel('r & n')
     plt.xticks(rotation=45, ha='right')
     plt.yticks(rotation=0)
 
@@ -172,4 +174,6 @@ if __name__ == "__main__":
         parameters_recommendations_df = pd.read_csv("parameter_recommendations_2_RandomGraph_99.csv")
         optimal_configurations_df  = pd.read_csv("optimals_RN_99.csv")
 
-    generate_heatmap(parameters_recommendations_df, optimal_configurations_df, network_type='BarabasiAlbert')
+    parameters_recommendations_df['FDKG Participation (%)'] /= 100
+    parameters_recommendations_df['Tallier Retention (%)'] /= 100
+    generate_heatmap(parameters_recommendations_df, optimal_configurations_df, network_type)
