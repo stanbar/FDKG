@@ -34,9 +34,7 @@ struct ExperimentResult {
 
 struct NetworkSimulation {
     number_of_nodes: usize,
-    number_of_guardians: usize,
     threshold: usize,
-    network_model: NetworkModel,
 
     fdkg_array: Vec<bool>,
     talliers_array: Vec<bool>,
@@ -45,10 +43,7 @@ struct NetworkSimulation {
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
-    let node_ranges = [10, 100, 1_000, 10_000, 100_000];
-
-    // Example parameter sets
-    // let guardian_ranges = [1, 2, 3, 4, 5, 6, 7, 8];
+    let node_ranges = [10, 100, 1_000, 10_000];
     let fdkg_percentages = [0.2, 0.4, 0.6, 0.8, 1.0];
     let tallier_returning_percentages = [0.5, 0.7, 0.9, 1.0];
     let tallier_new_percentages = [0.0]; 
@@ -75,7 +70,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         println!("Starting simulations for {} nodes...", nodes);
 
         let mut configurations = Vec::new();
-        for guardians in 1..=std::cmp::min(nodes-1, 100) {
+        for guardians in 1..=std::cmp::min(nodes-1, 50) {
             for threshold in 1..=guardians {
             for &fdkg_pct in &fdkg_percentages {
                 for &tallier_ret_pct in &tallier_returning_percentages {
@@ -188,9 +183,7 @@ impl NetworkSimulation {
 
         NetworkSimulation {
             number_of_nodes,
-            number_of_guardians,
             threshold,
-            network_model,
             fdkg_array,
             talliers_array,
             adjacency_list,
