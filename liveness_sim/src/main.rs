@@ -53,7 +53,20 @@ fn main() -> Result<(), Box<dyn Error>> {
     let tallier_returning_percentages = [0.5, 0.7, 0.9, 1.0];
     let tallier_new_percentages = [0.0]; 
 
-    let network_model = NetworkModel::BarabasiAlbert;
+    let args: Vec<String> = std::env::args().collect();
+    if args.len() < 2 {
+        eprintln!("Usage: {} <BA|RN>", args[0]);
+        std::process::exit(1);
+    }
+
+    let network_model = match args[1].as_str() {
+        "BA" => NetworkModel::BarabasiAlbert,
+        "RN" => NetworkModel::RandomGraph,
+        _ => {
+            eprintln!("Invalid argument: {}. Must be BA or RN.", args[1]);
+            std::process::exit(1);
+        }
+    };
     let iterations_per_config = 1000;
 
     let mut results = Vec::new();
