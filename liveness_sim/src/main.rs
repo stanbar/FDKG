@@ -45,12 +45,12 @@ struct NetworkSimulation {
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
-    let node_ranges = [10, 100, 500, 1_000, 10_000, 100_000];
+    let node_ranges = [10, 100, 1_000, 10_000, 100_000];
 
     // Example parameter sets
-    let guardian_ranges = [1, 2, 3, 4, 5, 6, 7, 8];
-    let fdkg_percentages = [0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0];
-    let tallier_returning_percentages = [0.5, 0.7, 0.9];
+    // let guardian_ranges = [1, 2, 3, 4, 5, 6, 7, 8];
+    let fdkg_percentages = [0.2, 0.4, 0.6, 0.8, 1.0];
+    let tallier_returning_percentages = [0.5, 0.7, 0.9, 1.0];
     let tallier_new_percentages = [0.0]; 
 
     let network_model = NetworkModel::BarabasiAlbert;
@@ -62,25 +62,22 @@ fn main() -> Result<(), Box<dyn Error>> {
         println!("Starting simulations for {} nodes...", nodes);
 
         let mut configurations = Vec::new();
-        for &guardians in &guardian_ranges {
-            if guardians >= nodes {
-                continue;
-            }
+        for guardians in 1..=std::cmp::min(nodes-1, 100) {
             for threshold in 1..=guardians {
-                for &fdkg_pct in &fdkg_percentages {
-                    for &tallier_ret_pct in &tallier_returning_percentages {
-                        for &tallier_new_pct in &tallier_new_percentages {
-                            configurations.push(Config {
-                                nodes,
-                                guardians,
-                                threshold,
-                                fdkg_pct,
-                                tallier_ret_pct,
-                                tallier_new_pct,
-                            });
-                        }
-                    }
+            for &fdkg_pct in &fdkg_percentages {
+                for &tallier_ret_pct in &tallier_returning_percentages {
+                for &tallier_new_pct in &tallier_new_percentages {
+                    configurations.push(Config {
+                    nodes,
+                    guardians,
+                    threshold,
+                    fdkg_pct,
+                    tallier_ret_pct,
+                    tallier_new_pct,
+                    });
                 }
+                }
+            }
             }
         }
 
@@ -138,7 +135,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             NetworkModel::BarabasiAlbert => "BarabasiAlbert",
             NetworkModel::RandomGraph => "RandomGraph",
         };
-        let intermediate_file_name = format!("simulation_results_nodes_{}_{}.csv", network_model_name, nodes);
+        let intermediate_file_name = format!("full_simulation_results_nodes_{}_{}.csv", network_model_name, nodes);
         let mut file = File::create(&intermediate_file_name)?;
         writeln!(file, "nodes,guardians,threshold,fdkgPercentage,tallierRetPct,tallierNewPct,successRate")?;
         for r in &results {
