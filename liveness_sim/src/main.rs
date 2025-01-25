@@ -203,7 +203,7 @@ impl NetworkSimulation {
         let (adjacency_list, degrees) = match network_model {
             NetworkModel::BarabasiAlbert => generate_barabasi_albert_graph(number_of_nodes, number_of_guardians),
             NetworkModel::RandomGraph => generate_random_graph(number_of_nodes, number_of_guardians),
-            NetworkModel::DKG => generate_random_graph(number_of_nodes, number_of_guardians),
+            NetworkModel::DKG => generate_full_graph(number_of_nodes),
         };
 
         NetworkSimulation {
@@ -365,6 +365,22 @@ fn generate_random_graph(
     }
 
     let adjacency_list = build_adjacency_list(&edges, number_of_nodes);
+    (adjacency_list, degrees)
+}
+fn generate_full_graph(
+    number_of_nodes: usize,
+) -> (Vec<Vec<usize>>, Vec<usize>) {
+    let mut adjacency_list = vec![Vec::with_capacity(number_of_nodes - 1); number_of_nodes];
+    let degrees = vec![number_of_nodes - 1; number_of_nodes];
+
+    for i in 0..number_of_nodes {
+        for j in 0..number_of_nodes {
+            if i != j {
+                adjacency_list[i].push(j);
+            }
+        }
+    }
+
     (adjacency_list, degrees)
 }
 
