@@ -11,6 +11,7 @@ use std::sync::Arc;
 enum NetworkModel {
     BarabasiAlbert,
     RandomGraph,
+    DKG,
 }
 
 struct Config {
@@ -43,11 +44,6 @@ struct NetworkSimulation {
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
-    let node_ranges = [10, 100, 1_000, 10_000];
-    let fdkg_percentages = [0.2, 0.4, 0.6, 0.8, 1.0];
-    let tallier_returning_percentages = [0.5, 0.7, 0.9, 1.0];
-    let tallier_new_percentages = [0.0]; 
-
     let args: Vec<String> = std::env::args().collect();
     if args.len() < 2 {
         eprintln!("Usage: {} <BA|RN>", args[0]);
@@ -57,11 +53,18 @@ fn main() -> Result<(), Box<dyn Error>> {
     let network_model = match args[1].as_str() {
         "BA" => NetworkModel::BarabasiAlbert,
         "RN" => NetworkModel::RandomGraph,
+        "DKG" => NetworkModel::DKG,
         _ => {
             eprintln!("Invalid argument: {}. Must be BA or RN.", args[1]);
             std::process::exit(1);
         }
     };
+
+    let node_ranges = [10, 100, 1_000, 10_000];
+    let fdkg_percentages = [0.2, 0.4, 0.6, 0.8, 1.0];
+    let tallier_returning_percentages = [0.5, 0.7, 0.9, 1.0];
+    let tallier_new_percentages = [0.0]; 
+
     let iterations_per_config = 1000;
 
     let mut results = Vec::new();
@@ -70,22 +73,42 @@ fn main() -> Result<(), Box<dyn Error>> {
         println!("Starting simulations for {} nodes...", nodes);
 
         let mut configurations = Vec::new();
-        for guardians in 1..=std::cmp::min(nodes-1, 50) {
+        if let NetworkModel::DKG = network_model {
+            let guardians = nodes - 1;
             for threshold in 1..=guardians {
-            for &fdkg_pct in &fdkg_percentages {
-                for &tallier_ret_pct in &tallier_returning_percentages {
-                for &tallier_new_pct in &tallier_new_percentages {
-                    configurations.push(Config {
-                    nodes,
-                    guardians,
-                    threshold,
-                    fdkg_pct,
-                    tallier_ret_pct,
-                    tallier_new_pct,
-                    });
-                }
+                for &fdkg_pct in &fdkg_percentages {
+                    for &tallier_ret_pct in &tallier_returning_percentages {
+                        for &tallier_new_pct in &tallier_new_percentages {
+                            configurations.push(Config {
+                                nodes,
+                                guardians,
+                                threshold,
+                                fdkg_pct,
+                                tallier_ret_pct,
+                                tallier_new_pct,
+                            });
+                        }
+                    }
                 }
             }
+        } else {
+            for guardians in 1..=std::cmp::min(nodes - 1, 50) {
+                for threshold in 1..=guardians {
+                    for &fdkg_pct in &fdkg_percentages {
+                        for &tallier_ret_pct in &tallier_returning_percentages {
+                            for &tallier_new_pct in &tallier_new_percentages {
+                                configurations.push(Config {
+                                    nodes,
+                                    guardians,
+                                    threshold,
+                                    fdkg_pct,
+                                    tallier_ret_pct,
+                                    tallier_new_pct,
+                                });
+                            }
+                        }
+                    }
+                }
             }
         }
 
@@ -142,6 +165,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         let network_model_name = match network_model {
             NetworkModel::BarabasiAlbert => "BarabasiAlbert",
             NetworkModel::RandomGraph => "RandomGraph",
+            NetworkModel::DKG => "DKG",
         };
         let intermediate_file_name = format!("full_simulation_results_nodes_{}_{}.csv", network_model_name, nodes);
         let mut file = File::create(&intermediate_file_name)?;
@@ -179,6 +203,7 @@ impl NetworkSimulation {
         let (adjacency_list, degrees) = match network_model {
             NetworkModel::BarabasiAlbert => generate_barabasi_albert_graph(number_of_nodes, number_of_guardians),
             NetworkModel::RandomGraph => generate_random_graph(number_of_nodes, number_of_guardians),
+            NetworkModel::DKG => generate_random_graph(number_of_nodes, number_of_guardians),
         };
 
         NetworkSimulation {
