@@ -60,9 +60,11 @@ fn main() -> Result<(), Box<dyn Error>> {
         }
     };
 
-    let node_ranges = [10, 100, 1_000, 10_000];
-    let fdkg_percentages = [0.2, 0.4, 0.6, 0.8, 1.0];
-    let tallier_returning_percentages = [0.5, 0.7, 0.9, 1.0];
+    let node_ranges: Vec<usize> = (10..=100).step_by(10).collect();
+    // let fdkg_percentages = [0.0, 0.1, 0.2, 0.3, 0.4,0.5, 0.6,0.7, 0.8,0.9, 1.0];
+    let fdkg_percentages: Vec<f64> = (0..=10).map(|x| x as f64 * 0.1).collect();
+    // let tallier_returning_percentages = [0.0, 0.1, 0.2, 0.3, 0.4,0.5, 0.6,0.7, 0.8,0.9, 1.0];
+    let tallier_returning_percentages: Vec<f64> = (0..=10).map(|x| x as f64 * 0.1).collect();
     let tallier_new_percentages = [0.0]; 
 
     let iterations_per_config = 1000;
@@ -92,7 +94,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                 }
             }
         } else {
-            for guardians in 1..=std::cmp::min(nodes - 1, 50) {
+            for guardians in 1..=std::cmp::min(nodes - 1, 100) {
                 for threshold in 1..=guardians {
                     for &fdkg_pct in &fdkg_percentages {
                         for &tallier_ret_pct in &tallier_returning_percentages {
