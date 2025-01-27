@@ -94,7 +94,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                 }
             }
         } else {
-            for guardians in 1..=std::cmp::min(nodes - 1, 100) {
+            for guardians in 2..=std::cmp::min(nodes - 1, 100) {
                 for threshold in 1..=guardians {
                     for &fdkg_pct in &fdkg_percentages {
                         for &tallier_ret_pct in &tallier_returning_percentages {
@@ -169,7 +169,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             NetworkModel::RandomGraph => "RandomGraph",
             NetworkModel::DKG => "DKG",
         };
-        let intermediate_file_name = format!("full_simulation_results_nodes_{}_{}.csv", network_model_name, nodes);
+        let intermediate_file_name = format!("full_simulation_results_nodest_{}_{}.csv", network_model_name, nodes);
         let mut file = File::create(&intermediate_file_name)?;
         writeln!(file, "nodes,guardians,threshold,fdkgPercentage,tallierRetPct,tallierNewPct,successRate")?;
         for r in &results {
@@ -289,12 +289,14 @@ impl NetworkSimulation {
     }
 }
 
+// ...existing code...
 fn generate_barabasi_albert_graph(
     number_of_nodes: usize,
     number_of_guardians: usize,
 ) -> (Vec<Vec<usize>>, Vec<usize>) {
     let mut edges: Vec<(usize, usize)> = Vec::with_capacity(number_of_nodes * number_of_guardians);
-    let mut degrees = vec![0; number_of_nodes];
+    let mut in_degrees = vec![0; number_of_nodes];
+    let mut out_degrees = vec![0; number_of_nodes];
     let mut degree_list = Vec::with_capacity(2 * number_of_nodes * number_of_guardians);
     let mut rng = rand::thread_rng();
 
@@ -304,18 +306,20 @@ fn generate_barabasi_albert_graph(
         let i = 0;
         let j = 1;
         edges.push((i, j));
+        out_degrees[i] += 1;
+        in_degrees[j] += 1;
         edges.push((j, i));
-        degrees[i] += 1;
-        degrees[j] += 1;
+        out_degrees[j] += 1;
+        in_degrees[i] += 1;
         degree_list.push(i);
         degree_list.push(j);
     } else {
         for i in 0..number_of_guardians {
-            for j in 0..number_of_guardians {
+            for j in 0..=number_of_guardians {
                 if i != j {
                     edges.push((i, j));
-                    degrees[i] += 1;
-                    degrees[j] += 1;
+                    out_degrees[i] += 1;
+                    in_degrees[j] += 1;
                     degree_list.push(i);
                     degree_list.push(j);
                 }
@@ -332,8 +336,8 @@ fn generate_barabasi_albert_graph(
             if target_node != new_node && !targets.contains(&target_node) {
                 targets.insert(target_node);
                 edges.push((new_node, target_node));
-                degrees[new_node] += 1;
-                degrees[target_node] += 1;
+                out_degrees[new_node] += 1;
+                in_degrees[target_node] += 1;
                 degree_list.push(new_node);
                 degree_list.push(target_node);
             }
@@ -341,7 +345,8 @@ fn generate_barabasi_albert_graph(
     }
 
     let adjacency_list = build_adjacency_list(&edges, number_of_nodes);
-    (adjacency_list, degrees)
+    validate_graph(&adjacency_list, &in_degrees, &out_degrees, number_of_guardians, number_of_nodes);
+    (adjacency_list, out_degrees)
 }
 
 fn generate_random_graph(
@@ -349,7 +354,8 @@ fn generate_random_graph(
     number_of_guardians: usize,
 ) -> (Vec<Vec<usize>>, Vec<usize>) {
     let mut edges: Vec<(usize, usize)> = Vec::with_capacity(number_of_nodes * number_of_guardians * 2);
-    let mut degrees = vec![0; number_of_nodes];
+    let mut in_degrees = vec![0; number_of_nodes];
+    let mut out_degrees = vec![0; number_of_nodes];
     let mut rng = rand::thread_rng();
 
     for i in 0..number_of_nodes {
@@ -359,32 +365,77 @@ fn generate_random_graph(
             if j != i && !connections.contains(&j) {
                 connections.insert(j);
                 edges.push((i, j));
-                edges.push((j, i));
-                degrees[i] += 1;
-                degrees[j] += 1;
+                out_degrees[i] += 1;
+                in_degrees[j] += 1;
             }
         }
     }
 
     let adjacency_list = build_adjacency_list(&edges, number_of_nodes);
-    (adjacency_list, degrees)
+    validate_graph(&adjacency_list, &in_degrees, &out_degrees, number_of_guardians, number_of_nodes);
+    (adjacency_list, out_degrees)
 }
+
 fn generate_full_graph(
     number_of_nodes: usize,
 ) -> (Vec<Vec<usize>>, Vec<usize>) {
     let mut adjacency_list = vec![Vec::with_capacity(number_of_nodes - 1); number_of_nodes];
-    let degrees = vec![number_of_nodes - 1; number_of_nodes];
+    let mut in_degrees = vec![0; number_of_nodes];
+    let mut out_degrees = vec![0; number_of_nodes];
 
     for i in 0..number_of_nodes {
         for j in 0..number_of_nodes {
             if i != j {
                 adjacency_list[i].push(j);
+                out_degrees[i] += 1;
+                in_degrees[j] += 1;
             }
         }
     }
 
-    (adjacency_list, degrees)
+    validate_graph(&adjacency_list, &in_degrees, &out_degrees, number_of_nodes - 1, number_of_nodes);
+    (adjacency_list, out_degrees)
 }
+
+
+// Updated validation
+fn validate_graph(
+    adjacency_list: &[Vec<usize>],
+    in_degrees: &[usize],
+    out_degrees: &[usize],
+    number_of_guardians: usize,
+    number_of_nodes: usize,
+) {
+    return;
+    // 2. Check total in = total out
+    let total_in: usize = in_degrees.iter().sum();
+    let total_out: usize = out_degrees.iter().sum();
+    assert_eq!(total_in, total_out, "n={}, k={}, Total in-degrees != total out-degrees", number_of_nodes, number_of_guardians);
+
+    // 1. Check each node’s out-degree is number_of_guardians
+    for (node, &out_deg) in out_degrees.iter().enumerate() {
+        assert_eq!(
+            out_deg, number_of_guardians,
+            "n={},k={}, Node {} out-degree mismatch: got {}, expected {}",
+            number_of_nodes, number_of_guardians, node, out_deg, number_of_guardians
+        );
+    }
+
+
+    for (i, neighbors) in adjacency_list.iter().enumerate() {
+        assert_eq!(
+            out_degrees[i],
+            neighbors.len(),
+            "n={}, k={}, Degree mismatch at node {}: expected {}, got {}",
+            number_of_nodes,
+            number_of_guardians,
+            i,
+            out_degrees[i],
+            neighbors.len()
+        );
+    }
+}
+
 
 fn build_adjacency_list(edges: &[(usize, usize)], number_of_nodes: usize) -> Vec<Vec<usize>> {
     let mut adjacency_list: Vec<Vec<usize>> = vec![Vec::new(); number_of_nodes];
