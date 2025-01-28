@@ -169,7 +169,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             NetworkModel::RandomGraph => "RandomGraph",
             NetworkModel::DKG => "DKG",
         };
-        let intermediate_file_name = format!("full_simulation_results_nodest_{}_{}.csv", network_model_name, nodes);
+        let intermediate_file_name = format!("full_simulation_results_nodes_{}_{}.csv", network_model_name, nodes);
         let mut file = File::create(&intermediate_file_name)?;
         writeln!(file, "nodes,guardians,threshold,fdkgPercentage,tallierRetPct,tallierNewPct,successRate")?;
         for r in &results {
