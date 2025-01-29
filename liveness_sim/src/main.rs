@@ -92,8 +92,8 @@ fn main() -> Result<(), Box<dyn Error>> {
                 }
             }
         } else {
-            for guardians in (2..=nodes - 1).step_by(std::cmp::max(10, (nodes - 1) / 10)) {
-                for threshold in (1..=guardians).step_by(std::cmp::max(1, guardians / 10)) {
+            for guardians in (2..=nodes - 1).step_by(std::cmp::max(5, (nodes - 1) / 20)) {
+                for threshold in (1..=guardians).step_by(std::cmp::max(1, guardians / 20)) {
                     for &fdkg_pct in &fdkg_percentages {
                         for &tallier_ret_pct in &tallier_returning_percentages {
                             for &tallier_new_pct in &tallier_new_percentages {
