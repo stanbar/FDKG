@@ -60,12 +60,15 @@ fn main() -> Result<(), Box<dyn Error>> {
         }
     };
 
-    let node_ranges: Vec<usize> = vec![200, 500, 1000];
-    let fdkg_percentages = [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0];
-    let tallier_returning_percentages = [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0];
+    let node_ranges: Vec<usize> = vec![100, 200, 300, 400, 500, 600, 700, 800, 900, 1000];
+    // let node_ranges: Vec<usize> = vec![2_000];
+    // let fdkg_percentages = [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0];
+    let fdkg_percentages = [0.8, 1.0];
+    // let tallier_returning_percentages = [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0];
+    let tallier_returning_percentages = [0.7, 0.9, 1.0];
     let tallier_new_percentages = [0.0]; 
 
-    let iterations_per_config = 1000;
+    let iterations_per_config = 100;
 
     let mut results = Vec::new();
 
@@ -92,8 +95,24 @@ fn main() -> Result<(), Box<dyn Error>> {
                 }
             }
         } else {
-            for guardians in (2..=nodes - 1).step_by(std::cmp::max(5, (nodes - 1) / 20)) {
-                for threshold in (1..=guardians).step_by(std::cmp::max(1, guardians / 20)) {
+
+            let step = nodes / 10;
+            // Collect guardians in steps of 10
+            let mut guardian_values: Vec<usize> = (step..=nodes - 1).step_by(step).collect();
+            // Ensure the last value (nodes-1) is included
+            if guardian_values.last() != Some(&(nodes - 1)) {
+                guardian_values.push(nodes - 1);
+            }
+
+            for &guardians in &guardian_values {
+                let step_thr = std::cmp::max(1, std::cmp::max(1, guardians / 20));
+                let mut threshold_values: Vec<usize> = (1..=guardians).step_by(step_thr).collect();
+                // Ensure guardians is included if larger than last stepping
+                if threshold_values.last() != Some(&guardians) {
+                    threshold_values.push(guardians);
+                }
+
+                for &threshold in &threshold_values {
                     for &fdkg_pct in &fdkg_percentages {
                         for &tallier_ret_pct in &tallier_returning_percentages {
                             for &tallier_new_pct in &tallier_new_percentages {
