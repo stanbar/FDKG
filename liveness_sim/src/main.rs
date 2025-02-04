@@ -60,13 +60,16 @@ fn main() -> Result<(), Box<dyn Error>> {
         }
     };
 
-    let node_ranges: Vec<usize> = vec![100, 200, 300, 400, 500, 600, 700, 800, 900, 1000];
-    // let node_ranges: Vec<usize> = vec![2_000];
-    // let fdkg_percentages = [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0];
-    let fdkg_percentages = [0.8, 1.0];
-    // let tallier_returning_percentages = [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0];
-    let tallier_returning_percentages = [0.7, 0.9, 1.0];
-    let tallier_new_percentages = [0.0]; 
+    let node_ranges: Vec<usize> = vec![50, 100, 150, 200, 250, 300, 350, 400, 500, 600, 700, 800, 900, 1000];
+    let fdkg_percentages = [0.5, 0.8, 1.0];
+    let tallier_returning_percentages = [0.5, 0.7, 0.9, 1.0];
+    let tallier_new_percentages = [0.0];
+
+    let guardian_fractions = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0];
+    let threshold_fractions = [
+        0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8,
+        0.85, 0.9, 0.95, 1.0,
+    ];
 
     let iterations_per_config = 100;
 
@@ -95,22 +98,35 @@ fn main() -> Result<(), Box<dyn Error>> {
                 }
             }
         } else {
-
-            let step = nodes / 10;
-            // Collect guardians in steps of 10
-            let mut guardian_values: Vec<usize> = (step..=nodes - 1).step_by(step).collect();
-            // Ensure the last value (nodes-1) is included
-            if guardian_values.last() != Some(&(nodes - 1)) {
+            let mut guardian_values: Vec<usize> = guardian_fractions
+                .iter()
+                .map(|frac| ((nodes as f64) * frac).round() as usize)
+                // clamp within [1..=nodes-1], ignoring 0 or > (nodes-1)
+                .filter(|&g| g >= 1 && g <= nodes - 1)
+                .collect();
+            if nodes > 1 && !guardian_values.contains(&(nodes - 1)) {
                 guardian_values.push(nodes - 1);
             }
 
+            // Remove duplicates, sort ascending
+            guardian_values.sort_unstable();
+            guardian_values.dedup();
+
             for &guardians in &guardian_values {
-                let step_thr = std::cmp::max(1, std::cmp::max(1, guardians / 20));
-                let mut threshold_values: Vec<usize> = (1..=guardians).step_by(step_thr).collect();
-                // Ensure guardians is included if larger than last stepping
-                if threshold_values.last() != Some(&guardians) {
+                // For thresholds: convert fractions to integers
+                let mut threshold_values: Vec<usize> = threshold_fractions
+                    .iter()
+                    .map(|frac| ((guardians as f64) * frac).round() as usize)
+                    .filter(|&t| t >= 1 && t <= guardians)
+                    .collect();
+
+                // Optionally ensure threshold == guardians is included
+                if !threshold_values.contains(&guardians) {
                     threshold_values.push(guardians);
                 }
+
+                threshold_values.sort_unstable();
+                threshold_values.dedup();
 
                 for &threshold in &threshold_values {
                     for &fdkg_pct in &fdkg_percentages {
@@ -129,6 +145,11 @@ fn main() -> Result<(), Box<dyn Error>> {
                     }
                 }
             }
+        }
+        // Example check: how many configs per node?
+        for &nodes in &node_ranges {
+            let count = configurations.iter().filter(|c| c.nodes == nodes).count();
+            println!("nodes = {}, configs = {}", nodes, count);
         }
 
         // Set up a progress bar for all configs * iterations
@@ -154,8 +175,13 @@ fn main() -> Result<(), Box<dyn Error>> {
                             network_model,
                         );
                         simulation.select_fdkg_set(config.fdkg_pct);
-                        simulation.select_talliers_set(config.tallier_ret_pct, config.tallier_new_pct);
-                        let res = if simulation.check_decipherability() { 1 } else { 0 };
+                        simulation
+                            .select_talliers_set(config.tallier_ret_pct, config.tallier_new_pct);
+                        let res = if simulation.check_decipherability() {
+                            1
+                        } else {
+                            0
+                        };
 
                         // Increment progress
                         progress_count.fetch_add(1, Ordering::Relaxed);
@@ -186,9 +212,15 @@ fn main() -> Result<(), Box<dyn Error>> {
             NetworkModel::RandomGraph => "RandomGraph",
             NetworkModel::DKG => "DKG",
         };
-        let intermediate_file_name = format!("full_simulation_results_nodes_{}_{}.csv", network_model_name, nodes);
+        let intermediate_file_name = format!(
+            "full_simulation_results_nodes_{}_{}.csv",
+            network_model_name, nodes
+        );
         let mut file = File::create(&intermediate_file_name)?;
-        writeln!(file, "nodes,guardians,threshold,fdkgPercentage,tallierRetPct,tallierNewPct,successRate")?;
+        writeln!(
+            file,
+            "nodes,guardians,threshold,fdkgPercentage,tallierRetPct,tallierNewPct,successRate"
+        )?;
         for r in &results {
             writeln!(
                 file,
@@ -220,8 +252,12 @@ impl NetworkSimulation {
         let talliers_array = vec![false; number_of_nodes];
 
         let (adjacency_list, degrees) = match network_model {
-            NetworkModel::BarabasiAlbert => generate_barabasi_albert_graph(number_of_nodes, number_of_guardians),
-            NetworkModel::RandomGraph => generate_random_graph(number_of_nodes, number_of_guardians),
+            NetworkModel::BarabasiAlbert => {
+                generate_barabasi_albert_graph(number_of_nodes, number_of_guardians)
+            }
+            NetworkModel::RandomGraph => {
+                generate_random_graph(number_of_nodes, number_of_guardians)
+            }
             NetworkModel::DKG => generate_full_graph(number_of_nodes),
         };
 
@@ -291,10 +327,12 @@ impl NetworkSimulation {
         }
 
         let ret_size = (fdkg_indices.len() as f64 * ret_pct).floor() as usize;
-        let talliers_from_fdkg_set = select_nodes_by_degree_subset(&fdkg_indices, &self.degrees, ret_size);
+        let talliers_from_fdkg_set =
+            select_nodes_by_degree_subset(&fdkg_indices, &self.degrees, ret_size);
 
         let new_size = (non_fdkg_indices.len() as f64 * new_pct).floor() as usize;
-        let talliers_from_non_fdkg_set = select_nodes_by_degree_subset(&non_fdkg_indices, &self.degrees, new_size);
+        let talliers_from_non_fdkg_set =
+            select_nodes_by_degree_subset(&non_fdkg_indices, &self.degrees, new_size);
 
         self.talliers_array.fill(false);
         for &id in &talliers_from_fdkg_set {
@@ -362,7 +400,13 @@ fn generate_barabasi_albert_graph(
     }
 
     let adjacency_list = build_adjacency_list(&edges, number_of_nodes);
-    validate_graph(&adjacency_list, &in_degrees, &out_degrees, number_of_guardians, number_of_nodes);
+    validate_graph(
+        &adjacency_list,
+        &in_degrees,
+        &out_degrees,
+        number_of_guardians,
+        number_of_nodes,
+    );
     (adjacency_list, out_degrees)
 }
 
@@ -370,7 +414,8 @@ fn generate_random_graph(
     number_of_nodes: usize,
     number_of_guardians: usize,
 ) -> (Vec<Vec<usize>>, Vec<usize>) {
-    let mut edges: Vec<(usize, usize)> = Vec::with_capacity(number_of_nodes * number_of_guardians * 2);
+    let mut edges: Vec<(usize, usize)> =
+        Vec::with_capacity(number_of_nodes * number_of_guardians * 2);
     let mut in_degrees = vec![0; number_of_nodes];
     let mut out_degrees = vec![0; number_of_nodes];
     let mut rng = rand::thread_rng();
@@ -389,13 +434,17 @@ fn generate_random_graph(
     }
 
     let adjacency_list = build_adjacency_list(&edges, number_of_nodes);
-    validate_graph(&adjacency_list, &in_degrees, &out_degrees, number_of_guardians, number_of_nodes);
+    validate_graph(
+        &adjacency_list,
+        &in_degrees,
+        &out_degrees,
+        number_of_guardians,
+        number_of_nodes,
+    );
     (adjacency_list, out_degrees)
 }
 
-fn generate_full_graph(
-    number_of_nodes: usize,
-) -> (Vec<Vec<usize>>, Vec<usize>) {
+fn generate_full_graph(number_of_nodes: usize) -> (Vec<Vec<usize>>, Vec<usize>) {
     let mut adjacency_list = vec![Vec::with_capacity(number_of_nodes - 1); number_of_nodes];
     let mut in_degrees = vec![0; number_of_nodes];
     let mut out_degrees = vec![0; number_of_nodes];
@@ -410,10 +459,15 @@ fn generate_full_graph(
         }
     }
 
-    validate_graph(&adjacency_list, &in_degrees, &out_degrees, number_of_nodes - 1, number_of_nodes);
+    validate_graph(
+        &adjacency_list,
+        &in_degrees,
+        &out_degrees,
+        number_of_nodes - 1,
+        number_of_nodes,
+    );
     (adjacency_list, out_degrees)
 }
-
 
 // Updated validation
 fn validate_graph(
@@ -427,7 +481,11 @@ fn validate_graph(
     // 2. Check total in = total out
     let total_in: usize = in_degrees.iter().sum();
     let total_out: usize = out_degrees.iter().sum();
-    assert_eq!(total_in, total_out, "n={}, k={}, Total in-degrees != total out-degrees", number_of_nodes, number_of_guardians);
+    assert_eq!(
+        total_in, total_out,
+        "n={}, k={}, Total in-degrees != total out-degrees",
+        number_of_nodes, number_of_guardians
+    );
 
     // 1. Check each node’s out-degree is number_of_guardians
     for (node, &out_deg) in out_degrees.iter().enumerate() {
@@ -437,7 +495,6 @@ fn validate_graph(
             number_of_nodes, number_of_guardians, node, out_deg, number_of_guardians
         );
     }
-
 
     for (i, neighbors) in adjacency_list.iter().enumerate() {
         assert_eq!(
@@ -452,7 +509,6 @@ fn validate_graph(
         );
     }
 }
-
 
 fn build_adjacency_list(edges: &[(usize, usize)], number_of_nodes: usize) -> Vec<Vec<usize>> {
     let mut adjacency_list: Vec<Vec<usize>> = vec![Vec::new(); number_of_nodes];
