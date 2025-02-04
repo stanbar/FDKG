@@ -60,7 +60,9 @@ fn main() -> Result<(), Box<dyn Error>> {
         }
     };
 
-    let node_ranges: Vec<usize> = vec![50, 100, 150, 200, 250, 300, 350, 400, 500, 600, 700, 800, 900, 1000];
+    let node_ranges: Vec<usize> = vec![
+        50, 100, 150, 200, 250, 300, 350, 400, 500, 600, 700, 800, 900, 1000,
+    ];
     let fdkg_percentages = [0.5, 0.8, 1.0];
     let tallier_returning_percentages = [0.5, 0.7, 0.9, 1.0];
     let tallier_new_percentages = [0.0];
@@ -146,11 +148,8 @@ fn main() -> Result<(), Box<dyn Error>> {
                 }
             }
         }
-        // Example check: how many configs per node?
-        for &nodes in &node_ranges {
-            let count = configurations.iter().filter(|c| c.nodes == nodes).count();
-            println!("nodes = {}, configs = {}", nodes, count);
-        }
+        let count = configurations.iter().filter(|c| c.nodes == nodes).count();
+        println!("nodes = {}, configs = {}", nodes, count);
 
         // Set up a progress bar for all configs * iterations
         let total_work = configurations.len() * iterations_per_config;
