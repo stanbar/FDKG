@@ -1,5 +1,5 @@
 import sizeof from 'object-sizeof'
-import { EncryptedShare, PublicParty } from './party'
+import { EncryptedShare, PublicParty } from './party.js'
 import { BabyJubPoint, Proof, PubKey, PublicSignals } from 'shared-crypto'
 import { spawn } from 'child_process';
 

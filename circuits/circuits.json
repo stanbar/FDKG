@@ -2,65 +2,112 @@
   "pvss_4_of_4": {
     "file": "pvss",
     "template": "PVSS",
-    "pubs": ["guardiansPubKeys"],
+    "pubs": ["guardiansPubKeys", "votingPublicKey", "encryptedShares"],
     "params": [4,4]
   },
   "pvss_3_of_4": {
     "file": "pvss",
     "template": "PVSS",
-    "pubs": ["guardiansPubKeys"],
+    "pubs": ["guardiansPubKeys", "votingPublicKey", "encryptedShares"],
     "params": [4,3]
+  },
+  "pvss_3_of_10": {
+    "file": "pvss",
+    "template": "PVSS",
+    "pubs": ["guardiansPubKeys", "votingPublicKey", "encryptedShares"],
+    "params": [10,3]
+  },
+  "pvss_15_of_50": {
+    "file": "pvss",
+    "template": "PVSS",
+    "pubs": ["guardiansPubKeys", "votingPublicKey", "encryptedShares"],
+    "params": [50,15]
+  },
+  "pvss_30_of_100": {
+    "file": "pvss",
+    "template": "PVSS",
+    "pubs": ["guardiansPubKeys", "votingPublicKey", "encryptedShares"],
+    "params": [100,30]
+  },
+  "pvss_33_of_110": {
+    "file": "pvss",
+    "template": "PVSS",
+    "pubs": ["guardiansPubKeys", "votingPublicKey", "encryptedShares"],
+    "params": [110,33]
+  },
+  "pvss_40_of_133": {
+    "file": "pvss",
+    "template": "PVSS",
+    "pubs": ["guardiansPubKeys", "votingPublicKey", "encryptedShares"],
+    "params": [133,40]
+  },
+  "pvss_45_of_150": {
+    "file": "pvss",
+    "template": "PVSS",
+    "pubs": ["guardiansPubKeys", "votingPublicKey", "encryptedShares"],
+    "params": [150,45]
+  },
+  "pvss_60_of_200": {
+    "file": "pvss",
+    "template": "PVSS",
+    "pubs": ["guardiansPubKeys", "votingPublicKey", "encryptedShares"],
+    "params": [200,60]
+  },
+  "pvss_90_of_300": {
+    "file": "pvss",
+    "template": "PVSS",
+    "pubs": ["guardiansPubKeys", "votingPublicKey", "encryptedShares"],
+    "params": [300,90]
+  },
+  "pvss_150_of_500": {
+    "file": "pvss",
+    "template": "PVSS",
+    "pubs": ["guardiansPubKeys", "votingPublicKey", "encryptedShares"],
+    "params": [500,150]
   },
   "pvss_2_of_4": {
     "file": "pvss",
     "template": "PVSS",
-    "pubs": ["guardiansPubKeys"],
+    "pubs": ["guardiansPubKeys", "votingPublicKey", "encryptedShares"],
     "params": [4,2]
   },
   "pvss_1_of_4": {
     "file": "pvss",
     "template": "PVSS",
-    "pubs": ["guardiansPubKeys"],
+    "pubs": ["guardiansPubKeys", "votingPublicKey", "encryptedShares"],
     "params": [4,1]
   },
 
   "pvss_3_of_3": {
     "file": "pvss",
     "template": "PVSS",
-    "pubs": ["guardiansPubKeys"],
+    "pubs": ["guardiansPubKeys", "votingPublicKey", "encryptedShares"],
     "params": [3,3]
   },
   "pvss_2_of_3": {
     "file": "pvss",
     "template": "PVSS",
-    "pubs": ["guardiansPubKeys"],
+    "pubs": ["guardiansPubKeys", "votingPublicKey", "encryptedShares"],
     "params": [3,2]
   },
   "pvss_1_of_3": {
     "file": "pvss",
     "template": "PVSS",
-    "pubs": ["guardiansPubKeys"],
+    "pubs": ["guardiansPubKeys", "votingPublicKey", "encryptedShares"],
     "params": [3,1]
   },
 
   "pvss_2_of_2": {
     "file": "pvss",
     "template": "PVSS",
-    "pubs": ["guardiansPubKeys"],
+    "pubs": ["guardiansPubKeys", "votingPublicKey", "encryptedShares"],
     "params": [2,2]
   },
   "pvss_1_of_2": {
     "file": "pvss",
     "template": "PVSS",
-    "pubs": ["guardiansPubKeys"],
+    "pubs": ["guardiansPubKeys", "votingPublicKey", "encryptedShares"],
     "params": [2,1]
-  },
-
-  "pvss_1": {
-    "file": "pvss",
-    "template": "PVSS",
-    "pubs": ["guardiansPubKeys"],
-    "params": [1,3]
   },
   "pvss_single_1_of_2": {
     "file": "pvss_single",

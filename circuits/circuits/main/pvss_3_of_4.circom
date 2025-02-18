@@ -3,4 +3,4 @@ pragma circom 2.1.2;
 
 include "../pvss.circom";
 
-component main {public[guardiansPubKeys]} = PVSS(4, 3);
+component main {public[guardiansPubKeys, votingPublicKey, encryptedShares]} = PVSS(4, 3);

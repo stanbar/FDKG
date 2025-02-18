@@ -14,10 +14,10 @@ template PVSS(guardian_set_size, threshold) {
     signal input r2[guardian_set_size];
     // guardian_set_size times [X, Y]
     signal input guardiansPubKeys[guardian_set_size][2];
+    signal input votingPublicKey[2];
 
     // guardian_set_size times [C1.x, C1.y, C2.x, C2.y, xDelta]
     signal input encryptedShares[guardian_set_size][5];
-    signal input votingPublicKey[2];
 
     component r1Bits[guardian_set_size];
     component C1[guardian_set_size];

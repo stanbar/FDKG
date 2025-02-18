@@ -1,7 +1,6 @@
-import { BabyJubPoint, ElGamalCiphertext, encryptShare, genRandomSalt, Keypair, F, Proof, PublicSignals, PubKey, encryptBallot, mulPointEscalar, decryptShare, PrivKey, sss, fkdg } from 'shared-crypto'
-import { proveBallot, provePVSS, provePartialDecryption } from './proofs'
-import { Share } from 'shared-crypto/src/fdkg'
-import { VotingConfig } from './configs'
+import { BabyJubPoint, Share, ElGamalCiphertext, encryptShare, genRandomSalt, Keypair, F, Proof, PublicSignals, PubKey, encryptBallot, mulPointEscalar, decryptShare, PrivKey, sss, fkdg } from 'shared-crypto'
+import { proveBallot, provePVSS, provePartialDecryption } from './proofs.js'
+import { VotingConfig } from './configs.js'
 
 export interface PublicParty {
   index: number
@@ -86,7 +85,8 @@ export class LocalParty {
 
   async createBallot (votingPublicKey: BabyJubPoint): Promise<{ C1: BabyJubPoint, C2: BabyJubPoint, proof: Proof, publicSignals: PublicSignals }> {
     const { C1, C2, cast, r } = this.prepareBallot(votingPublicKey)
-    const { proof, publicSignals } = await proveBallot(votingPublicKey, BigInt(cast), r)
+    const encryptedBallot = [F.toBigint(C1[0]), F.toBigint(C1[1]), F.toBigint(C2[0]), F.toBigint(C2[1])]
+    const { proof, publicSignals } = await proveBallot(votingPublicKey, BigInt(cast), r, encryptedBallot)
     return { C1, C2, proof, publicSignals }
   }
 
@@ -106,7 +106,7 @@ export class LocalParty {
       } else {
         try {
           const eShare = s.share.encryptedShare
-          const { proof, publicSignals } = await provePartialDecryption(C1, eShare.c1, eShare.c2, eShare.xIncrement, this.keypair.privKey)
+          const { proof, publicSignals } = await provePartialDecryption(C1, eShare, this.keypair.privKey, partialDecryption)
           return { pd: partialDecryption, from: s.from, proof, publicSignals }
         } catch (e) {
           console.error(`Failed to generate PartialDecryption proof for share[${s.share.x}]`, e)

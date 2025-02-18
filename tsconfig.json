@@ -15,9 +15,5 @@
         "esModuleInterop": true,
         "forceConsistentCasingInFileNames": true,
         "strict": true,
-    },
-    "ts-node": {
-        "esm": true,
-        "experimentalSpecifierResolution": "node"
     }
 }

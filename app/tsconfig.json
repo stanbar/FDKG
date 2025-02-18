@@ -6,11 +6,10 @@
             "esnext",
             "esnext.bigint", 
             "dom",
-            "es2015",
-
+            "es2015"
         ],
-        "moduleResolution": "node",
-        "module": "esnext",
+        "moduleResolution": "NodeNext",
+        "module": "NodeNext",
         "types": [
             "mocha",
             "node"
@@ -20,12 +19,12 @@
         "resolveJsonModule": true,
         "forceConsistentCasingInFileNames": true,
         "strict": true,
-    },
-    "ts-node": {
-        "esm": true,
-        "experimentalSpecifierResolution": "node"
+        "baseUrl": ".",
+        "paths": {
+            "shared-crypto/*": ["../shared-crypto/src/*"]
+        }
     },
     "exclude": [
-        "build",
+        "build"
     ]
 }

@@ -1,5 +1,6 @@
 {
-  "version": "2.1.2",
-  "protocol": "groth16",
-  "curve": "bn128"
+  "version": "2.1.4",
+  "protocol": "plonk",
+  "prime": "bn128",
+  "optimization": 1
 }

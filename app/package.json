@@ -6,13 +6,13 @@
     "type": "module",
     "scripts": {
         "start": "parcel src/index.html",
-        "cli": "ts-node src/cli.ts",
+        "cli": "tsx src/cli.ts",
         "build": "parcel build src/index.html",
         "deploy": "gh-pages -d dist",
-        "simulation": "npx ts-node ./src/main.ts",
-        "simulation:groth16": "PROVER=groth16 npx ts-node ./src/main.ts",
-        "simulation:plonk": "PROVER=plonk npx ts-node ./src/main.ts",
-        "simulation:fflonk": "PROVER=fflonk npx ts-node ./src/main.ts"
+        "simulation": "npx tsx ./src/main.ts",
+        "simulation:groth16": "PROVER=groth16 tsx ./src/main.ts",
+        "simulation:plonk": "PROVER=plonk tsx ./src/main.ts",
+        "simulation:fflonk": "PROVER=fflonk tsx ./src/main.ts"
     },
     "repository": "git+https://github.com/delendum-xyz/private-voting.git",
     "keywords": [
@@ -30,30 +30,31 @@
         "@types/d3": "^7.4.3",
         "@types/progress": "^2.0.7",
         "assert": "^2.1.0",
-        "circomkit": "^0.3.1",
+        "circomkit": "^0.3.2",
         "circomlib": "^2.0.5",
         "circomlibjs": "^0.1.7",
-        "csv-parse": "^5.5.6",
+        "csv-parse": "^5.6.0",
         "d3": "^7.9.0",
-        "gh-pages": "^6.2.0",
+        "gh-pages": "^6.3.0",
         "lodash": "^4.17.21",
         "object-sizeof": "^2.6.5",
         "progress": "^2.0.3",
         "shared-crypto": "0.0.1",
-        "snarkjs": "^0.7.4",
+        "snarkjs": "^0.7.5",
         "vis-data": "^7.1.9",
         "vis-network": "^9.1.9"
     },
     "devDependencies": {
-        "@types/lodash": "^4.17.10",
-        "@types/mocha": "^10.0.9",
-        "@types/node": "^22.7.5",
-        "@types/snarkjs": "^0.7.8",
-        "mocha": "^10.7.3",
-        "parcel": "^2.12.0",
+        "@types/lodash": "^4.17.15",
+        "@types/mocha": "^10.0.10",
+        "@types/node": "^22.13.4",
+        "@types/snarkjs": "^0.7.9",
+        "mocha": "^11.1.0",
+        "parcel": "^2.13.3",
         "ts-node": "^10.9.2",
         "ts-standard": "^12.0.2",
-        "typescript": "^5.6.3"
+        "tsx": "^4.19.2",
+        "typescript": "^5.7.3"
     },
     "standard": {
         "ignore": [

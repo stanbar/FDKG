@@ -1,11 +1,34 @@
 import assert from 'assert'
-import { BabyJubPoint, PubKey, inCurve, addPoint, decryptResults, mulPointEscalar } from 'shared-crypto'
-import { EncryptedShare } from '../src/party'
-import { PointZero } from 'shared-crypto/src/F'
-import { generateSetOfNodes } from '../src/utils'
-import { LagrangeCoefficient, recoverZ } from 'shared-crypto/src/sss'
+import { BabyJubPoint, PubKey, inCurve, addPoint, decryptResults, mulPointEscalar, PointZero, LagrangeCoefficient, recoverZ } from 'shared-crypto'
+import { EncryptedShare } from '../src/party.js'
+import { generateSetOfNodes } from '../src/utils.js'
 import _  from 'lodash'
-import { VotingConfig } from '../src/configs'
+import { VotingConfig } from '../src/configs.js'
+import { provePVSS } from '../src/proofs.js'
+
+describe.only('generate inputs', () => {
+  it('3 of 10', async (done) => {
+    const nodeIndicies = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+    const guardiansIndexes = [2, 3, 4]
+    const config: VotingConfig = {
+      size: nodeIndicies.length,
+      options: 4,
+      guardiansSize: 10,
+      guardiansThreshold: 3,
+      skipProofs: true,
+      sequential: false,
+    }
+    const localParties = generateSetOfNodes(config)
+    const party = localParties[0]
+    const guardians = (guardiansIndexes as number[]).map((index) => localParties[index - 1].publicParty)
+
+    const { shares, encryptedShares, votingPublicKey, r1, r2 } = party.createSharesWithoutProofs(guardians)
+
+    const { proof, publicSignals } = await provePVSS(party.polynomial, r1, r2, guardians.map(g => g.publicKey), votingPublicKey, encryptedShares)
+    done();
+
+  })
+})
 
 describe('fdkg', () => {
   it('should perform fdkg without proofs', () => {

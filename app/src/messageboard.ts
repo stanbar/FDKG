@@ -1,10 +1,8 @@
-import { BabyJubPoint, Proof, PubKey, PublicSignals, addPoint, decryptResults, inCurve, mulPointEscalar } from 'shared-crypto'
-import { EncryptedShare, PublicParty } from './party'
-import { verifyBallot, verifyPVSS, verifyPartialDecryption } from './proofs'
-import { PointZero } from 'shared-crypto/src/F'
+import { BabyJubPoint, LagrangeCoefficient, Proof, PubKey, PublicSignals, addPoint, decryptResults, inCurve, mulPointEscalar, PointZero } from 'shared-crypto'
+import { EncryptedShare, PublicParty } from './party.js'
+import { verifyBallot, verifyPVSS, verifyPartialDecryption } from './proofs.js'
 import assert from 'node:assert'
-import { LagrangeCoefficient } from 'shared-crypto/src/sss'
-import { VotingConfig } from './configs'
+import { VotingConfig } from './configs.js'
 
 
 export function MessageBoard(config: VotingConfig) {

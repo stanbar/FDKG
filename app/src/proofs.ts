@@ -1,10 +1,10 @@
 import { readFileSync } from 'fs'
-import { BabyJubPoint, BallotCircuitInput, F, PVSSCircuitInput, PartialDecryptionCircuitInput, Proof, PubKey, PublicSignals } from 'shared-crypto'
-// @ts-expect-error
+import { BabyJubPoint, BallotCircuitInput, ElGamalCiphertext, F, PVSSCircuitInput, PartialDecryptionCircuitInput, Proof, PubKey, PublicSignals } from 'shared-crypto'
 import * as snarkjs from 'snarkjs'
-import { measureTime } from './utils'
-import { EncryptedShare } from './party'
+import { measureTime } from './utils.js'
+import { EncryptedShare } from './party.js'
 import { CircuitSignals } from 'circomkit'
+import { writeFileSync } from 'fs'
 
 if (!process.env.PROVER) {
   console.log('PROVER env variable is not set, defaulting to groth16')
@@ -36,29 +36,42 @@ export const provePVSS = async (coefficients: bigint[], r1: bigint[], r2: bigint
   }
 
   const name = PVSSVariantName('pvss', coefficients.length, guardiansPubKeys.length)
+  console.log(snarkyInput)
+  writeFileSync(
+    `${name}.json`,
+    JSON.stringify(
+      snarkyInput,
+      (_, value) => (typeof value === 'bigint' ? value.toString() : value),
+      2
+    )
+  )
   return await fullProve(name, PROVER, snarkyInput, `./build/${name}/${name}_js/${name}.wasm`, `./build/${name}/${PROVER}_pkey.zkey`)
 }
 
-export const proveBallot = async (votingPublicKey: BabyJubPoint, cast: bigint, r: bigint) => {
+export const proveBallot = async (votingPublicKey: BabyJubPoint, cast: bigint, r: bigint, encryptedBallot: bigint[]) => {
   const snarkyInput: BallotCircuitInput = {
     votingPublicKey: votingPublicKey.map(F.toBigint),
     cast,
-    r
+    r,
+    encryptedBallot,
   }
 
   const name = 'encrypt_ballot'
   return await fullProve(name, PROVER, snarkyInput, `./build/${name}/${name}_js/${name}.wasm`, `./build/${name}/${PROVER}_pkey.zkey`)
 }
 
-export const provePartialDecryption = async (A: BabyJubPoint, c1: BabyJubPoint, c2: BabyJubPoint, xIncrement: Uint8Array, privKey: bigint): Promise<{ proof: Proof, publicSignals: PublicSignals }> => {
+export const provePartialDecryption = async (A: BabyJubPoint, ciphertext: ElGamalCiphertext, privKey: bigint, partialDecryption: BabyJubPoint): Promise<{ proof: Proof, publicSignals: PublicSignals }> => {
   const snarkyInput: PartialDecryptionCircuitInput = {
-    A: A.map(F.toBigint),
-    c1: c1.map(F.toBigint),
-    c2: c2.map(F.toBigint),
-    xIncrement: F.toBigint(xIncrement),
-    privKey
-  }
-  const name = 'partial_decryption'
+    C1: A.map(F.toBigint),
+    encryptedShareC1: ciphertext.c1.map(F.toBigint),
+    encryptedShareC2: ciphertext.c2.map(F.toBigint),
+    xIncrement: F.toBigint(ciphertext.xIncrement),
+    privKey: privKey,
+    partialDecryption: partialDecryption.map(F.toBigint)
+}
+
+
+  const name = 'partial_decryption_share'
   return await fullProve(name, PROVER, snarkyInput, `./build/${name}/${name}_js/${name}.wasm`, `./build/${name}/${PROVER}_pkey.zkey`)
 }
 
@@ -75,7 +88,7 @@ export const verifyBallot = async (proof: Proof, publicSignals: PublicSignals) =
   await verify('encrypt_ballot', PROVER, proof, publicSignals)
 
 export const verifyPartialDecryption = async (proof: Proof, publicSignals: PublicSignals) =>
-  await verify('partial_decryption', PROVER, proof, publicSignals)
+  await verify('partial_decryption_share', PROVER, proof, publicSignals)
 
 const verify = async (circuitName: string, protocol: 'groth16' | 'plonk' | 'fflonk', proof: Proof, publicSignals: PublicSignals): Promise<boolean> => {
   const vkey = JSON.parse(readFileSync(`./build/${circuitName}/${protocol}_vkey.json`).toString())

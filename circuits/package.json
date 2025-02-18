@@ -3,24 +3,26 @@
   "scripts": {
     "start": "npx ts-node ./src/index.ts",
     "test": "npx mocha",
-    "setup": "npx ts-node ./src/setup.ts"
+    "setup": "tsx ./src/setup.ts"
   },
   "type": "module",
   "dependencies": {
     "@types/chai": "^4.3.11",
     "assert": "^2.1.0",
     "chai": "^5.0.0",
-    "circomkit": "^0.0.20",
+    "circomkit": "0.3.2",
     "circomlib": "^2.0.5",
     "circomlibjs": "^0.1.7",
     "shared-crypto": "0.0.1",
-    "snarkjs": "^0.7.3"
+    "snarkjs": "^0.7.5"
   },
   "devDependencies": {
     "@types/mocha": "^10.0.6",
     "@types/node": "^20.11.5",
+    "@types/snarkjs": "^0.7.9",
     "mocha": "^10.2.0",
     "ts-node": "^10.9.2",
+    "tsx": "^4.19.2",
     "typescript": "^5.3.3"
   },
   "name": "circuits",

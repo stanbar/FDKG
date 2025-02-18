@@ -1,7 +1,7 @@
 import { genKeypair, genPubKey } from 'shared-crypto'
-import { LocalParty } from './party'
-import { evalPolynomialZ, randomPolynomialZ } from 'shared-crypto/src/sss'
-import { VotingConfig } from './configs'
+import { LocalParty } from './party.js'
+import { evalPolynomialZ, randomPolynomialZ } from 'shared-crypto'
+import { VotingConfig } from './configs.js'
 
 export const generateSetOfNodes = (config: VotingConfig): LocalParty[] => {
   if (config.guardiansThreshold > config.size - 1) {
