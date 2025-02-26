@@ -1,196 +1,146 @@
-\documentclass[runningheads]{llncs}
+\documentclass[lettersize,journal]{IEEEtran}
+\usepackage[caption=false,font=normalsize,labelfont=sf,textfont=sf]{subfig}
+\usepackage{stfloats}
+\usepackage{verbatim}
+\hyphenation{op-tical net-works semi-conduc-tor IEEE-Xplore}
+\def\BibTeX{{\rm B\kern-.05em{\sc i\kern-.025em b}\kern-.08em
+    T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
+\usepackage{balance}
+
+\usepackage[backend=biber,style=numeric]{biblatex} % or 'authoryear' or another style
+\addbibresource{bibliography.bib}
+
 \usepackage{graphicx}
 \usepackage{amsmath,amssymb,amsfonts}
+\usepackage{amsthm}
 \usepackage{algorithmic}
 \usepackage{textcomp}
 \usepackage{float}
 \usepackage{etoolbox}
 \usepackage{hyperref}
-\usepackage{hyperref}
+\usepackage{orcidlink}
 \usepackage{tikz}
 \usepackage{fontawesome}
-\usepackage{caption}
+\usepackage{subcaption}
 \usepackage{url}
 \usepackage{listings}
 \usepackage{pdfpages}
 \usepackage[english]{babel}
 \usepackage{scalerel}
 \usepackage{xcolor,colortbl}
-\usepackage{cite}
+% \usepackage{cite}
 \usepackage[linesnumbered,ruled,vlined]{algorithm2e}
 \usepackage{amsmath}
 \usepackage{amssymb}
 \usepackage{multirow}
 \usepackage{array}
-barabasiEmergenceScalingRandom1999
+
+
+
+\newtheorem{lemma}{Lemma}
+\newtheorem{corollary}{Corollary}
+\theoremstyle{definition}
+\newtheorem{definition}{Definition}
+\newtheorem{theorem}{Theorem}
 
 \begin{document}
 
-\title{PeerVote: A Voter-to-Voter Internet Voting Protocol with Federated Distributed Key Generation}
+\title{Federated Distributed Key Generation}
+% \author{Anonymous Authors}
 
-\titlerunning{PeerVote: A Voter-to-Voter Internet Voting Protocol with FDKG}
+% \author{Stanislaw Baranski, Julian Szymanski
+% \thanks{Stanislaw Baranski and Julian Szymanski are with Department of Electronic, Telecommunication and Informatics, Gdansk University of Technology, Gdansk, 
+% Poland}
+% }
 
+\author{Stanislaw Baranski\,\orcidlink{0000-0001-7181-8860}     
+    \and
+    Julian Szymanski\,\orcidlink{0000-0001-5029-6768}
+    \thanks{Stanislaw Baranski and Julian Szymanski are with Department of Electronic, Telecommunication and Informatics, Gdansk University of Technology, Gdansk, 
+Poland}
+}
+    
+
+\date{}
 \maketitle
-
 \begin{abstract}
-Internet voting is essential in today's digital democracy, yet the landscape of Internet voting is dominated by centralised servers, costly public blockchains or private networks.
-This poses a challenge for small organisations looking for a secure, cost-effective tool for democratic decision-making. 
-This paper introduces PeerVote, an Internet voting protocol designed to address these challenges by providing a secure voting mechanism without the need for trusted third parties. 
-PeerVote uses Federated Distributed Key Generation (FDKG) to improve resilience to node unavailability and introduces a flexible trust model, providing small organisations with a viable tool for promoting democratic engagement.
+    Distributed Key Generation (DKG) is vital to threshold-based cryptographic protocols such as threshold signatures, secure multiparty computation, and i-voting. Yet, standard \((n,t)\)-DKG requires a known set of \(n\) participants and a fixed threshold \(t\), making it impractical for public or decentralized settings where membership and availability can change.
 
-\keywords{Internet Voting \and Digital Democracy \and Federated Distributed Key Generation \and Threshold Cryptography \and zkSNARKs \and Blockchain}
+    We introduce Federated Distributed Key Generation (FDKG), which relaxes these constraints by allowing each participant to select its own “guardian” set, with a local threshold to reconstruct that participant’s partial key. FDKG generalizes DKG and draws inspiration from Federated Byzantine Agreement, enabling dynamic trust delegation with minimal message complexity (two rounds). The protocol's liveness can tolerate adversary that controls up to $k - t + 1$ nodes in every guardian set. The paper presents a detailed protocol, a formal description of liveness, privacy, and integrity properties, and a simulation-based evaluation showcasing the efficacy of FDKG in mitigating node unreliability.
+
+    In a setting of 100 parties, a 50\% participation rate, 80\% retention, and 40 guardians, the distribution phase incurred a total message size of 332.7 kB ($\mathcal{O}(n\,k)$), and reconstruction phase 416.56 kB ($\mathcal{O}(n\,k)$. Groth16 client-side proving took about 5 s in the distribution phase and ranged from 0.619 s up to 29.619 s in the reconstruction phase. 
+    
+    Our work advances distributed cryptography by enabling flexible trust models for dynamic networks, with applications ranging from ad-hoc collaboration to blockchain governance.
 \end{abstract}
 
 \section{Introduction}
 
-Voting is a fundamental mechanism for collective decision-making, used in contexts ranging from student associations, non-governmental organisations and corporate boardrooms to national presidential elections and global online polls.
+Distributed cryptographic systems often depend on Distributed Key Generation (DKG) to achieve decentralization without single points of trust. Most i-voting systems rely on DKG to distribute the encryption keys that secure election privacy~\cite{baranskiTrustCentricApproachQuantifying2024}. However, traditional DKG approaches are not well-suited to dynamic environments with unreliable or partially available nodes. This limits their application in dynamic, decentralized systems where trust relationships often evolve and are not uniform or predefined. 
+In a standard $(n, t)$-DKG protocol, a set of $n$ nodes collectively generates a secret whose shares are spread over the nodes, allowing any subset larger than $t$ to reconstruct the secret, while smaller subsets do not have any knowledge about it.
+Standard DKG schemes assume a predefined number of participants $n$ and a threshold $t$. 
+When participation is voluntary (e.g., in public protocols), the actual number of participants remains unknown until the end of the key distribution phase. If fewer users join than expected, the preselected threshold may not be achievable, making the system unusable.
 
-Voting methods are diverse and include traditional paper-based voting, mail-in ballots, electronic systems such as direct recording electronic (DRE) machines, and Internet voting~\cite{parkGoingBadWorse2021}.
+To overcome these limitations, we introduce \emph{Federated Distributed Key Generation (FDKG)}, a novel protocol that extends DKG to scenarios where the actual number of participants remains unknown until the end of the key distribution phase and nodes are  unequally trusted. 
 
-As Vitalik Buterin has noted \cite{buterinBlockchainVotingOverrated2021}, every voting system faces a trilemma, requiring a choice between two of three critical attributes:
+FDKG employs \emph{Guardian Sets}, allowing participants to delegate key-reconstruction responsibilities to a trusted subset of nodes. Formally, an $(n, p, t, k)$-FDKG protocol involves $n$ nodes, of which a fraction $p$ participate in generating partial secret keys. Each node’s key share is distributed among a guardian set of size $k$, using a $t$-out-of-$k$ secret sharing scheme. During reconstruction, only a sufficient fraction of those who participated need to supply their partial keys or shares. Subsets below that threshold gain no information about the final key.
 
+FDKG generalizes the traditional $(n, t)$-DKG protocol. The standard DKG is a special case $(n, 1, t, n-1)$, where all nodes participate and every node’s guardian set is the entire rest of the network.
+
+This novel approach provides:
 \begin{itemize}
-\item \textbf{Democratic}: Ensuring fair and accessible participation for all eligible voters.
-\item \textbf{Secure}: Ensuring integrity, transparency, privacy and resilience to potential threats.
-\item \textbf{Efficient}: Achieving simplicity, speed and cost-effectiveness in the voting process.
+    \item \textbf{Dynamic Participation}: FDKG allows a set of participants to join the key generation process and establish keys with a single round of message exchange, without prior knowledge of all members.
+    
+    \item \textbf{Flexible Trust Model}: Each participant can choose its own ``Guardian Set'' of trusted nodes, making the protocol more amenable to decentralized settings with diverse or evolving trust relationships.
+
+    \item \textbf{Resilience to Node Unavailability}: FDKG uses threshold cryptography to ensure that as long as enough guardians remain honest, the global key can be reconstructed—even if some participants go offline or behave maliciously.
 \end{itemize}
 
-In traditional political elections, the emphasis on security and democracy often leads to a compromise on efficiency. Conversely, social media voting prioritises democracy and efficiency at the expense of security. The market system represents an efficient and secure decision-making model, where consumer choices influence corporate power, but it lacks democratic inclusiveness, making it unsuitable for decision-making on public goods.
+Figure~\ref{fig:trust-models} illustrates the differences between centralized trust, distributed trust, and the federated trust model introduced in this paper. Unlike centralized and distributed models, the federated model enables participants to delegate trust to subsets of nodes, aligning with the dynamic and decentralized requirements of modern systems.
 
-The inherent inefficiencies of traditional voting methods result in significant costs and infrequent election cycles, typically ranging from once a year to once every six years \cite{buterinBlockchainVotingOverrated2021}.
-
-Internet voting (i-voting) is emerging as a seemingly ideal solution, especially when online banking is so widespread these days. Especially during events such as the COVID-19 pandemic, i-voting presents itself as a conventional, cost-effective, fast and secure alternative. Its potential to increase voter turnout, increase the frequency of elections and facilitate different democratic models such as direct democracy, liquid democracy and alternative voting systems is significant \cite{laslierLoserPluralityVoting2011}.
-
-Furthermore, the evolution of smart cities, crypto cities \cite{buterinCryptoCities2021}, Decentralized Autonomous Organizations (DAOs) \cite{wangDecentralizedAutonomousOrganizations2019}, and other algorithmic governance models are intrinsically linked to the advancement of electronic voting systems. Despite the pressing need for such systems, as evidenced by countries such as Switzerland \cite{ElectronicVotingSwitzerland2023} and Estonia \cite{ElectronicVotingEstonia2023}, global progress in adopting these modern democratic tools lags behind other digital transformations.
-
-The feasibility of Internet voting has been the subject of extensive research, particularly in the field of cryptography, a critical aspect of system security. However, scepticism about the viability of public internet voting remains ~\cite{parkGoingBadWorse2021, mearianWhyBlockchainbasedVoting2019, shanklandNoBlockchainIsn2018, leeBlockchainbasedElectionsWould2018, schneierBlockchainVoting2020, schneierBlockchainTrust2019}. In Germany, for example, the development of e-voting was halted following a court ruling against electronic voting machines, citing their contradiction with the public nature of elections \cite{ElectronicVotingCountry2023}. The reluctance to use e-voting stems from issues of trust in the technology and the need for authoritative control over the voting process.
-
-Criticism of Internet voting tends to concentrate on two arguments:
-
-\begin{enumerate}
-\item The inherent imperfection of the software, which precludes absolute trust.
-\item Excessive reliance on centralised authorities to oversee the voting process.
-\end{enumerate}
-
-Recent research from MIT suggests that any paperless voting system is inherently flawed \cite{parkGoingBadWorse2021}. Even high quality software, in the 90th percentile of the industry, contains an average of one defect per ten thousand lines of code \cite{llaguno2017CoverityScan2017}. These defects can lead to either malfunctions or exploitable vulnerabilities, potentially compromising the election process. The critical concern is that software defects should not result in undetectable changes to election results, a guarantee that seems unachievable given the nature of software development.
-However, recent developments in cryptography, in particular zero-knowledge proofs, offer promising solutions for ensuring the integrity of voting software \cite{parnoPinocchioNearlyPractical2013}. Zero-knowledge proofs allow public verification of the correctness of the voting process without compromising voter privacy. This approach, which uses cryptographic verification, is consistent with the software independence requirement outlined in \cite{parkGoingBadWorse2021}, allowing third-party verification without relying on the internal software of the voting system.
-
-However, trust in the software is only part of the equation; the reliability of the hardware used by voters is also crucial. Critics argue that the security of Internet voting protocols depends on the assumption that voter devices are uncompromised and function as intended, a premise often considered unrealistic \cite{parkGoingBadWorse2021}. However, despite vulnerabilities in hardware, including trusted platforms that have been compromised \cite{goodinIntelSGXVulnerable2020, IntelSGXBroken2019, bulckForeshadowExtractingKeys}, there is a trend towards improving hardware security, suggesting a positive trajectory in cybersecurity \cite{golombBelieveItCybersecurity2018}.
-
-Furthermore, Appel et al. \cite{appelEvidenceBasedElectionsCreate2019} highlight that no vote counting method is infallible, whether it is optical scanning, touch screen systems or manual counting. The critical issue is not the absence of security, but rather the degree of security and the nature of the trust assumptions involved.
-
-The second major criticism of Internet voting relates to trust in the authorities overseeing the process. Traditional polling stations, being physically accessible and observable, provide a form of evidence-based trust that digital polling stations - servers - lack. The principle of evidence-based elections requires not only the determination of the winner, but also the provision of convincing evidence of that outcome to the electorate \cite{appelEvidenceBasedElectionsCreate2019}. This evidence is considered convincing if the electoral process is both auditable and verifiable; it must produce a reliable audit trail and be routinely audited as part of the electoral process.
-
-\textbf{Ideally, the voting process should be completely trustless, meaning that there should be no trust assumptions other than our perceptions.}
-
-In reality, full monitoring of elections is impractical, leading to a reliance on designated staff to oversee the process. This approach is consistent with the $1 \textrm{ of } N$ trust model, where the integrity of the system depends on the presence of at least one honest observer among $N$ to report any discrepancies \cite{buterinTrustModels2020}. However, as the number of observers decreases, the likelihood of having at least one honest observer decreases, thereby compromising the trustworthiness of the election. Consequently, a robust voting process should involve a large, diverse group of observers - the larger the $N$, the more credible the process.
-Criticism of centralised Internet voting systems often focuses on their reliance on a strict $1\textrm{ of }1$ trust model. This model implies a single point of failure: the central authority. If this authority is compromised, then all trust in the system collapses, as it cannot provide voters with convincing evidence of the correctness of the software.
-
-There are two counter-arguments to this criticism:
-\begin{enumerate}
-\item The first counter-argument is that even in the absence of trust in the organisers, requiring them to produce a cryptographic proof of the vote tally ensures accuracy. Any discrepancy in the results would be detectable in the verification of that proof.
-\item The second counter-argument suggests decentralising the traditional centralised authority. This can be achieved through distributed systems that change the trust model from $1 \textrm{ of } 1$ to more robust models. These include $N \textrm{ of } N$, where all participants must function correctly; $Few \textrm{ of } N$, where a subset of nodes must be reliable; or $\frac{N}{2} \textrm{ of } N$, where the system remains functional as long as a majority of the nodes work correctly.
-\end{enumerate}
-
-When trust assumptions in these systems are violated, various properties may fail, such as liveness, security, resistance to censorship, privacy, or correctness.
-
-Blockchain technology has gained prominence in decentralising trust by providing inherent guarantees of immutability, verifiability, integrity, and resistance to censorship. As a result, blockchain has become a popular foundation for the development of trust-minimising platforms, including internet voting protocols.
-
-Even in scenarios where blockchain is not explicitly used, and instead a distributed set of authorities (sometimes referred to as Guardians~\cite{benalohElectionGuardDesignSpecification2023}) manage the voting system—as seen in Helios~\cite{adidaHeliosWebbasedOpenAudit2008} or ElectionGuard~\cite{benalohElectionGuardDesignSpecification2023}—these systems still require a mechanism to ensure that the Guardians themselves are trustworthy and that their collective actions result in a reliable and verifiable election outcome.
-
-In this paper, we present PeerVote: a novel peer-to-peer voting protocol that employs a generalised trust model that allows participants to autonomously choose their trusted guardians within the system. 
-
-Figure~\ref{fig:trust-models} illustrates the evolution of trust models in Internet voting, from reliance on a single trusted third party to distributed third parties, and culminating in the peer-to-peer and delegated voter-to-voter models that we explore here.
-
-\begin{figure*}
+\begin{figure}
     \centering
-    \includegraphics[width=\textwidth]{trust-models-voting.pdf}
-    \caption{Four trust models: trusted third party, distributed third part, voter-to-voter, and delegated voter-to-voter}
+    \includegraphics[width=0.5\textwidth]{federated_trust_model.pdf}
+    \caption{Comparison of trust models in distributed systems: centralized trust (one authority), distributed trust (multiple authorities), and federated trust (peer-to-peer with individually chosen trusted groups).}
     \label{fig:trust-models}
-\end{figure*}
+\end{figure}
 
-Protocols using a distributed set of authorities typically use Distributed Key Generation (DKG) \cite{gennaroSecureDistributedKey1999} to jointly generate encryption keys. The integrity of the voting process is maintained under the assumption of an 'honest majority', where privacy is preserved provided there is no collusion between the parties. However, the traditional DKG model faces challenges in voting systems, particularly when parties involved in the DKG are unavailable, potentially disrupting the voting process \cite{haoAnonymousVotingTworound2010}. While this may not be an issue for government-level elections, in smaller elections collateral deposits may be required to incentivise participation \cite{elsheikhDisputefreeScalableOpen2022}, we find this approach impractical for wider applications. Instead, we propose a protocol based on threshold cryptography that tolerates a certain level of node unavailability. Our contributions are as follows:
+In this paper, we detail the FDKG protocol, discuss its security properties, and demonstrate its practical application through a peer-to-peer internet voting scheme. We show how leveraging trust relationships at the participant level can yield robust key generation without sacrificing privacy. Our main contribution is the introduction of Federated Distributed Key Generation (FDKG) as a generalization of standard DKG with individually chosen guardian sets.
 
-\begin{enumerate}
-    \item We present an Internet voting protocol based on a delegated voter-to-voter trust model. This model reflects the trust relationships within a group and expresses them in the security and availability properties of the system. It is particularly suitable for small-scale elections where participants are familiar with each other and existing trust lines are established.
-    
-    \item We develop a new technique for dynamic Distributed Key Generation (DKG), called Federated DKG (FDKG). FDKG facilitates joint key pair generation by members with a single message exchange, without prior knowledge of all participants.
+This paper makes the following contributions:
+\begin{itemize}
 
-    \item We propose a solution to the problem of node unavailability, which can hinder the election process. Using threshold cryptography and the concept of Guardian Sets, each participant shares its secret with a selected set of trusted nodes. Provided that these Guardian Sets consist of reputable and reliable network members, the risk of failure or collusion is minimised. This ensures that the improved availability of our protocol does not compromise its security.
-    
-    \item We outline a practical implementation strategy for a peer-to-peer environment with no transaction fees, and an alternative public blockchain implementation using a single paymaster. This approach offers a significant advantage over existing protocols that require hosting or per-vote fees.
+    \item Formalizing FDKG, including its liveness, privacy, and integrity properties.
+    \item Demonstrating the protocol’s performance and robustness via extensive simulations under diverse network topologies, participation rates, and retention conditions.
+    \item Integrating FDKG into an end-to-end internet voting scheme featuring threshold ElGamal encryption, zkSNARK-based verifiability, and a fully open-source implementation.
+\end{itemize}
 
-    \item We present an open source implementation of our protocol in TypeScript and Golang, improving its cross-platform adaptability and thereby increasing its accessibility and practical utility.
-\end{enumerate}
-
-\section{Related Work}
-Internet voting protocols typically rely on a trusted third party, with variations in server capabilities determining integrity, anonymity, privacy, censorship resistance, and coercion resistance based on the trustworthiness of that entity. Current research mainly uses blockchain technology for its integrity and transparency in vote storage, as seen in systems such as Voatz, Polys, Follow My Vote, Verify-Your-Vote, OpenVoteNetwork, TIVI, Stellot, Votem, Cicada, Aragon/Vocdoni and MACI~\cite{mooreWestVirginiaMobile2019, PolysOnlineVoting, SecureDecentralizedApplication2023, chaiebVerifyYourVoteVerifiableBlockchainBased2019, haoAnonymousVotingTworound2010, mccorrySmartContractBoardroom2017, seifelnasrScalableOpenVoteNetwork2020, elsheikhDisputefreeScalableOpen2022, TIVIPoweredSmartmatic, NowYouCan2016, baranskiPracticalIVotingStellar2020, votemcorpVotemProofofvoteVotem, BuildingCicadaPrivate, A16zCicada2023, ethereumfoundationMinimalAntiCollusionInfrastructure2022, VocdoniIntroductionVocdoni, PrivacyscalingexplorationsMaci2023}.
-
-Alternatively, projects such as Helios, Civitas, Swisspost/Scytl, CHVote, iVoting and ElectionGuard use distributed authority and multi-party computation (MPC) protocols without explicitly relying on blockchain technology \cite{adidaHeliosWebbasedOpenAudit2008, clarksonCivitasSecureVoting2008, 
-CHVoteProjectRelease,roenneJCJImprovedVerifiability2016, benalohElectionGuardDesignSpecification2023}. These systems are not fully decentralised, relying on a closed set of trusted entities known as Guardians.
-
-Public blockchain-based solutions typically struggle with usability and require voters to pay transaction fees. Non-blockchain solutions operate either in a SaaS model or as self-hosting software, shifting the operational burden to election organisers and potentially creating accessibility barriers for small-scale voting and non-technical operators. Hybrid systems, like MACI, require both a blockchain network and a single coordinator server \cite{ethereumfoundationMinimalAntiCollusionInfrastructure2022, PrivacyscalingexplorationsMaci2023}.
-
-Our proposed solution differs significantly from these models. It is free, unlike public blockchain-based systems, potentially increasing voter participation. Unlike private blockchain-based systems, our protocol operates without centralised servers, making it particularly suitable for smaller, informal voting settings. This approach shifts the trust paradigm from central authorities to the voters themselves.
+The remainder of this paper is organized as follows.  
+Section~\ref{sec:related_work} reviews the related work on DKG and decentralized key generation.  
+Section~\ref{sec:preliminaries} presents key cryptographic tools used in our protocol.  
+Section~\ref{sec:fdkg} describes the FDKG protocol in detail.  
+Section~\ref{sec:security_properties} defines our security properties and shows how FDKG meets them.  
+Section~\ref{sec:liveness_simulations} discusses extensive simulation results. 
+Section~\ref{sec:voting_scheme} applies FDKG to a voting scenario.
+Section~\ref{sec:performance_evaluation} assesses the performance of the key components.
+Section~\ref{sec:deployments} outlines possible deployment strategies.
+Finally, Sections~\ref{sec:limitations-and-future} and~\ref{sec:discussion-conclusion} offers concluding remarks and open directions.
 
 
-\newcommand{\fullmoon}{\tikz\filldraw[fill=black] (0,0) circle (0.5em);}
-\newcommand{\newmoon}{\tikz\draw (0,0) circle (0.5em);}
-\newcommand{\rightmoon}{\tikz\draw (0,0) circle (0.5em); \filldraw[fill=black] (0,0) arc (90:270:0.5em) -- cycle;}
-\newcommand{\leftmoon}{\tikz\draw (0,0) circle (0.5em); \filldraw[fill=black] (0,0) arc (270:90:0.5em) -- cycle;}
-\newcommand{\halfmoon}{\tikz\draw (0,0) circle (0.5em); \filldraw[fill=black] (0,-0.5em) rectangle (0,0.5em);}
+\section{Related Work}\label{sec:related_work}
 
+Distributed Key Generation (DKG) has been extensively studied in cryptography. Early work focused on secure and robust schemes for generating shared secret keys based on discrete logarithm-based cryptosystems~\cite{gennaroSecureDistributedKey1999}. These schemes typically employ Shamir's Secret Sharing (SSS)~\cite{shamirHowShareSecret1979} to distribute key shares among participants, which are subsequently combined to recover the shared secret.
 
-\begin{table*}[!h]
-\centering
-\newcommand{\YES}{\cellcolor{red!50}Yes}
-\newcommand{\NO}{\cellcolor{green!50}No}
-\begin{tabular}{p{0.2\textwidth}p{0.2\textwidth}p{0.17\textwidth}p{0.17\textwidth}p{0.21\textwidth}}
-\noalign{\smallskip}\hline\noalign{\smallskip}
-\textbf{Property} & \textbf{Central server} & \textbf{Private network} & \textbf{Public blockchain} & \textbf{Voter-to-voter network}\\
-\noalign{\smallskip}\hline\noalign{\smallskip}
-Transaction fees & \NO & \NO & \YES & \NO \\
-\hline
-Service cost & \cellcolor{yellow!50} Medium & \cellcolor{red!50} High & \cellcolor{green!50} No  & \cellcolor{green!50} No \\
-\hline
-Ease of use & \cellcolor{green!50} High & \cellcolor{green!50}High & \cellcolor{red!50} Low & \cellcolor{yellow!50} Medium \\
-\hline
-Trust to & \cellcolor{red!50} Central authority & \cellcolor{yellow!50} Authorities & \cellcolor{yellow!50} Miners & \cellcolor{yellow!50} Voters  \\
-\noalign{\smallskip}\hline
-\hline
-\end{tabular}
+While considerable research has addressed enhancing DKG for reliable operation in adversarial environments like the Internet~\cite{kateDistributedKeyGeneration2012,dasPracticalAsynchronousDistributed2022,dasPracticalAsynchronousHighthreshold2022,zhangPracticalAsynchronousDistributed2023}, this work focuses on a different problem: enabling users to interactively establish a distributed key pair within a maximum of two rounds, without prior knowledge of the other participants.  The challenge arises from Shamir secret sharing, which requires a known polynomial degree for secret sharing.  If the number of participants remains unknown until the end of a round, this degree cannot be predetermined.
 
-\caption{A comparative analysis of four types of Internet voting protocols: central server, private network, public blockchain, and voter-to-voter network, highlighting their differences in transaction fees, service costs, ease of use, and trust dynamics, where trust refers to an entity that guarantees properties of censorship resistance, privacy, and correctness. Examples of authorities are: "Returning Officers, members of the Board of Trustees, government officials or other trusted authorities who are responsible and accountable for the conduct of the election"~\cite{benalohElectionGuardDesignSpecification2023}. The service cost includes all costs related to running the software like implementation, maintenance, and fees.}
-\label{table-comparision}
+Dynamic DKG schemes~\cite{delerableeDynamicThresholdPublickey2008} were designed to address this issue, allowing parties to join and leave the protocol at any time. However, these schemes often necessitate multiple rounds of interaction, which can be impractical when human input is required.
 
-\end{table*}
+This paper introduces Federated Distributed Key Generation (FDKG), a protocol that innovates by using dynamic, participant-defined "guardian sets." This approach enables key reconstruction even in unpredictable or unreliable network settings.  This flexibility generalizes traditional DKG protocols, enhancing adaptability while preserving security and resilience.
 
-Furthermore, various systems achieve different security and privacy properties depending on their underlying assumptions. For example, OpenVoteNetwork eliminates the need for trusted third parties by adopting a self-tallying scheme, which ensures perfect ballot secrecy but is vulnerable to denial of service attacks~\cite{haoAnonymousVotingTworound2010, mccorrySmartContractBoardroom2017, seifelnasrScalableOpenVoteNetwork2020, elsheikhDisputefreeScalableOpen2022}.
+Our approach draws inspiration from Federated Byzantine Agreement (FBA) protocols, which underpin the Stellar Consensus Protocol~\cite{mazieresStellarConsensusProtocol2015}, a core component of a prominent blockchain network. FBA enables open and dynamic participation by allowing nodes to independently select their trusted peers, forming "quorum slices." This flexible trust model allows nodes to make trust decisions based on individual preferences.  As a node is included in more quorum slices (or guardian sets), its perceived trustworthiness within the network increases, reinforcing its role and enhancing overall network reliability.
 
-Minimal Anti-collusion Infrastructure (MACI), guarantees the highest level of security, i.e., censorship resistance, privacy, voter anonymity, and coercion resistance, however, the ballot privacy relies on a single coordinator server~\cite{ethereumfoundationMinimalAntiCollusionInfrastructure2022, PrivacyscalingexplorationsMaci2023}.
+Most internet voting protocols mitigate single points of failure by distributing decryption keys among multiple authorities, often termed Key Holders~\cite{barandiaranDecidimTechnopoliticalNetwork2024,adidaHeliosWebbasedOpenAudit2008,haenniCHVoteProtocolSpecification2017,larraiaSVoteControlComponents2022} or Trustees~\cite{cortierBeleniosSimplePrivate2019,mattbeckerProofVoteEndtoend2018}.  Election privacy is maintained as long as a threshold of these authorities remains non-collusive. However, these approaches rely on a predefined set of trusted authorities, making them vulnerable to attacks, collusion, or absence during key reconstruction, potentially halting the entire voting process.
 
-Cicida achieves ballot secrecy using homomorphic time-lock puzzles and voter anonymity using Semaphore for zero-knowledge set membership proofs~\cite{BuildingCicadaPrivate, A16zCicada2023}.
-
-Aragon/Vocdoni, like Cicida, achieves voter anonymity using zero-knowledge set membership proofs, but election secrecy is achieved using trusted nodes called KeyKeepers. When a new election is created, each KeyKeeper creates an encryption key and publishes the public part via a transaction (setProcessKeysTx). The voters select up to N (at least one) of the keys and encrypt the vote with the N keys in onion mode~\cite{williamsRemoteVotingAge2022, VocdoniIntroductionVocdoni}. 
-
-Votem~\cite{votemcorpVotemProofofvoteVotem}, achieves voter anonymity using a re-encryption mix network. Election secrecy is achieved using ElGamal homomorphic encryption and Distributed Key Generation (DKG) and Multi-Party Computation (MPC) for decryption. Votem uses permissioned blockchain network, where each node is explicitly granted a set of permissions by the authority conducting the election.
-
-ElectionGuard~\cite{benalohElectionGuardDesignSpecification2023} uses a similar approach to DKG/MPC with threshold homomorphic encryption, without explicitly relying on blockchain technology or consensus algorithms. Instead, it uses a set of permissioned nodes called Guardians.
-
-Our protocol follows the same approach of DKG/MPC/ElGamal/threshold encryption, but generalises the trust model by allowing each voter to act as a Guardian and share their secret input with a set of trusted parties. This model not only further decentralises trust, but also enhances privacy and security by distributing the power of vote verification among a wider set of participants. 
-
-
-\paragraph{Objectives}
-In designing the protocol, we focused on key objectives to address the essential challenges and needs of a secure and practical Internet voting protocol. These objectives are
-
-\begin{enumerate}
-    \item \textbf{Distributed Model.} Use a fully distributed model to eliminate the need for central authorities or trusted intermediaries. This approach increases the resilience of the system to attack and reduces the risk of single points of failure.
-    \item \textbf{Flexible Trust.} Use a social mapping approach to security, where the system relies on the structure of trust within the community. People who are more trusted should have a greater role in maintaining security.
-    \item \textbf{Privacy.} Ensure voter anonymity and vote secrecy using cryptographic methods based on the honest-trust-majority assumption. This means that individual votes remain secret and cannot be decrypted unless the most important nodes collude.
-    \item \textbf{Robustness}: The protocol should be robust to partial participation, especially in the final round, allowing for flexible participation without compromising the integrity of the voting process.
-    \item \textbf{Accessibility}. Ensure that the protocol works smoothly on common devices such as smartphones and laptops. This makes it accessible, scalable and easy to use for everyone.
-\end{enumerate}
-
+The primary motivation for developing FDKG is to create a more robust and decentralized foundation for internet voting protocols, analogous to how FBA has enhanced decentralization in the Ripple blockchain~\cite{mazieresStellarConsensusProtocol2015}. FDKG decentralizes trust by shifting it to the voter level, empowering each participant to select their own trusted parties (guardian sets) for key reconstruction. This eliminates reliance on a single authority or fixed set of trustees, significantly improving system flexibility and resilience to node unavailability.
 
 % Party
 \newcommand{\PartySecretKey}[1]{\ensuremath{s_{#1}}}
@@ -199,47 +149,50 @@ In designing the protocol, we focused on key objectives to address the essential
 \newcommand{\VotesSize}{\ensuremath{|\mathbb{V}}|}
 
 % Voting keys
-\newcommand{\EncryptionKey}{\textbf{E}}
-\newcommand{\DecryptionKey}{\textbf{d}}
+\newcommand{\PublicKey}{\textbf{E}}
+\newcommand{\SecretKey}{\textbf{d}}
 
 % Partial voting keys
-\newcommand{\PartialDecryptionKey}[1]{\ensuremath{d_{#1}}}
-\newcommand{\PartialEncryptionKey}[1]{\ensuremath{E_{#1}}}
+\newcommand{\PartialSecretKey}[1]{\ensuremath{d_{#1}}}
+\newcommand{\PartialPublicKey}[1]{\ensuremath{E_{#1}}}
+
+
+\newcommand{\SharePartialSecretKey}[2]{\ensuremath{[d_{#1}]_{#2}}}
 
 % Ciphertexts
-\newcommand{\EncryptedPartialDecryptionKeyShare}[2]{\ensuremath{C_{#1,#2}}}
-\newcommand{\SetOfEncryptedPartialDecryptionKeys}{\ensuremath{\mathbb{C}}}
+\newcommand{\EncryptedSharePartialSecretKey}[2]{\ensuremath{C_{#1,#2}}}
+\newcommand{\SetOfEncryptedPartialSecretKeys}{\ensuremath{\mathbb{C}}}
 \newcommand{\SetOfFDKG}{\ensuremath{\mathbb{D}}}
 \newcommand{\SetOfSharesOfPartialDecryption}{\ensuremath{\mathbb{C}}}
 \newcommand{\Voters}{\ensuremath{\mathbb{V}}}
 \newcommand{\Tallies}{\ensuremath{\mathbb{T}}}
 % Shares
-\newcommand{\IthDecryptionKey}[1]{\ensuremath{d_{#1}}}
-\newcommand{\IthEncryptionKey}[1]{E_{#1}}
+\newcommand{\IthSecretKey}[1]{\ensuremath{d_{#1}}}
+\newcommand{\IthPublicKey}[1]{E_{#1}}
 
 % Private channel
 \newcommand{\DecryptionUsingOf}[2]{\ensuremath{\texttt{Dec}_{#1}(#2)}}
 \newcommand{\EncryptionUsingOf}[2]{\ensuremath{\texttt{Enc}_{#1}(#2)}}
 
-\newcommand{\PartialDecryptionKeyShare}[2]{\ensuremath{[d_{#1}]_{#2}}}
+\newcommand{\ProofPS}[1]{\ensuremath{\textrm{PROOF}_{\PartialSecretKey{#1}}}}
 
+\newcommand{\ProofSPS}[2]{\ensuremath{\textrm{PROOF}_{\SharePartialSecretKey{#1}{#2}}}}
 
 \newcommand{\ProofFDKG}[1]{\ensuremath{\textrm{PROOF}_{\textrm{FDKG}_{#1}}}}
 
-\newcommand{\ProofFDKGInformal}{"Given \PartialEncryptionKey{i}, \EncryptedPartialDecryptionKeyShare{i}{j} and $\Party{j} \in \GuardianSetOf{i}$, I know $f_i = a_0, \dots, a_{t-1}$, $r1_1,\dots,r1_k$, and $r2_1,\dots,r2_k$, s.t. $\PartialEncryptionKey{i}=a_0G$ and the \EncryptedPartialDecryptionKeyShare{i}{j} is an encrypted value of a polynomial $f_i$ applied to $j$"}
+\newcommand{\ProofFDKGInformal}{"Given \PartialPublicKey{i}, \EncryptedSharePartialSecretKey{i}{j} and $\Party{j} \in \GuardianSetOf{i}$, I know $f_i = a_0, \dots, a_{t-1}$, $r1_1,\dots,r1_k$, and $r2_1,\dots,r2_k$, s.t. $\PartialPublicKey{i}=a_0G$ and the \EncryptedSharePartialSecretKey{i}{j} is an encrypted value of a polynomial $f_i$ applied to $j$"}
 
 \newcommand{\ProofBALLOT}[1]{\ensuremath{\textrm{PROOF}_{\textrm{\Ballot{#1}}}}}
 
-\newcommand{\ProofBALLOTInformal}{"Given \EncryptionKey{} and \Ballot{i} = $(C1, C2)$, I know \BlindingFactor{i}, and \Vote{i} s.t. $\Vote{i} \in \{2^0, 2^j, \ldots, 2^{(l-1)j}\}$ and $\Ballot{i} = (\BlindingFactor{i} G,\ \BlindingFactor{i} \EncryptionKey{} + \Vote{i})$"}
+\newcommand{\ProofBALLOTInformal}{"Given \PublicKey{} and \Ballot{i} = $(C1, C2)$, I know \BlindingFactor{i}, and \Vote{i} s.t. $\Vote{i} \in \{2^0, 2^j, \ldots, 2^{(l-1)j}\}$ and $\Ballot{i} = (\BlindingFactor{i} G,\ \BlindingFactor{i} \PublicKey{} + \Vote{i})$"}
 
 \newcommand{\ProofPD}[1]{\ensuremath{\textrm{PROOF}_{\PartialDecryptionFrom{#1}}}}
 
-\newcommand{\ProofPDInformal}{"Given $\TotalA{}, \PartialDecryptionFrom{i}, \PartialEncryptionKey{i}$, I know a partial decryption key $\PartialDecryptionKey{i}$ s.t. $\PartialEncryptionKey{i} = \PartialDecryptionKey{i} G$ and $\PartialDecryptionFrom{i} = \PartialDecryptionKey{i} \TotalA{}$"}
+\newcommand{\ProofPDInformal}{"Given $\TotalA{}, \PartialDecryptionFrom{i}, \PartialPublicKey{i}$, I know a partial decryption key $\PartialSecretKey{i}$ s.t. $\PartialPublicKey{i} = \PartialSecretKey{i} G$ and $\PartialDecryptionFrom{i} = \PartialSecretKey{i} \TotalA{}$"}
 
 \newcommand{\ProofPDS}[2]{\ensuremath{\textrm{PROOF}_{\SharePartialDecryptionFromTo{#1}{#2}}}}
 
-\newcommand{\ProofPDSInformal}{"Given $\SharePartialDecryptionFromTo{j}{i}, \EncryptedPartialDecryptionKeyShare{j}{i}, \TotalA$, I know a secret key $\PartySecretKey{i}$ s.t. $\SharePartialDecryptionFromTo{j}{i} = \TotalA  \PartialDecryptionKeyShare{j}{i}$ where $\PartialDecryptionKeyShare{j}{i} = \DecryptionUsingOf{\PartySecretKey{i}}{\EncryptedPartialDecryptionKeyShare{j}{i}}$"}
-
+\newcommand{\ProofPDSInformal}{"Given $\SharePartialDecryptionFromTo{j}{i}, \EncryptedSharePartialSecretKey{j}{i}, \TotalA$, I know a secret key $\PartySecretKey{i}$ s.t. $\SharePartialDecryptionFromTo{j}{i} = \TotalA  \SharePartialSecretKey{j}{i}$ where $\SharePartialSecretKey{j}{i} = \DecryptionUsingOf{\PartySecretKey{i}}{\EncryptedSharePartialSecretKey{j}{i}}$"}
 
 
 \newcommand{\Ballot}[1]{\ensuremath{B_{#1}}}
@@ -262,42 +215,661 @@ In designing the protocol, we focused on key objectives to address the essential
 
 \newcommand{\PartialDecryptionFrom}[1]{\ensuremath{\mathrm{PD}_{#1}}}
 
-\section{Preliminaries}
-In this section, we outline essential cryptographic concepts and tools that underlie the PeerVote protocol presented in this paper. These preliminaries provide the necessary background for understanding the structure and functionality of our protocol.
+
+\section{Preliminaries}\label{sec:preliminaries}
+
+This section outlines the core cryptographic concepts and tools that serve as building blocks of our FDKG protocol.
 
 
 % Table of Notations
-\begin{table}[h]
+\begin{table}[!t]
 
 \caption{Summary of Notations}
 \label{tab:notations}
-\begin{tabular}{>{\centering\arraybackslash}p{.2\linewidth}p{.8\linewidth}}
-
+\begin{tabular}{>{\centering\arraybackslash}p{.2\linewidth}p{.7\linewidth}}
 \hline
 \textbf{Notation} & \multicolumn{1}{c}{\textbf{Description}} \\
 \hline
 
-\Parties          & Set of all parties $\Party{i} \in \Parties$ in the voting process \\
+\Parties          & Set of all parties $\Party{i} \in \Parties$ in the system \\
+
 
 \Party{i},\PartySecretKey{i} & Public and secret keys used to authenticate $i$-th party, where $\Party{i}=\PartySecretKey{i} \G$  \\
 
 \hline
-
 $\SetOfFDKG \subseteq \Parties$ & Subset of parties involved in the 1. FDKG phase  \\
 
-\PartialEncryptionKey{i},\PartialDecryptionKey{i}      & Partial encryption (public) and decryption (secret) keys of \Party{i}. $\PartialEncryptionKey{i}=\PartialDecryptionKey{i} \G$, where $\PartialDecryptionKey{i}$ is a random ephemeral (per vote) scalar value.  \\
+\PartialPublicKey{i},\PartialSecretKey{i}      & Partial encryption (public) and decryption (secret) keys of \Party{i}. $\PartialPublicKey{i}=\PartialSecretKey{i} \G$, where $\PartialSecretKey{i}$ is a random ephemeral (per vote) scalar value.  \\
 
-\EncryptionKey{}, \DecryptionKey{}    & Voting public (encryption) and secret (decryption) keys, that is a sum of partial encryption keys \PartialEncryptionKey{i}, and decryption keys \PartialDecryptionKey{i} accordingly \\
+\PublicKey{}, \SecretKey{}    & Voting public (encryption) and secret (decryption) keys, that is a sum of partial encryption keys \PartialPublicKey{i}, and decryption keys \PartialSecretKey{i} accordingly \\
 
-$\GuardianSetOf{i}$ & Guardian set is a subset of parties  selected by \Party{i} that can recreate \Party{i}'s part of the decryption key \PartialDecryptionKey{i}.  $\GuardianSetOf{i} \subseteq \Parties \setminus \Party{i}$ \\
+$\GuardianSetOf{i}$ & Guardian set is a subset of parties  selected by \Party{i} that can recreate \Party{i}'s part of the decryption key \PartialSecretKey{i}.  $\GuardianSetOf{i} \subseteq \Parties \setminus \Party{i}$ \\
 
 $k = |\GuardianSetOf{}|$                 & Total number of parties in a guardian set \\
 
 $t$                 & Threshold number to reconstruct the shared secret \\
 
-\PartialDecryptionKeyShare{i}{j}      & Share of partial decryption (secret) key, from \Party{i} to \Party{j}   \\
+\SharePartialSecretKey{i}{j}      & Share of partial decryption (secret) key, from \Party{i} to \Party{j}   \\
+
+\EncryptedSharePartialSecretKey{i}{j} & Encrypted partial decryption key share, from \Party{i} to \Party{j}  \\
 
 \hline
+$\Tallies \subseteq \Parties$ & Subset of parties  participating in the 3. Online Tally phase \\
+
+\hline
+$\texttt{Enc}_{\Party{i}}, \texttt{Dec}_{\PartySecretKey{i}}$ & Public key encryption for \Party{i} and decryption using the corresponding secret key $\PartySecretKey{i}$, as described in Section~\ref{private-channel} \\
+
+$\Delta$ & A helper value used to encode a scalar value to a point on a curve \\
+
+\EncryptedSharePartialSecretKey{i}{j} & Encrypted partial decryption key share, from \Party{i} to \Party{j}  \\
+
+\hline
+\ProofFDKG{i} & zkSNARK proof of correctness of (\PartialSecretKey{i}, \EncryptedSharePartialSecretKey{i}{}) \\
+
+\ProofPS{i} & zkSNARK of partial secret \PartialSecretKey{i} \\
+
+\ProofSPS{i}{j} & zkSNARK of share of partial secret \SharePartialSecretKey{i}{j} \\
+
+\hline
+
+\end{tabular}
+\end{table}
+
+\subsection*{Secret Sharing}
+Secret sharing is a fundamental technique used in DKG to distribute a secret key $s$ among $n$ participants. Shamir's Secret Sharing (SSS) enables a dealer to distribute a secret key $s$ by sampling a random polynomial $\mathbf{f}(X) = a_0 + a_1X + a_2X^2 + \dots + a_{t-1}X^{t-1}$, where $a_0, a_1, \dots, a_{t-1}$ are random elements of a field $\mathbb{F}_q$. Here, the secret key is $s=a_0=\mathbf{f}(0)$, and $t-1$ denotes the degree of the polynomial. To share the secret key, the dealer computes shares by evaluating $\mathbf{f}(i)$ for each participant $i \neq 0$. The secret $s$ can be recovered by any $t$ or more participants by using Lagrange interpolation.
+
+\subsection*{Distributed Key Generation}
+To avoid centralising the role of the dealer (and revealing the secret value $s$), the generation of polynomial $\mathbf{f}(X) \in_R \mathbb{Z}_q[X]$ is distributed among all parties $\mathbb{P}$. Each party selects a random polynomial $f_{i}(X) \in \mathbb{Z}_q[X]$, and the final polynomial is the sum of these individual polynomials: 
+\begin{equation}
+  \mathbf{f}(X)=\sum_{i=1}^{n}f_i(X)  
+\end{equation}
+Consequently, the secret (decryption) key $\mathbf{d}$ and public (encryption) key $\mathbf{E}$ are defined as: 
+\begin{equation}
+\mathbf{d}=\mathbf{f}(0)\ \textrm{and}\ \mathbf{E}=\mathbf{d} \G
+\end{equation}
+ 
+To prevent arbitrary submissions by parties, Publicly Verifiable Secret Sharing (PVSS) is used, incorporating zero-knowledge proofs to validate the correctness of shared values \cite{goosSimplePubliclyVerifiable1999}.
+
+
+\subsection{zk-SNARKs}
+
+Zero-Knowledge Succinct Non-Interactive Arguments of Knowledge (zk-SNARKs) enable a prover to demonstrate the validity of a statement to a verifier without revealing any information beyond the validity of the statement itself~\cite{grothSizePairingBasedNoninteractive2016}. A zk-SNARK for an arithmetic circuit $C$, characterized by a relation $\mathcal{R}_C$ and a language $\mathcal{L}_C$, is defined as follows:
+\begin{itemize}
+    \item $\textrm{(pk,vk)} \gets \textrm{Setup}(1^\lambda,C)$: Given a security parameter $\lambda$ and the circuit $C$, this algorithm generates a proving key $\textrm{pk}$ and a verification key $\textrm{vk}$.
+    \item $\pi \gets \textrm{Prove}(\textrm{pk}, \vec{s}, \vec{w})$: Given the proving key $\textrm{pk}$, a statement $\vec{s}$ and a witness $\vec{w}$ (where $(\vec{s},\vec{w}) \in \mathcal{R}_C$), this algorithm produces a non-interactive zero-knowledge proof $\pi$ for the statement $\vec{s} \in \mathcal{L}_C$.
+     \item $0/1 \gets \textrm{Verify}(\textrm{vk}, \vec{s}, \pi)$: With the verification key $\textrm{vk}$, statement $\vec{s}$, and proof $\pi$, this algorithm outputs 1 if $\pi$ is a valid proof for $\vec{s} \in \mathcal{L}_C$, and 0 otherwise.
+\end{itemize}
+
+In our protocol, we employ the general principles of zk-SNARK to construct specific proofs for each phase of the voting process. Each proof is defined by a circuit $C$ that verifies constraints, a public instance (statement) $\vec{s}$, and a private input (witness) $\vec{w}$.
+
+\subsection{Private Channel}\label{private-channel}
+Secure communication between participants over a public message board is achieved using ElGamal encryption over the BabyJub curve due to its homomorphic addition property and efficiency in arithmetic circuits used in Groth16~\cite{grothSizePairingBasedNoninteractive2016}. Specifically, we use ElGamal to encrypt shares of partial secret keys (e.g., \(\EncryptedSharePartialSecretKey{i}{j}\)), ensuring confidentiality while allowing for threshold-based reconstruction. However, any secure public-key encryption scheme (e.g., RSA or lattice-based schemes) could serve this purpose, as the core requirement is the secure transmission of shares.  In our protocol, we use the technique from~\cite{ElGamalEncryptionDecryption2020,jieWeijiekohElgamalbabyjub2023}. 
+
+Each user generates an ephemeral key pair for every message. To encrypt a plaintext message $m$, a random value $r$ is sampled, a point $M=r\G$ on the BabyJub curve is generated and an x-increment $\Delta = M.x - m$ is calculated, where $M.x$ is the x coordinate of the point $M$. The ciphertext consists of two points on the elliptic curve and a scalar: $(C_1, C_2, \Delta=M.x - m)$, where $C_1=k\G$ and $C_2=kP+M$. The complete encryption process is described in detail in Algorithm~\ref{alg:encryption}. Decryption is the standard ElGamal decryption method where $\Delta$ is added to the x-coordinate of the result, as shown in Algorithm~\ref{alg:decryption}.
+
+\begin{algorithm}[h!]
+    \caption{$\texttt{Enc}_{P_i}$}
+    \label{alg:encryption}
+    \textbf{Input:} A scalar $m$\\
+    \textbf{Output:} A tuple $(C_1, C_2, \Delta)$\\
+    $k \gets_R \mathbb{Z}_q$\\
+    $r \gets_R \mathbb{Z}_q$\\
+    $C_1 = kG$\\
+    $M = rG$\\
+    $C_2 = kP + M$\\
+    $\Delta = M.x - m$\\
+    \textbf{return} $(C_1, C_2, \Delta)$
+\end{algorithm}
+
+\begin{algorithm}[h!]
+    \caption{$\texttt{Dec}_{s_i}$}
+    \label{alg:decryption}
+    \textbf{Input:} A tuple $(C_1, C_2, \Delta)$\\
+    \textbf{Output:} A scalar $m$\\
+    $M = C_2 - s_i C_1$\\
+    $m = M.x - \Delta$\\
+    \textbf{return} $m$
+\end{algorithm}
+
+
+
+\section{Federated Distributed Key Generation (FDKG)}\label{sec:fdkg}
+% AI improve grammar begin
+FDKG is designed to overcome the limitations of traditional DKG in a dynamic group of participants. It introduces the concept of Guardian Sets, allowing participants to delegate reconstruction responsibilities to subsets of trusted nodes.
+
+A standard $(n, t)$-DKG protocol allows a set of $n$ nodes to collectively generate a secret with its shares spread over the nodes such that any subset of size greater than a threshold $t$ can reveal or use the shared secret, while smaller subsets do not have any knowledge about it.
+
+An $(n, p, t, k)$-FDKG protocol allows a set of $n$ nodes, where a fraction $p$ of them participates in generating partial secret keys, each distributed among guardian sets of size $k$ using a $t$-out-of-$k$ secret sharing scheme. During reconstruction, a fraction of those who participated need to provide their partial key or its shares to reconstruct the final key, while subsets that do not meet this condition have no knowledge of the final key.
+
+FDKG generalizes the $(n, t)$-DKG protocol. A standard DKG protocol can be seen as a special case of FDKG where we have $(n, 1, t, n-1)$-FDKG, meaning all $1 * n$ parties participate in key generation, each party selects all $n-1$ other parties are the guardians and the reconstruction threshold is $t$.
+
+FDKG requires a cryptosystem where partial key pairs (\(\PartialSecretKey{i}\), \(\PartialPublicKey{i}\)) can be generated independently by each participant and combined homomorphically to form a global key pair (\(\SecretKey\), \(\PublicKey\)). In this implementation, we use ElGamal over the BabyJub curve, where \(\PartialPublicKey{i} = \PartialSecretKey{i} G\) and \(\PublicKey = \sum \PartialPublicKey{i}\), leveraging point addition on the elliptic curve. However, FDKG is generalizable to other schemes (e.g., lattice-based systems) that support similar homomorphic properties for key combination. The essential cryptographic property is the ability to additively combine partial keys, making FDKG adaptable to various cryptographic settings.
+
+Here we present the detailed description of the protocol's Distribution Phase and Reconstruction Phases and their steps.
+% AI improve grammar end
+\subsection{Round 1: Distribution Phase}
+
+This round is optional for every eligible party in $\Parties{}$. For each participating party $\Party{i} \in \mathbb{D}$, where $\mathbb{D} \subseteq \Parties$:
+\begin{enumerate}
+    \item Each party selects a guardian set of $k$ parties $\GuardianSetOf{i} \subseteq \Parties \setminus \{\Party{i}\}$.
+
+    \item Each party samples a random polynomial $f_{i}(X) \in_{\$} \mathbb{Z}_q[X]$ of degree $t-1$.
+    
+    \item  Each party computes its partial secret $\PartialSecretKey{i}= f_i(0)$ and partial public key $\PartialPublicKey{i} = \PartialSecretKey{i} \G$.
+    
+    \item  Each party generates shares of the partial secret $\SharePartialSecretKey{i}{j}=f_i(j)$ for each guardian $\Party{j} \in \GuardianSetOf{i}$, which are encrypted using the private channel: $\EncryptedSharePartialSecretKey{i}{j}=\EncryptionUsingOf{\Party{j}}{\SharePartialSecretKey{i}{j}}$.
+    
+    \item Each party generates a zero-knowledge proof $\ProofFDKG{i}$, as described in Appendix~\ref{app:proof-fdkg}.
+    
+    \item Each party broadcasts (\PartialPublicKey{i}, \EncryptedSharePartialSecretKey{i}{j}, \ProofFDKG{i}).
+\end{enumerate}
+
+\paragraph*{State after Round 1:}
+Upon completion of FDKG, the message board contains:
+\begin{itemize}
+    \item $\{\PartialPublicKey{i} : \Party{i} \in \mathbb{D}\}$, the set of partial public keys, where public key $\PublicKey$ can be reconstructed by anyone by summing $\PublicKey=\sum_{\Party{i} \in \mathbb{D}} \PartialPublicKey{i}$.
+    \item $\bigcup_{\Party{i} \in \mathbb{D}} \{C_{i,j} \mid P_j \in \mathbb{G}_i\}$, the set of encrypted shares of the partial secret keys.
+\end{itemize}
+
+\subsection{Round 2: Reconstruction Phase}
+
+The reconstruction process occurs in two phases: online and offline.
+
+\subsubsection{Online Reconstruction}
+A subset of parties $\Tallies \subseteq \Parties$ are involved in an reconstruction phase. For each party $\Party{i} \in \mathbb{T}$:
+
+\begin{enumerate}
+    \item If the party also participated in FDKG ($\Party{i} \in \SetOfFDKG$):
+    \begin{enumerate}
+        \item The party generates a zero-knowledge proof \ProofPS{i} as described in Appendix~\ref{app:proof-ps}.
+    \end{enumerate}
+    
+    \item For each received encrypted share $\EncryptedSharePartialSecretKey{j}{i}$, where $\Party{j} \in \mathbb{D} \setminus \{\Party{i}\}$ and $\Party{i} \in \GuardianSetOf{j}$:
+        \begin{enumerate}
+            \item The party decrypts the partial secret key share $\SharePartialSecretKey{j}{i}=\DecryptionUsingOf{\PartySecretKey{i}}{\EncryptedSharePartialSecretKey{j}{i}}$.
+            
+            \item The party generates a zero-knowledge proof \ProofSPS{j}{i} as described in Section~\ref{app:proof-sps}.
+        \end{enumerate}
+        \item  The party broadcasts  $(\PartialSecretKey{i},\ProofPS{i}, \vec{\SharePartialSecretKey{j}{i}},\vec{\ProofSPS{j}{i}})$.
+\end{enumerate}
+\paragraph*{State after Online Tally}
+Upon completion of Online Tally, the message board contains:
+\begin{itemize}
+    \item $\{\PartialSecretKey{i} :  \Party{i} \in \mathbb{D} \land \Party{i} \in \mathbb{T}\}$, the set of partial secret keys.
+    \item $\bigcup_{\Party{i} \in \mathbb{T}} \{\SharePartialSecretKey{j}{i} : \Party{j} \in \mathbb{D} \setminus \{\Party{i}\} \text{ and } \Party{i} \in \GuardianSetOf{j}\}$, the set of partial secret key shares.
+\end{itemize}
+
+\subsubsection{Offline Reconstruction}
+
+The offline tallying phase can be performed by anyone, and involves:
+
+\begin{enumerate}
+    \item The sum of partial secret keys or their reconstructions from shares is computed:
+ \[\SecretKey{} = \sum\{\PartialSecretKey{i} \textrm{ or } \sum (\SharePartialSecretKey{j}{i} \lambda_{j}) : \Party{j} \in \GuardianSetOf{i}\} = \SecretKey{} \]
+  where $\lambda_{i}=\Pi_{j \neq i}\frac{j}{j-i}$ represents the Lagrange coefficient.
+ 
+\end{enumerate}
+
+\subsection{Communication Complexity}
+
+The communication complexity of FDKG is determined by its two phases: the Distribution Phase and the Reconstruction Phase. In the Distribution Phase, each participating node broadcasts its partial public key along with encrypted shares exclusively to its designated Guardian Set of size \( k \). This results in an overall complexity of $O(n k)$. In the worst case, where each node selects all others as guardians ($k = n-1$), the complexity reverts to $O(n^2)$, making it equivalent to a standard DKG. The adoption of Publicly Verifable Secret Sharing, particulary non-interactive zero-knowledge proofs for verification avoids the need for additional interactive exchange of messages.
+
+During the Reconstruction Phase, an online protocol is executed by a subset of nodes that broadcast their partial secrets and associated ZKPs, incurring a typical message cost of \(\mathcal{O}(n m)\), where $m$ is the size of the received partial decryption keys. Although the communication in this phase is normally bounded by \(\mathcal{O}(n)\), worst-case scenarios—when one node gets into everyone elses' guardian sets and thus $m=n-1$—may escalate the overhead to \(\mathcal{O}(n^2)\).
+
+
+\subsection{FDKG Example}
+
+To illustrate the FDKG process and highlight its improvements over traditional DKG, consider a scenario involving a set of $n=10$ parties $\{P_1, \ldots, P_{10}\}$. Let's set threshold $t$ to be 70\% of all nodes i.e., $t=7$.
+
+DKG requires all $n$ nodes to participate in the first round of key construction, in FDKG we loosen that requirements, and leave this phase optional, instead we take a realistic scenario where only 70\% of all participants participate in the first round of key construction.
+
+In this example, we have $k = 3$ and $t = 2$. A subset of these parties, namely $\mathbb{D} = \{P_1, P_3, P_5, P_7, P_9\}$, participates in the FDKG, each forming their respective guardian set. This setup is shown in Figure \ref{fig:FDKG}.
+
+\begin{figure}
+    \centering
+    \includegraphics[width=.5\textwidth]{DKG-example.png} \\
+    \vspace{0.5em} 
+    \includegraphics[width=.5\textwidth]{FDKG-example.png}
+    \caption{Visual comparison of $(10,5)$-DKG protocol (above) and $(10, 0.5, 2, 3)$-FDKG (below)}
+    \label{fig:FDKG}
+\end{figure}
+
+The FDKG process for each participant is as follows:
+
+\begin{enumerate}
+    \item \textbf{Party $P_1$}:
+        \begin{itemize}
+            \item Chooses Guardian Set $\mathbb{G}_1 = \{P_2, P_3, P_5\}$.
+            \item Samples a random polynomial $f_1(X) \in_R \mathbb{Z}_q[X]$, computes decryption key $d_1 = f_1(0)$.
+            \item Distributes $d_1$ among $\mathbb{G}_1$, yielding shares $\SharePartialSecretKey{1}{2}, \SharePartialSecretKey{1}{3}, \SharePartialSecretKey{1}{5}$.
+        \end{itemize}
+
+    \item \textbf{Party $P_3$}:
+        \begin{itemize}
+            \item Chooses $\mathbb{G}_3 = \{P_1, P_2, P_4\}$.
+            \item Samples $f_3(X)$, computes $d_3$, and distributes it among $\mathbb{G}_3$, yielding shares $\SharePartialSecretKey{3}{1}, \SharePartialSecretKey{3}{2}, \SharePartialSecretKey{3}{4}$.
+        \end{itemize}
+
+    \item \textbf{Party $P_5$}:
+        \begin{itemize}
+            \item Chooses $\mathbb{G}_5 = \{P_3, P_6, P_7\}$.
+            \item Samples $f_5(X)$, computes $d_5$, and distributes it among $\mathbb{G}_5$, yielding shares $\SharePartialSecretKey{5}{3}, \SharePartialSecretKey{5}{6}, \SharePartialSecretKey{5}{7}$.
+        \end{itemize}
+
+    \item \textbf{Party $P_7$}:
+        \begin{itemize}
+            \item Chooses $\mathbb{G}_7 = \{P_8, P_9, P_{10}\}$.
+            \item Samples $f_7(X)$, computes $d_7$, and distributes it among $\mathbb{G}_7$, yielding shares $\SharePartialSecretKey{7}{8}, \SharePartialSecretKey{7}{9}, \SharePartialSecretKey{7}{10}$.
+        \end{itemize}
+
+    \item \textbf{Party $P_9$}:
+        \begin{itemize}
+            \item Chooses $\mathbb{G}_9 = \{P_5, P_7, P_{10}\}$.
+            \item Samples $f_9(X)$, computes $d_9$, and distributes it among $\mathbb{G}_9$, yielding shares $\SharePartialSecretKey{9}{5},\SharePartialSecretKey{9}{7}, \SharePartialSecretKey{9}{10}$.
+        \end{itemize}
+\end{enumerate}
+
+In a traditional DKG protocol, the minimum set of parties required to achieve Liveness (Definition~\ref{def:liveness}) would be any subset of size at least $t$ e.g., \(\{P_1, P_3, P_5, P_7, P_9 \}\). However, with the FDKG approach, the use of dynamic Guardian Sets and therefore emergent significance factor of parties, this minimum set can be reduced to $\{P_3, P_5, P_7\}$, demonstrating the protocol's efficiency in reducing the number of participants required for successful deconstruction.
+
+\section{Security Properties}
+\label{sec:security_properties}
+
+This section formalizes the security guarantees of the FDKG protocol. We define three core properties---\textbf{Liveness}, \textbf{Integrity}, and \textbf{Privacy}---that address distinct adversarial threats and resilience objectives. Each property operates at a different scope:
+\begin{itemize}
+    \item \textbf{Liveness} ensures network-wide key reconstruction despite partial failures or adversarial interference.
+    \item \textbf{Privacy} protects individual participants' partial secret keys from unauthorized disclosure.
+    \item \textbf{Integrity} guarantees cryptographic consistency and correctness of the reconstructed global secret key.
+\end{itemize}
+
+\subsection{Liveness}
+\label{subsec:liveness}
+
+\textbf{Liveness} in FDKG ensures that the global secret key \(\SecretKey = \sum \PartialSecretKey{i}\) can be reconstructed from the shares of honest participants and their guardians, even in the presence of adversarial interference or node failures.
+
+\begin{definition}[Liveness]
+\label{def:liveness}
+The FDKG protocol achieves \textbf{Liveness} if, for every participant \(\Party{i} \in \mathbb{D}\), either:
+\begin{itemize}
+    \item \(\Party{i}\) is honest and publishes its partial secret key \(\PartialSecretKey{i}\), or
+    \item At least \(t\) honest guardians in \(\GuardianSetOf{i}\) publish their shares \(\SharePartialSecretKey{i}{j}\), allowing reconstruction of \(\PartialSecretKey{i}\).
+\end{itemize}
+\end{definition}
+
+Liveness is violated if there exists a \( P_i \in \mathbb{D} \) such that the adversary controls both \( P_i \) (preventing publication of \( \PartialSecretKey{i} \)) and at least \( k - t + 1 \) guardians in \( \GuardianSetOf{i} \) (preventing reconstruction by guardians).
+
+\begin{theorem}[Liveness]
+\label{thm:liveness}
+The FDKG protocol achieves Liveness if, for every participant \( P_i \in \mathbb{D} \), the adversary does not control both \( P_i \) and \( k - t + 1 \) guardians in \( \GuardianSetOf{i} \).
+\end{theorem}
+
+\begin{proof}[Sketch of Proof]
+For each participant \(\Party{i} \in \mathbb{D}\):
+\begin{itemize}
+    \item If \( P_i \) is honest, it publishes \( \PartialSecretKey{i} \), ensuring its contribution to \( \SecretKey \), regardless of guardian control (since \( k - t + 1 \leq k \)).  
+    \item If \( P_i \) is corrupt, reconstruction depends on \( \GuardianSetOf{i} \). If the adversary controls fewer than \( k - t + 1 \) guardians, at least \( k - (k - t) = t \) guardians are honest, ensuring reconstruction via Lagrange interpolation.
+\end{itemize}
+
+The condition that the adversary does not control both \(\Party{i}\) and \(k - t + 1\) guardians prevents the adversary from blocking reconstruction by withholding \(\PartialSecretKey{i}\) and corrupting guardians. Thus, \(\SecretKey = \sum \PartialSecretKey{i}\) is recoverable.
+\end{proof}
+
+\subsection{Privacy}
+\label{subsec:privacy}
+
+\textbf{Privacy} ensures that an adversary cannot learn a participant's partial secret key \(\PartialSecretKey{i}\) unless they control \(\Party{i}\) or a sufficient number of guardians in \(\GuardianSetOf{i}\).
+
+\begin{definition}[Privacy]
+\label{def:privacy}
+The FDKG protocol ensures \textbf{Privacy} if, for each participant \(\Party{i} \in \mathbb{D}\), an adversary controlling fewer than \(t\) nodes in \(\GuardianSetOf{i}\) and not controlling \(\Party{i}\) learns no information about \(\PartialSecretKey{i}\). Privacy is violated if the adversary either:
+\begin{itemize}
+    \item Controls \(\Party{i}\), who knows \(\PartialSecretKey{i}\), or
+    \item Controls at least \(t\) guardians in \(\GuardianSetOf{i}\), allowing reconstruction of \(\PartialSecretKey{i}\).
+\end{itemize}
+\end{definition}
+
+\begin{theorem}[Privacy]
+\label{thm:privacy}
+The FDKG protocol achieves Privacy under the security of the encryption scheme and the properties of Shamir's Secret Sharing.
+\end{theorem}
+
+\begin{proof}[Sketch of Proof]
+Each share \(\SharePartialSecretKey{i}{j}\) is encrypted using \(\Party{j}\)'s public key, ensuring that only \(\Party{j}\) can decrypt it. Furthermore, by the properties of Shamir's Secret Sharing, any subset of fewer than \(t\) shares reveals no information about \(\PartialSecretKey{i}\). Thus, an adversary controlling fewer than \(t\) guardians learns nothing about \(\PartialSecretKey{i}\), and controlling \(\Party{i}\) directly reveals \(\PartialSecretKey{i}\).
+\end{proof}
+
+\subsection{Integrity}
+\label{subsec:integrity}
+
+\textbf{Integrity} ensures that the reconstructed global secret key \(\SecretKey\) is consistent with the sum of valid partial secret keys, even in the presence of adversarial interference, provided that all proofs verify.
+
+\begin{definition}[Integrity]
+\label{def:integrity}
+Let \(\mathbb{H} \subseteq \mathbb{D}\) denote the set of honest parties. \textbf{Integrity} holds if, in an adversarial context where all proofs (\(\ProofFDKG{i}\), \(\ProofPS{i}\), \(\ProofSPS{j}{i}\)) verify, the reconstructed global secret key is:
+\[
+\SecretKey{} = \sum_{\Party{i} \in \mathbb{H}} \PartialSecretKey{i} + \sum_{\Party{j} \in \mathbb{D} \setminus \mathbb{H}} \widetilde{\PartialSecretKey{j}},
+\]
+where \(\widetilde{\PartialSecretKey{j}}\) is either \(\PartialSecretKey{j}\) (if recovered) or \(0\) (if blocked or redundant).
+\end{definition}
+
+\begin{theorem}[Integrity]
+\label{thm:integrity}
+The FDKG protocol achieves Integrity if all proofs (\(\ProofFDKG{i}\), \(\ProofPS{i}\), \(\ProofSPS{j}{i}\)) verify.
+\end{theorem}
+
+\begin{proof}[Sketch of Proof]
+By Definition \ref{def:integrity}, Integrity requires that \(\SecretKey{}\) equals the sum of valid partial secrets. This holds because:
+\begin{enumerate}
+    \item For honest participants \(\Party{i} \in \mathbb{H}\), \(\ProofFDKG{i}\) ensures that \(\PartialPublicKey{i} = \PartialSecretKey{i} G\) and that the encrypted shares \(\EncryptedSharePartialSecretKey{i}{j}\) are correctly generated from a polynomial \(f_i(X)\) with \(f_i(0) = \PartialSecretKey{i}\).
+    \item For potentially corrupt participants \(\Party{j} \in \mathbb{D} \setminus \mathbb{H}\), if \(\PartialSecretKey{j}\) is recovered (either directly via \(\ProofPS{j}\) or through reconstruction from shares with \(\ProofSPS{j}{i}\)), it is consistent with \(\PartialPublicKey{j}\).
+    \item If \(\PartialSecretKey{j}\) cannot be recovered due to adversarial blocking, it is effectively set to \(0\), ensuring that \(\SecretKey{}\) remains the sum of the recoverable partial secrets.
+\end{enumerate}
+Thus, by the soundness of the zk-SNARKs and the properties of Publicly Verifiable Secret Sharing (PVSS), the reconstructed \(\SecretKey{}\) is consistent with the sum of valid partial secrets.
+\end{proof}
+
+% \section{Security Properties}
+% \label{sec:security_properties}
+
+% This section formalizes the security guarantees of the FDKG protocol. We define three core properties—Liveness, Privacy, Integrity—that address distinct adversarial threats and resilience objectives. Each property operates at a different scope:
+% \begin{itemize}
+%     \item \textbf{Local Safety} focuses on preventing unrecoverability via local collusion in a single guardian set.
+%     \item \textbf{Global Liveness} focuses on ensuring recoverability despite global faults across the network.
+%     \item \textbf{Correctness} guarantees cryptographic consistency and integrity of the reconstructed secret.
+% \end{itemize}
+
+% \subsection{Local Safety}
+% \label{subsec:local-safety}
+
+% Local Safety operates at the \textit{per-guardian-set} level. Its goal is to prevent adversaries from blocking reconstruction of a specific participant’s share through targeted collusion.  
+
+% \begin{definition}[Local Safety]
+% \label{def:local-safety}
+%     Local Safety is violated if there exists a party $\Party{i} \in \mathbb{D}$ such that the adversary controls both $\Party{i}$ itself, and at least $k - t + 1$ nodes in $\GuardianSetOf{i}$.
+%     Local Safety holds if no such collusion exists.
+% \end{definition}
+
+% Each $\GuardianSetOf{i}$ uses a $t$-out-of-$k$ scheme. To reconstruct $\PartialSecretKey{i}$, at least $t$ honest guardians must collaborate.
+% Proofs $\ProofFDKG{i}$ enforce that shares derive from a valid polynomial $f_i(X)$, preventing adversarial manipulation of shares.
+
+% \paragraph{Proof Sketch}  
+% Assume Local Safety is violated. The adversary controls $\Party{i}$ and $k - t + 1$ guardians in $\GuardianSetOf{i}$. Since reconstruction requires $t$ shares, the remaining $t - 1$ honest guardians cannot recover $\PartialSecretKey{i}$, and $\Party{i}$ withholds its share. Thus, $\SecretKey{}$ is unrecoverable. Conversely, if no such collusion exists, all shares are reconstructible.  
+
+% % ---
+
+% \subsection{Global Liveness}
+% \label{subsec:global-liveness}
+
+% Global Liveness operates at the \textit{network-wide} level. Its goal is to ensure eventual key reconstruction despite partial failures (e.g., crashes, network partitions).  
+
+% \begin{definition}[Global Liveness]
+% \label{def:global-liveness}
+%     Global Liveness is achieved if, for every $\Party{i} \in \mathbb{D}$, either:
+%     \begin{itemize}
+%         \item $\Party{i}$ is honest and publishes $\PartialSecretKey{i}$, or
+%         \item At least $t$ nodes in $\GuardianSetOf{i}$ are honest and publish $\SharePartialSecretKey{i}{j}$.
+%     \end{itemize}
+% \end{definition}
+
+% Each $\GuardianSetOf{i}$ contains $k$ nodes, ensuring at least $t$ remain honest if $k - t$ are corrupt.
+% Any party can compute $\SecretKey{}$ using published shares, ensuring recoverability even if participants go offline.
+    
+% \paragraph{Proof Sketch}  
+% For each $\Party{i} \in \mathbb{D}$:  
+% \begin{itemize}
+%     \item If $\Party{i}$ is honest, $\PartialSecretKey{i}$ is published.
+%     \item If $\Party{i}$ is corrupt, by Global Liveness, at least $t$ honest guardians in $\GuardianSetOf{i}$ can reconstruct $\PartialSecretKey{i}$.
+% \end{itemize}
+
+% Summing all $\PartialSecretKey{i}$ yields $\SecretKey{}$.  
+
+% \subsection{Liveness}
+% \label{subsec:liveness}
+
+% \textbf{Liveness} in FDKG ensures that the global secret key \(\SecretKey = \sum \PartialSecretKey{i}\) can be reconstructed from the shares of honest participants and their guardians, even in the presence of adversarial interference or node failures.
+
+% \begin{definition}[Liveness]
+% \label{def:liveness}
+% The FDKG protocol achieves \textbf{Liveness} if, for every participant \(\Party{i} \in \mathbb{D}\), either:
+% \begin{itemize}
+%     \item \(\Party{i}\) is honest and publishes its partial secret key \(\PartialSecretKey{i}\), or
+%     \item At least \(t\) honest guardians in \(\GuardianSetOf{i}\) publish their shares \(\SharePartialSecretKey{i}{j}\), allowing reconstruction of \(\PartialSecretKey{i}\).
+% \end{itemize}
+% \end{definition}
+
+% Liveness can be compromised by an adversary through two primary strategies:
+% \begin{enumerate}
+%     \item \textbf{Local Attack}: The adversary controls both the participant \(\Party{i}\) and at least \(k - t + 1\) guardians in \(\GuardianSetOf{i}\), preventing the reconstruction of \(\PartialSecretKey{i}\).
+%     \item \textbf{Global Attack}: The adversary controls more than \(k - t\) guardians in one or more guardian sets, reducing the number of honest guardians below the threshold \(t\) needed for reconstruction.
+% \end{enumerate}
+
+% \subsection{Integrity}
+% \label{subsec:integrity}
+
+% Correctness ensures cryptographic consistency across the protocol. Its goal is to guarantee that the reconstructed $\SecretKey{}$ matches the sum of valid partial secrets. 
+
+% \begin{definition}[Integrity]
+% \label{def:integrity}
+% Let \(\mathbb{H} \subseteq \mathbb{D}\) denote the set of honest parties. \textbf{Integrity} holds if, in an adversarial context where all proofs (\(\ProofFDKG{i}\), \(\ProofPS{i}\), \(\ProofSPS{j}{i}\)) verify, the reconstructed global secret key is:
+% \[
+% \SecretKey{} = \sum_{\Party{i} \in \mathbb{H}} \PartialSecretKey{i} + \sum_{\Party{j} \in \mathbb{D} \setminus \mathbb{H}} \widetilde{\PartialSecretKey{j}},
+% \]
+% where \(\widetilde{\PartialSecretKey{j}}\) is either \(\PartialSecretKey{j}\) (if recovered) or \(0\) (if blocked or redundant).
+% \end{definition}
+
+
+% % \begin{definition}[Correctness]
+% % \label{def:correctness}
+% %     Let $\mathbb{H} \subseteq \mathbb{D}$ denote the set of honest parties. Correctness holds if:
+% %     \[
+% %     \SecretKey{} = \sum_{\Party{i} \in \mathbb{H}} \PartialSecretKey{i} + \sum_{\Party{j} \in \mathbb{D} \setminus \mathbb{H}} \widetilde{\PartialSecretKey{j}},
+% %     \]
+% %     where $\widetilde{\PartialSecretKey{j}}$ is either $\PartialSecretKey{j}$ (if recovered) or $0$ (if blocked or redundant).
+% % \end{definition}
+ 
+% PVSS Verification enforces that shares $\SharePartialSecretKey{i}{j}$ lie on a degree $t-1$ polynomial $f_i(X)$.
+% zkSNARKs enforces that a) $\ProofFDKG{i}$ binds $\EncryptedSharePartialSecretKey{i}{j}$ to $f_i(X)$; b) $\ProofPS{i}$ proves knowledge of $\PartialSecretKey{i}$ for $\PartialPublicKey{i}$; c) $\ProofSPS{j}{i}$ ensures correct decryption of shares. 
+
+% \subsection{Privacy}
+% \label{subsec:privacy}
+
+% \textbf{Privacy} ensures that an adversary cannot learn a participant's partial secret key \(\PartialSecretKey{i}\) unless they control \(\Party{i}\) or a sufficient number of guardians in \(\GuardianSetOf{i}\).
+
+% \begin{definition}[Privacy]
+% \label{def:privacy}
+% The FDKG protocol ensures \textbf{Privacy} if, for each participant \(\Party{i} \in \mathbb{D}\), an adversary controlling fewer than \(t\) nodes in \(\GuardianSetOf{i}\) and not controlling \(\Party{i}\) learns no information about \(\PartialSecretKey{i}\). Privacy is violated if the adversary either:
+% \begin{itemize}
+%     \item Controls \(\Party{i}\), who knows \(\PartialSecretKey{i}\), or
+%     \item Controls at least \(t\) guardians in \(\GuardianSetOf{i}\), allowing reconstruction of \(\PartialSecretKey{i}\).
+% \end{itemize}
+% \end{definition}
+
+
+
+% \subsection{Security Theorems}
+% \label{subsec:security-theorems}
+
+% Local Safety addresses stronger adversarial power ($k - t + 2$ nodes) but focuses on single guardian sets. Global Liveness addresses weaker adversarial power ($k - t$ nodes) but applies network-wide.
+
+% If the adversary controls $k - t + 1$ nodes in every guardian set (violating Global Liveness), they still cannot violate Local Safety unless they also control the participant ($k - t + 2$ nodes total). Conversely, if the adversary controls $k - t + 2$ nodes in a guardian set (violating Local Safety), they automatically violate Global Liveness for that set.  
+
+% \begin{theorem}[Local Safety]
+% \label{thm:local-safety}
+%     The FDKG protocol achieves Local Safety if, for every guardian set $\GuardianSetOf{i}$, the adversary controls fewer than $k - t + 2$ nodes (i.e., the participant $\Party{i}$ and fewer than $k - t + 1$ guardians).
+% \end{theorem}
+
+% \begin{proof}
+%     By Definition~\ref{def:local-safety}, violating Local Safety requires controlling $\Party{i}$ and $k - t + 1$ guardians. If the adversary controls fewer than $k - t + 1$ guardians in every $\GuardianSetOf{i}$, honest guardians retain a majority ($\geq t$) and can reconstruct $\PartialSecretKey{i}$.
+% \end{proof}
+
+% \begin{theorem}[Global Liveness]
+% \label{thm:global-liveness}
+%     The FDKG protocol achieves Global Liveness if, for every guardian set $\GuardianSetOf{i}$, the adversary controls at most $k - t$ nodes.
+% \end{theorem}
+
+% \begin{proof}
+%     If the adversary controls $\leq k - t$ nodes in every $\GuardianSetOf{i}$, at least $t$ honest guardians remain in each set. By the $t$-out-of-$k$ threshold, these guardians can reconstruct $\PartialSecretKey{i}$ for all $\Party{i} \in \mathbb{D}$, ensuring $\SecretKey{}$ is recoverable.
+% \end{proof}
+
+
+% \begin{theorem}[Privacy]
+% \label{thm:privacy}
+% The FDKG protocol achieves Privacy under the security of the encryption scheme and the properties of Shamir's Secret Sharing.
+% \end{theorem}
+
+% \begin{proof}
+% Each share \(\SharePartialSecretKey{i}{j}\) is encrypted using \(\Party{j}\)'s public key, ensuring that only \(\Party{j}\) can decrypt it. Furthermore, by the properties of Shamir's Secret Sharing, any subset of fewer than \(t\) shares reveals no information about \(\PartialSecretKey{i}\). Thus, an adversary controlling fewer than \(t\) guardians learns nothing about \(\PartialSecretKey{i}\), and controlling \(\Party{i}\) directly reveals \(\PartialSecretKey{i}\).
+% \end{proof}
+
+% \begin{theorem}[Integrity]
+% \label{thm:integrity}
+% The FDKG protocol achieves \textbf{Integrity} if all proofs (\(\ProofFDKG{i}\), \(\ProofPS{i}\), \(\ProofSPS{j}{i}\)) verify.
+% \end{theorem}
+
+% \paragraph{Proof Sketch}
+% By Definition~\ref{def:integrity}, Integrity requires that \(\SecretKey{}\) equals the sum of valid partial secrets, even in the presence of adversaries, provided that all zk-SNARK proofs verify. This holds because:
+% \begin{enumerate}
+%     \item For honest participants \(\Party{i} \in \mathbb{H}\), \(\ProofFDKG{i}\) ensures that \(\PartialPublicKey{i} = \PartialSecretKey{i} G\) and that the shares \(\EncryptedSharePartialSecretKey{i}{j}\) are correctly encrypted evaluations of a polynomial \(f_i(X)\) with \(f_i(0) = \PartialSecretKey{i}\).
+%     \item For potentially corrupt participants \(\Party{j} \in \mathbb{D} \setminus \mathbb{H}\), if \(\PartialSecretKey{j}\) is recovered (via \(\ProofPS{j}\) or reconstruction from shares with \(\ProofSPS{j}{i}\)), it is consistent with \(\PartialPublicKey{j}\).
+%     \item If \(\PartialSecretKey{j}\) cannot be recovered due to adversarial blocking, it is effectively set to \(0\), ensuring that \(\SecretKey{}\) remains the sum of recoverable partial secrets.
+% \end{enumerate}
+% Thus, by the soundness of the zk-SNARKs and the properties of Publicly Verifiable Secret Sharing (PVSS), the reconstructed \(\SecretKey{}\) is consistent with the sum of valid partial secrets.
+
+
+
+\section{Liveness Simulations}
+\label{sec:liveness_simulations}
+
+To evaluate FDKG's resilience under realistic deployment conditions, we conducted simulations comparing our protocol with traditional DKG implementations. Our analysis focuses on three aspects: 1) parameter sensitivity, 2) scalability across network sizes, and 3) topology-dependent performance characteristics. The primary objective was to determine which configurations optimize liveness under varying conditions, thereby offering insights for practical deployment.
+
+\subsection{Simulation Methodology}
+\label{subsec:methodology}
+
+We developed a simulation framework implementing both FDKG and DKG protocols across two network topologies. Each simulation involves the following steps:
+
+
+\begin{enumerate}
+    \item \textbf{Network Generation:} We considered two network topologies to represent real-world communication patterns:
+    \begin{itemize}
+        \item \textbf{Barabási-Albert (BA):} A scale-free model designed to simulate scenarios where nodes exhibit preferential attachment, creating highly connected hubs.
+        \item \textbf{Random Graph:} A uniform model representing scenarios where nodes interact uniformly, with no highly connected hubs.
+    \end{itemize}
+    
+    Networks were initialized with a specified number of nodes ($n$) and average connections per node, governed by the number of guardians ($k$). 
+    \item \textbf{Participant Selection:} For each simulation, subsets of nodes were selected to participate in the protocol phases:
+    \begin{itemize}
+        \item \emph{Distribution Participants:} A proportion $p$ of nodes were randomly selected based on their connectivity (degree in the graph).
+        \item \emph{Reconstruction Participants:} Nodes responsible for reconstructing the secret were selected proportionally ($r$) from the Distribution Participants.
+    \end{itemize}
+    
+    \item \textbf{Liveness Check:} For each simulation, the protocol checked whether the remaining talliers could successfully meet the threshold required for reconstructing the secret. Success was defined as achieving \emph{Liveness} (Definition~\ref{def:liveness}) by reconstructing the secret despite node failures or absences.
+\end{enumerate}
+
+The web simulator is available at: \url{https://fdkg.stan.bar}, source code is available at \url{https://github.com/stanbar/PeerVote}. Figure~\ref{fig:network_examples} presents a snapshot of two different network topologies for the same setting.
+
+\begin{figure}[h]
+    \centering
+    \begin{minipage}{0.24\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{Random_100nodes_30p_90r_3_of_5.png}
+        \label{fig:random_100_30_90_3_5}
+    \end{minipage}
+    \hfill
+    \begin{minipage}{0.24\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{BA_100nodes_30p_90r_3_of_5.png}
+        \label{fig:example_ba_network}
+    \end{minipage}
+    
+    \caption{Comparison of Random (left) and Barabási-Albert (right) guardian set selection policies for $n = 100, p=0.3, r=0.9, k=5, t=3$. Gray nodes indicate the absence of the node, green nodes represent those that were present in both the distribution and reconstruction phases, blue nodes were present only in the first (distribution) phase, and orange nodes only in the second (reconstruction) phase.}
+    \label{fig:network_examples}
+\end{figure}
+
+\subsection{Parameter Space and Simulation Workflow}
+
+We explored a comprehensive range of parameters to capture diverse deployment scenarios:
+\begin{itemize}
+    \item \textbf{Number of Participants ($n$)}: 
+    $\{50, 100,200,\dots,1000\}$.
+    \item \textbf{Participation Rate ($p$)}: $\{0,1, 0.2, \dots, 0.9, 1.0\}$.
+    \item \textbf{Retention Rate ($r$)}: $\{0.1,0.2,\dots,1.0\}$.
+    \item \textbf{Number of Guardians ($k$)}: $\{1,3,\dots,n-1\}$.
+    \item \textbf{Threshold ($t$)}: Takes values from $1$ up to $k$.
+\end{itemize}
+
+For each unique combination of parameters, 100 independent simulations were executed, resulting in over 100 million total runs. 
+
+Figure~\ref{fig:network_model} shows the scalability comparison between network models with fixed $p=1.0$, and $r=0.7$. The Y axis (success rate) is a mean value among all the $(k,t)$ configurations. DKG is a special case configuration for FDKG protocol where $p=1.0$ and $k=n-1$, therefore it becomes the upper bound of the mean success rate with a constant value of $r=0.7$. In DKG each node connect to every other note creating a complete graph, so there is no difference between BA and Random policy. BA policy (solid lines) outperform random policy (dashed) through hub resilience.
+
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.5\textwidth]{network_model_comparison.png}
+        \caption{Scalability comparison between guardian set size and different policy selection with fixed $p=1.0, r=0.7$. The blue line represent the standard DKG scheme.}
+    \label{fig:network_model}
+\end{figure}
+
+
+Then we break down the mean values to see how each parameter influence the success rate. Also, to focus on the rest of the parameters, from now on we use only the results from BA policy selection.
+
+Figures~\ref{fig:guardian_configs} show success rates for each of the $(k,t)$ configurations for fixed $n=100$, $p=0.8$, and Figure a) $r=0.5$ Figure b) $r=0.8$ highlighting the critical significance of the retention $r$ parameter.
+
+
+\begin{figure}[htbp]
+    
+        \centering
+        \includegraphics[width=0.48\textwidth]{guardian_set_configuration_n100_p0.8_r0.5.png}
+        \includegraphics[width=0.48\textwidth]{guardian_set_configuration_n100_p0.8_r0.9.png}
+        \label{fig:guardian_set_config_09}
+
+    \caption{Heatmaps of success rates by guardian configuration for fixed $n=100$, $p=0.8$, $r=0.5$ (top) and $r=0.9$ (bottom). Color intensity represents success probability from 0 (yellow) to 1 (dark blue).}
+    % TODO: update the captions
+    \label{fig:guardian_configs}
+\end{figure}
+
+
+Figures~\ref{fig:parameters_significance_participation} reveal three critical relationships through our multivariate analysis. Higher retention rate $r=0.9$ guarantees success rate even for smaller number of guardians ($k=10$) at partial participation rate $p=0.75$. Lower retention rate $r=0.5$ may require higher participation rate $\geq0.6$ and higher number of guardians $k\geq40$ to achieve perfect success rate. Lower retention rates $\leq0.5$ and low number of guardians $<=10$ may not guarantee success rates even at perfect participation rate $p=1.0$.
+
+\begin{figure}[htbp]
+        \centering
+        \includegraphics[width=0.5\textwidth]{parameters_significance_participation_axis.png}
+        \includegraphics[width=0.5\textwidth]{parameters_significance_retention_axis.png}
+        \caption{Success rate vs participation rate (top) and retention rate (bottom) for varying $k$, and $p$, or $r$ combinations, with fixed $n=100$ and $t=k/4$. Line styles represent retention or participation rates, colors indicate guardian set sizes.}
+    \label{fig:parameters_significance_participation}
+\end{figure}
+
+\subsection{Results}
+
+The results reveal clear trends in the factors influencing success rate. The participation rate ($p$) has a significant impact, with higher participation rates consistently improving success rates. This is because the more nodes that actively participate, the higher the likelihood of meeting the threshold \(t\) during the reconstruction phase.
+
+Retention rate ($r$) also plays a crucial role. Higher retention rates both reduce the reliance on guardians and increase the chances of meeting the threshold during reconstruction phase. For instance, when $r = 1.0$, the protocol always achieves Liveness even with very low participation $p$ and guardians $k$, it is because the party who contributed to the first phase always reconstruct the share in the second phase. However, such scenarios were excluded from the analysis since they do not represent the challenges of FDKG systems.
+
+The number of guardians ($k$) contributes to the robustness of the system, especially in scenarios with a larger total number of nodes. Larger guardian sets provide greater redundancy, mitigating the impact of absent nodes during reconstruction. This becomes increasingly important as the system scales, where the probability of absences rises proportionally with the total number of participants.
+
+Threshold values ($t$) also affect success rates. Lower thresholds are more likely to achieve liveness since fewer nodes are required to reconstruct the secret. However, higher thresholds can still succeed if combined with sufficiently large guardian sets and high participation rates.
+
+The results highlight also the impact of guardians selection policy on liveness, particularly the advantage of the Barabási-Albert model over the Random model. The superior performance of the Barabási-Albert model is primarily due to its weighted selection policy. In this policy, nodes with higher connectivity (hubs) are more likely to be selected as participants in both the Distribution and Reconstruction phases. This approach mirrors real-world social structures where highly connected individuals or entities play a more central role in communication and collaboration. Consequently, these hubs are not only more resilient to failures, but are also more likely to engage in critical democratic processes, such as voting or key reconstruction. However, the results show that with the higher network sizes the difference between those models diminishes.
+
+To assess FDKG’s practical performance under realistic deployment conditions---such as node unavailability, varying participation rates, and network churn---we conducted simulations. These simulations complement the formal security guarantees provided in Section~\ref{sec:security_properties}, which ensure resilience against adversarial attacks under cryptographic assumptions. Importantly, the simulations do not aim to prove security; rather, they illustrate how protocol parameters like participation rate (\(p\)), retention rate (\(r\)), guardian set size (\(k\)), and threshold (\(t\)) impact the likelihood of successful key reconstruction in scenarios with non-adversarial failures (e.g., honest node crashes or dropouts). The results offer practical insights for parameter selection in real-world deployments, where both adversarial and non-adversarial challenges must be considered.
+
+\section{Application: FDKG-Enhanced Voting Protocol}\label{sec:voting_scheme}
+
+% AI improve grammar begin
+In this section we present the application of FDKG in a voting protocol. The voting protocol integrates the three-round voting scheme from \cite{schoenmakersLectureNotesCryptographic2018}, the multi-candidate encoding method from \cite{haoAnonymousVotingTworound2010}, and the Federated Distributed Key Generation (FDKG) introduced in this paper. Table~\ref{tab:voting-notations} presents the additional notations used in the FDKG-Enhanced Voting Protocol.
+% AI improve grammar end
+
+% Table of Notations
+\begin{table}[!t]
+\caption{Summary of Additional Notations for FDKG-Enhanced Voting Protocol}
+\label{tab:voting-notations}
+\begin{tabular}{>{\centering\arraybackslash}p{.25\linewidth}p{.7\linewidth}}
+\hline
+\textbf{Notation} & \multicolumn{1}{c}{\textbf{Description}} \\
+
+\TotalA     & Sum of the first parts of all the casted ballots, i.e., $\TotalA = \sum_{\Party{i} \in \Voters} \BallotA{i}$ \\
+
+\TotalB     & Sum of the second parts of all the casted ballots, i.e., $\TotalB = \sum_{\Party{i} \in \Voters} \BallotB{i}$ \\
+
+
+\PartialDecryptionFrom{i}      & Partial decryption from \Party{i}, i.e., $\PartialDecryptionFrom{i} = \PartialSecretKey{i} \TotalA$ \\
+
+\SharePartialDecryptionFromTo{i}{j} & Share of partial decryption, from \Party{i} to \Party{j}, i.e., $\SharePartialDecryptionFromTo{i}{j} = \SharePartialSecretKey{i}{j} \TotalA$ \\
 
 $\Voters \subseteq \Parties$ & Subset of parties participating in the 2. Voting phase  \\
 
@@ -305,268 +877,248 @@ $v_i$             & Encoded vote of \Party{i} \\
 
 $\BlindingFactor{i}$ & One-time random value used for secure ElGamal encryption \\
 
-$\Ballot{i}=(\BallotA{i}, \BallotB{i})$     & Encrypted ballot of participant \Party{i} using ElGamal scheme consisting of $(\BallotA{i}, \BallotB{i})$, where $\BallotA{i}=\BlindingFactor{i} \G$, and $\BallotB{i} = \BlindingFactor{i} \EncryptionKey{} + \Vote{i} \G$ \\
+$\Ballot{i}=(\BallotA{i}, \BallotB{i})$     & Encrypted ballot of participant \Party{i} using ElGamal scheme consisting of $(\BallotA{i}, \BallotB{i})$, where $\BallotA{i}=\BlindingFactor{i} \G$, and $\BallotB{i} = \BlindingFactor{i} \PublicKey{} + \Vote{i} \G$ \\
 
 \hline
-
-$\Tallies \subseteq \Parties$ & Subset of parties  participating in the 3. Online Tally phase \\
-
-\TotalA     & Sum of the first parts of all the casted ballots, i.e., $\TotalA = \sum_{\Party{i} \in \Voters} \BallotA{i}$ \\
-
-\TotalB     & Sum of the second parts of all the casted ballots, i.e., $\TotalB = \sum_{\Party{i} \in \Voters} \BallotB{i}$ \\
-
-
-\PartialDecryptionFrom{i}      & Partial decryption from \Party{i}, i.e., $\PartialDecryptionFrom{i} = \PartialDecryptionKey{i} \TotalA$ \\
-
-\SharePartialDecryptionFromTo{i}{j} & Share of partial decryption, from \Party{i} to \Party{j}, i.e., $\SharePartialDecryptionFromTo{i}{j} = \PartialDecryptionKeyShare{i}{j} \TotalA$ \\
-
-\hline
-
-$\texttt{Enc}_{\Party{i}}, \texttt{Dec}_{\PartySecretKey{i}}$ & Public key encryption for \Party{i} and decryption using the corresponding secret key $\PartySecretKey{i}$, as described in Section~\ref{private-channel} \\
-
-$\Delta$ & A helper value used to encode a scalar value to a point on a curve \\
-
-\EncryptedPartialDecryptionKeyShare{i}{j} & Encrypted partial decryption key share, from \Party{i} to \Party{j}  \\
-
-\hline
-
-\ProofBALLOT{i} & zkSNARK proof of correctness of \Ballot{i}\\
-
-\ProofFDKG{i} & zkSNARK proof of correctness of (\PartialDecryptionKey{i}, \EncryptedPartialDecryptionKeyShare{i}{}) \\
 
 \ProofPD{i} & zkSNARK proof of correctness of  \PartialDecryptionFrom{i} \\
 
 \ProofPDS{i}{j} & zkSNARK proof of correctness of \SharePartialDecryptionFromTo{i}{j}  \\
+
 \end{tabular}
 \end{table}
 
 
-\subsection{zk-SNARK}
+Our voting protocol is composed of three rounds: (1) FDKG, where keys are generated (2) Vote Casting, where voters encrypt and cast their votes, and (3) Tallying, where the final results are decrypted and counted.
 
-zk-SNARKs are cryptographic tools that allow one party (the prover) to prove to another (the verifier) the truth of a statement without revealing any information beyond the validity of the statement \cite{grothSizePairingbasedNoninteractive2016}.
+\subsection{Round 1: Federated Distributed Key Generation (FDKG)}
 
-Consider an arithmetic circuit $C$ characterised by a relation $\mathcal{R}_C$ and a language $\mathcal{L}_C$. This circuit accepts a statement $\vec{s}$ and a witness $\vec{w}$ such that $(\vec{s}, \vec{w}) \in \mathcal{R}_C$. A zk-SNARK for the satisfiability of this circuit is defined by three polynomial-time algorithms ~\cite{grothSizePairingbasedNoninteractive2016,parnoPinocchioNearlyPractical2013}:
-\begin{itemize}
-    \item $\textrm{(pk,vk)} \gets \textrm{Setup}(1^\lambda,C)$. For a given security parameter $\lambda$ and the circuit $C$, this algorithm produces a common reference string (CRS) comprising a proving key $\textrm{pk}$ and a verifying key $\textrm{vk}$, both of which are public parameters associated with the circuit $C$.
-    \item $\pi \gets \textrm{Prove}(\textrm{pk}, \vec{s}, \vec{w})$. Using the proving key $\textrm{pk}$, the statement $\vec{s}$, and the witness $\vec{w}$ such that $(\vec{s}, \vec{w}) \in \mathcal{R}_C$, this algorithm generates a non-interactive zero-knowledge proof $\pi$ for the statement $\vec{s} \in \mathcal{L}_C$, demonstrating the relationship between $\vec{s}$ and $\vec{w}$.
-    \item $0/1 \gets \textrm{Verify}(\textrm{vk}, \vec{s}, \pi)$. With the verifying key $\textrm{vk}$, the statement $\vec{s}$, and the proof $\pi$, this algorithm outputs 1 if $\pi$ is a valid proof for the statement $\vec{s} \in \mathcal{L}_C$, and outputs 0 otherwise.
-\end{itemize}
-
-
-\subsection{Federated Distributed Key Generation}
-The Distributed Key Generation (DKG) protocol aims to collectively generate a voting encryption key pair without any single participant learning the secret (decryption) key. Each party $P_i \in \mathbb{P}$ learns only its share of this key, while the public (encryption) key is widely known. The protocol uses threshold cryptography, which allows flexibility in the participation of the participants during the tallying phase.
-
-\subsubsection*{Secret Sharing}
-Secret sharing via Shamir's Secret Sharing (SSS) scheme enables a dealer to distribute a secret key $s$ over a randomly chosen polynomial $\mathbf{f}(X) = a_0 + a_1X + a_2X^2 + \dots + a_{t-1}X^{t-1}$, where coefficients $a_0,a_1,\dots,a_{t-1} \in_R \mathbb{F}_q$. Here, the secret key $s=a_0=\mathbf{f}(0)$ and $t-1$ denotes the polynomial's degree. Shares are computed by evaluating $\mathbf{f}(i)$ for $i \neq 0$. Using Lagrange's Theorem, reconstructing $\mathbf{f}(X)$ and hence extracting $s = \mathbf{f}(0)$ is possible with $t$ points on the polynomial.
-
-\subsubsection*{Distributed Key Generation}
-To avoid centralising the role of the dealer (and revealing the secret value $s$), the generation of polynomial $\mathbf{f}(X) \in_R \mathbb{Z}_q[X]$ is distributed among all parties $\mathbb{P}$. Each party selects a random polynomial $f_{i}(X) \in \mathbb{Z}_q[X]$, and the final polynomial is the sum of these individual polynomials: \[\mathbf{f}(X)=\sum_{i=1}^{n}f_i(X)\] Consequently, the voting secret (decryption) key $\mathbf{d}$ and voting public (encryption) key $\mathbf{E}$ are defined as: $$\mathbf{d}=\mathbf{f}(0)$$ $$\mathbf{E}=\mathbf{d} \G$$ 
-To prevent arbitrary submissions by parties, Publicly Verifiable Secret Sharing (PVSS) is used, incorporating zero-knowledge proofs to validate the correctness of shared values \cite{goosSimplePubliclyVerifiable1999}.
-
-\subsubsection*{Dynamic Distributed Key Generation}
-Traditional DKG requires a known, fixed number of participants due to its reliance on SSS with predefined polynomial degrees. As we are aiming for an optional DKG phase with an unpredictable number of participants, we need a mechanism that allows dynamic adjustments to the number of participants.
-
-Existing dynamic DKG schemes, such as the one in \cite{delerableeDynamicThresholdPublickey2008}, necessitate continuous online presence of all parties, which we find impractical. Our objective is a non-interactive protocol where parties send only a single message and are then free to leave (You Only Speak Once approach~\cite{gentryYOSOYouOnly2021}). We propose Federated DKG which facilitates joint key establishment by members with a single message, without prior knowledge of all participants.
-The technique works similar to the Federated Byzantine Agreement (FBA) used in the Stellar Consensus Protocol \cite{mazieresStellarConsensusProtocol2015}. The details are described in the next section.
-
-
-\subsection{Private Channel}\label{private-channel}
-Each user uses a private, authenticated channel to send encrypted messages to other parties. We use ElGamal encryption on the BabyJub curve as described in \cite{ElGamalEncryptionDecryption2020,jieWeijiekohElgamalbabyjub2023}. The encryption process starts with a plaintext scalar $m$, which is transformed into a point on the BabyJub elliptic curve by generating a random value $r$, computing the message $M=r\G$ and the x-increment $\Delta$, which must be added to the plaintext to obtain the x-value of $M$. Thus, the ciphertext consists of two elliptic curve points and a field element $(C_1, C_2, \Delta=M.x - m)$. The complete encryption process is described in detail in Algorithm~\ref{alg:encryption}.
-
-Decryption of the ciphertext $(C_1, C_2, \Delta)$ follows the standard ElGamal method, with the addition of $\Delta$ to the x-coordinate of the starting point, as described in Algorithm~\ref{alg:decryption}.
-
-\begin{algorithm}
-    \SetAlgoNlRelativeSize{0}
-    \SetAlgoNlRelativeSize{-1}
-    \SetAlgoNlRelativeSize{1}
-    \SetKwInOut{Input}{Input}
-    \SetKwInOut{Output}{Output}
-    \caption{$\texttt{Enc}_{P_i}$}
-    \label{alg:encryption}
-    
-    \Input{A scalar $m$}
-    \Output{A tripe $(C_1, C_2, \Delta)$}
-    
-    $k \gets_R \mathbb{Z}_q$\;
-    $r \gets_R \mathbb{Z}_q$\;
-    $C_1 = kG$\;
-    $M = rG$\;
-    $C_2 = kP + M$\;
-    $\Delta = M.x - m$\;
-    \Return $(C_1, C_2, \Delta)$
-\end{algorithm}
-
-\begin{algorithm}
-    \SetAlgoNlRelativeSize{0}
-    \SetAlgoNlRelativeSize{-1}
-    \SetAlgoNlRelativeSize{1}
-    \SetKwInOut{Input}{Input}
-    \SetKwInOut{Output}{Output}
-    \caption{$\texttt{Dec}_{s_i}$}
-    \label{alg:decryption}
-    
-    \Input{A tripe $(C_1, C_2, \Delta)$}
-    \Output{A scalar $m$}
-    
-    $M = C_2 - s_i C_1$\;
-    $m = M.x - \Delta$\;
-    \Return $m$
-\end{algorithm}
-
-\section{Voting Protocol}
-
-Our protocol integrates the three-round voting scheme from \cite{schoenmakersLectureNotesCryptographic2018}, the multi-candidate encoding method from \cite{haoAnonymousVotingTworound2010}, and the Federated Distributed Key Generation (FDKG) introduced in this paper.
-
-\paragraph*{Assumptions}
-The protocol is based on the following assumptions:
+This round is optional. For each participating party $\Party{i} \in \mathbb{D}$, where $\mathbb{D} \subseteq \Parties$:
 \begin{enumerate}
-\item All communications occur over a public message board available to all parties.
-\item Parties are identified only by their public keys \Party{i} and authenticated by their secret keys \PartySecretKey{i}.
-\item Private channels over public message board are secured using encryption functions $\texttt{Enc}_{\Party{i}}$ and $\texttt{Dec}_{\PartySecretKey{i}}$ described in Section~\ref{private-channel}.
-\item Each party verifies zkSNARK proofs and rejects messages that fail verification.
-\item Participants consent to certain cryptographic parameters, including the BabyJubJub Elliptic Curve~\cite{whitehatBabyJubjubElliptic2020} $E(\mathbb{Z}_p)$ with a defined curve finite field modulus $p$, a base point $G$ on the curve, and the order of the base point $q$. Additionally, they agree to the set of eligible voters $\mathbb{P}$ and the set of candidates.
-\end{enumerate}
+    \item Each party selects a guardian set $\GuardianSetOf{i} \subseteq \Parties \setminus \{\Party{i}\}$.
 
-\subsection{Round 1: Federated Distributed Key Generation}
-Participation in the FDKG phase is optional. For each participating party $\Party{i} \in \mathbb{D}$, where $\mathbb{D} \subseteq  \mathbb{P}$:
-\begin{enumerate}
-    \item A guardian set of $k$ parties $\mathbb{G}_i\subseteq \mathbb{P}/P_i$ is selected based on the established trust lines of \Party{i}.
-    \item A random polynomial $f_{i}(X) \in_{\$} \mathbb{Z}_q[X]$ of degree $t-1$ is sampled.
-    \item Partial decryption (secret) key $\PartialDecryptionKey{i}= f_i(0)$ and partial encryption (public) key $\PartialEncryptionKey{i} = \PartialDecryptionKey{i} \G$ are computed.
-    \item A t-of-k access structure for \PartialDecryptionKey{i} is created using PVSS. For each guardian $P_{j} \in \mathbb{G}_i$, partial decryption key share $\PartialDecryptionKeyShare{i}{j}=f_i(j)$ is encrypted as $\EncryptedPartialDecryptionKeyShare{i}{j}=\EncryptionUsingOf{\Party{j}}{\PartialDecryptionKeyShare{i}{j}}$ as described in Section~\ref{private-channel}.
-    % \item A zero-knowledge proof \ProofFDKG{i} is created (see Section~\ref{sec:proof-fdkg}) and broadcast along with (\PartialEncryptionKey{i}, \EncryptedPartialDecryptionKeyShare{i}{j}).
+    \item Each party samples a random polynomial $f_{i}(X) \in_{\$} \mathbb{Z}_q[X]$ of degree $t-1$.
     
-    \item Compute a zero-knowledge proof \ProofFDKG{i}, as described in Section~\ref{sec:proof-fdkg}.
+    \item  Each party computes its partial secret $\PartialSecretKey{i}= f_i(0)$ and public key $\PartialPublicKey{i} = \PartialSecretKey{i} \G$.
     
-    \item Broadcast (\PartialEncryptionKey{i}, \EncryptedPartialDecryptionKeyShare{i}{j}, \ProofFDKG{i}).
+    \item  Each party generates shares of the partial secret $\SharePartialSecretKey{i}{j}=f_i(j)$ for each guardian $P_j \in \GuardianSetOf{i}$, which are encrypted using the private channel: $\EncryptedSharePartialSecretKey{i}{j}=\EncryptionUsingOf{\Party{j}}{\SharePartialSecretKey{i}{j}}$.
+    \item Each party generates a zero-knowledge proof $\ProofFDKG{i}$, as described in Section~\ref{app:proof-fdkg}.
+    \item Each party broadcasts (\PartialPublicKey{i}, \EncryptedSharePartialSecretKey{i}{j}, \ProofFDKG{i}).
 \end{enumerate}
-
 \paragraph*{State after Round 1:}
 Upon completion of FDKG, the message board contains:
 \begin{itemize}
-    \item $\{\PartialEncryptionKey{i} : \Party{i} \in \mathbb{D}\}$, the set of partial encryption keys, where \EncryptionKey{} can be reconstructed by anyone by summing $\EncryptionKey=\sum_{\Party{i} \in \mathbb{D}} \PartialEncryptionKey{i}$.
-    \item $\bigcup_{\Party{i} \in \mathbb{D}} \{C_{i,j} \mid P_j \in \mathbb{G}_i\}$, the set of encrypted shares of the partial decryption keys.  
+    \item $\{\PartialPublicKey{i} : \Party{i} \in \mathbb{D}\}$, the set of partial encryption keys, where $\PublicKey$ can be reconstructed by anyone by summing $\PublicKey=\sum_{\Party{i} \in \mathbb{D}} \PartialPublicKey{i}$.
+    \item $\bigcup_{\Party{i} \in \mathbb{D}} \{C_{i,j} \mid P_j \in \mathbb{G}_i\}$, the set of encrypted shares of the partial decryption keys.
 \end{itemize}
 
-\newpage
-\subsection{Round 2: Casting Votes}
+\subsection{Round 2: Vote Casting}
 
 For each voter $\Party{i} \in \mathbb{V}$, where $\mathbb{V} \subseteq  \mathbb{P}$:
-
 \begin{enumerate}
-    \item Encode a multi-candidate ballot using the method outlined in \cite{baudronPracticalMulticandidateElection2001}. The encoding assigns a power of two to each candidate: a vote for candidate 1 as $2^0$, for candidate 2 as $2^m$, for candidate $c$ as $2^{(c-1)m}$. The parameter $m$ is selected as the smallest integer where $2^m > |\Parties{}|$. Thus, a vote is defined as \[\Vote{i}\ =\ \begin{cases} 2^0 & \text{if } \Party{i} \text{ votes for candidate 1} \\ 2^m & \text{if } \Party{i} \text{ votes for candidate 2} \\ \vdots & \vdots \\ 2^{(c-1)m} & \text{if } \Party{i} \text{ votes for candidate $c$}\end{cases}\]
-    
-    \item Encrypt the vote using ElGamal encryption as $\Ballot{i} = (\BlindingFactor{i} \G,\ \BlindingFactor{i} \EncryptionKey{} + \Vote{i} \G)$, where $\BlindingFactor{i} \in_{\$} \mathbb{Z}_q$ serves as a one-time blinding value.
-    
-    \item Compute a zero-knowledge proof \ProofBALLOT{i}, as described in Section~\ref{sec:proof-ballot}.
-    
-    \item Broadcast $(\Ballot{i}, \ProofBALLOT{i})$.
+     \item Each voter encodes its vote into a scalar value $\Vote{i}$ using the method outlined in \cite{baudronPracticalMulticandidateElection2001}, where votes for each candidate is a power of 2: \[ \Vote{i}\ =\ \begin{cases} 2^0 & \text{if } \Party{i} \text{ votes for candidate 1} \\ 2^m & \text{if } \Party{i} \text{ votes for candidate 2} \\ \vdots & \vdots \\ 2^{(c-1)m} & \text{if } \Party{i} \text{ votes for candidate $c$}\end{cases}\]
+where $m$ is the smallest integer such that $2^m > |\Parties|$.
+    \item Each voter encrypts their vote by generating a random value $\BlindingFactor{i} \in_{\$} \mathbb{Z}_q$ and producing the ballot: $\Ballot{i} = (\BlindingFactor{i} \G,\ \BlindingFactor{i} \PublicKey{} + \Vote{i} \G)$.
+   \item Each voter generates a zero-knowledge proof \ProofBALLOT{i}, as described in Section~\ref{app:proof-ballot}.
+    \item Each voter broadcasts $(\Ballot{i}, \ProofBALLOT{i})$.
 \end{enumerate}
-
 \paragraph{State after Voting}
 
-Once the voting phase concludes (either when $|\Parties|$ messages have been received or after a predefined period), the message board's state is appended with:
+After the voting phase concludes, the message board's state is appended with:
 \begin{itemize}
     \item $\{\Ballot{i} : \Party{i} \in \Voters\}$, the set of encrypted votes.
 \end{itemize}
 
+\subsection{Round 3: Tallying}
 
-
-\subsection{Round 3: Tally}
-
-The tally process consists of two distinct phases: online and offline.
+The tallying process occurs in two phases: online and offline.
 
 \subsubsection{Online Tally}
-
-The subset of parties $\Tallies \subseteq \Parties$ involved in Threshold ElGamal decryption includes at least $t$ parties from each guardian set \GuardianSetOf{1},\dots,\GuardianSetOf{|\SetOfFDKG|}. For each party $\Party{i} \in \mathbb{T}$:
-
+A subset of parties $\Tallies \subseteq \Parties$ are involved in a threshold ElGamal decryption. This subset includes at least $t$ parties from each guardian set.
+For each party $\Party{i} \in \mathbb{T}$:
 
 \begin{enumerate}
-    \item Sum the first component of all ballots $\TotalA = \sum_{\Party{i} \in \mathbb{V}} \BallotA{i}$, where (\BallotA{i},\BallotB{i})=\Ballot{i}.
-
-    \item If $\Party{i} \in \SetOfFDKG$:
-        \begin{enumerate}
-            \item Compute the partial decryption $\PartialDecryptionFrom{i} = \PartialDecryptionKey{i} \TotalA$.
-            \item Generate a zero-knowledge proof \ProofPD{i} (as described in Section~\ref{sec:proof-pd}).
-            \item Broadcast $(\PartialDecryptionFrom{i},\ProofPD{i})$.
-        \end{enumerate}
+    \item Each party computes the sum of the first component of each ballot $\TotalA = \sum_{\Party{i} \in \mathbb{V}} \BallotA{i}$, where $(\BallotA{i},\BallotB{i})=\Ballot{i}$.
+    \item If the party also participated in FDKG ( $\Party{i} \in \SetOfFDKG$):
+    \begin{enumerate}
+    	\item The party computes the partial decryption $\PartialDecryptionFrom{i} = \PartialSecretKey{i} \TotalA$.
+    	\item The party generates a zero-knowledge proof \ProofPD{i} as described in Section~\ref{app:proof-pd}.
+    \end{enumerate}
     
-    \item For each received encrypted share $\EncryptedPartialDecryptionKeyShare{j}{i}$, where $\Party{j} \in \mathbb{D} \setminus \{\Party{i}\}$ and $\Party{i} \in \GuardianSetOf{j}$:
+    \item For each received encrypted share $\EncryptedSharePartialSecretKey{j}{i}$, where $\Party{j} \in \mathbb{D} \setminus \{\Party{i}\}$ and $\Party{i} \in \GuardianSetOf{j}$:
         \begin{enumerate}
-            \item Decrypt to obtain \PartialDecryptionKeyShare{j}{i}=\DecryptionUsingOf{\PartySecretKey{i}}{\EncryptedPartialDecryptionKeyShare{j}{i}}.
-            \item Calculate the share of partial decryption $\SharePartialDecryptionFromTo{j}{i} = \PartialDecryptionKeyShare{j}{i} \TotalA$.
-            \item Generate a zero-knowledge proof \ProofPDS{j}{i} (outlined in Section~\ref{sec:proof-pds}).
-            \item Broadcast $(\SharePartialDecryptionFromTo{j}{i},\ProofPDS{j}{i})$.
+            \item The party decrypts the share and calculates the partial decryption share $\SharePartialSecretKey{j}{i}=\DecryptionUsingOf{\PartySecretKey{i}}{\EncryptedSharePartialSecretKey{j}{i}}$.
+            \item The party calculates its share of the partial decryption $\SharePartialDecryptionFromTo{j}{i} = \SharePartialSecretKey{j}{i} \TotalA$.
+            \item The party generates a zero-knowledge proof \ProofPDS{j}{i} as described in Section~\ref{app:proof-pds}.
         \end{enumerate}
+        \item  The party broadcasts $(\PartialDecryptionFrom{i},\ProofPD{i}, \vec{\SharePartialDecryptionFromTo{j}{i}},\vec{\ProofPDS{j}{i}})$.
 \end{enumerate}
-
-\paragraph{State after Online Tally}
-
-After completing the Online Tally (the set is decryptable as defined in Definition~\ref{def:decipherability}), the message board's state is appended with:
+\paragraph*{State after Online Tally}
+Upon completion of Online Tally, the message board contains:
 \begin{itemize}
     \item $\{\PartialDecryptionFrom{i} :  \Party{i} \in \mathbb{D} \land \Party{i} \in \mathbb{T}\}$, the set of partial decryptions.
-    
     \item $\bigcup_{\Party{i} \in \mathbb{T}} \{\SharePartialDecryptionFromTo{j}{i} : \Party{j} \in \mathbb{D} \setminus \{\Party{i}\} \text{ and } \Party{i} \in \GuardianSetOf{j}\}$, the set of shares of partial decryption.
 \end{itemize}
 
 \subsubsection{Offline Tally}
 
-The Offline Tally phase is accessible to anyone and involves the following steps:
+The offline tallying phase can be performed by anyone, and involves:
 
 \begin{enumerate}
-    \item Sum the second component of all ballots $\TotalB = \sum_{\Party{i} \in \Voters} \BallotB{i}$, where (\BallotA{i},\BallotB{i})=\Ballot{i}.
-    
-    \item Calculate the sum of either partial decryptions or their reconstructions from shares: \[Z = \sum\{\PartialDecryptionFrom{i} \textrm{ or } \sum (\SharePartialDecryptionFromTo{i}{j} \lambda_{j}) : \Party{j} \in \GuardianSetOf{i}\} = \DecryptionKey{} \TotalA = \mathbf{d} \sum_{\Party{i} \in \Voters} r_i G \] where $\lambda_{i}=\Pi_{j \neq i}\frac{j}{j-i}$ represents the Lagrange coefficient.
-
-    \item The decryption is $M=\TotalB{} - Z=(x_1 2^0 + x_2 2^j + \dots + x_l 2^{(l-1)j}) \G$, where $x_i$ is the number of votes for candidate $i$. It is because 
-    
-    $\begin{aligned} M&=\TotalB-Z \\
-        &= (\sum_{\Party{i} \in \Voters} r_{i} \mathbf{E} + \sum^{x_1} 2^0 \G + \sum^{x_2} 2^j \G + \dots + \sum^{x_l} 2^{(l-1)j} \G ) - Z \\
-        &= \sum_{\Party{i} \in \Voters} r_{i} \mathbf{E} + (x_1 2^0 + x_2 2^j + \dots + x_l 2^{(l-1)j}) \G - \mathbf{d} \sum_{\Party{i} \in \Voters} r_i \G \\
-        &= \sum_{\Party{i} \in \Voters} r_{i} \mathbf{E} + (x_1 2^0 + x_2 2^j + \dots + x_l 2^{(l-1)j})\G - \sum_{\Party{i} \in \Voters} r_{i} \mathbf{E}\\
-        &= (x_1 2^0 + x_2 2^j + \dots + x_l 2^{(l-1)j}) \G\\
-        \end{aligned}$
-    
-    \item Extract each $x_i$ by solving the Discrete Logarithm Problem. Given the small range of $x_i$ ($0 \leq x_i \leq |\mathbb{V}|$), this is a feasible task. The extraction technique for each $x_i$ follows the method described in \cite{haoAnonymousVotingTworound2010}.
+    \item The sum of the second part of all ballots is computed: $\TotalB = \sum_{\Party{i} \in \Voters} \BallotB{i}$, where $(\BallotA{i},\BallotB{i})=\Ballot{i}$.
+  \item The sum of partial decryptions or their reconstructions from shares is computed:
+    \begin{align}
+        Z &= \sum\{\PartialDecryptionFrom{i} \textrm{ or } \sum (\SharePartialDecryptionFromTo{i}{j} \lambda_{j}) : \Party{j} \in \GuardianSetOf{i}\} \\
+          &= \SecretKey{} \TotalA = \mathbf{d} \sum_{\Party{i} \in \Voters} r_i G
+    \end{align}
+    where $\lambda_{i}=\Pi_{j \neq i}\frac{j}{j-i}$ represents the Lagrange coefficient.
+ 
+     \item The decryption of the encoded votes is performed by calculating the value of $M$:
+     \[M=\TotalB - Z=(x_1 2^0 + x_2 2^j + \dots + x_l 2^{(l-1)j}) \G\] where $x_i$ is the number of votes for candidate $i$.
+    \item The value of $x_i$ is extracted by solving the discrete logarithm problem (DLP) . Given the small range of $x_i$ ($0 \leq x_i \leq |\mathbb{V}|$), this can be accomplished via brute force method \cite{haoAnonymousVotingTworound2010}.
 \end{enumerate}
 
+\section{Performance Evaluation}
+\label{sec:performance_evaluation}
+
+This section presents an performance analysis of the FDKG-Enhanced Voting Protocol. We evaluated the computational and communication costs and message sizes of our protocol.
+
+Table~\ref{table:proving-time} details the the time taken to generate a zkSNARK proof and message sizes in each round of the protocol (we also tried the Plonk prover, but for the simplest configuration of \ProofFDKG{} it took over 8 minutes, and for larger ones it exceeded the available memory, so we found it unsuitable for our use case). Proving \ProofFDKG{} for $(3,10)$ took 3.358 s, and 14.786 s for $(30,100)$. Proving \ProofBALLOT{} took 0.211 s, \ProofPD{} took 0.619 s and \ProofPDS{i}{j} took 0.580 s per share.
+
+Each message is accompanied by the Groth16 zkSNARK, which consists of 3 points of an elliptic curve (x, y) encoded on 32 bytes, hence a constant size of $3 \times 2 \times 32=190$ B. The FDKG message consists of a voting public key and $k$ encrypted shares for each guardian ($64 + k \times 160$ B). The voting message consists of two elliptic curve points ($128$ B). The partial decryption message consists of one elliptic curve point ($64$ B) and the partial decryption share message consists of one elliptic curve point ($64$ B). 
+
+Consider a scenario with 100 participants, a participation rate of 0.5 ($100\times0.5= 50$), a retention rate of 0.8 ($100\times0.5times0.8= 40$) and 40 guardians, the number of voters is equal to the number of participants (50). The total message size would be 1) FDKG: $50 \times (64 + 40 \times 160 + 190)= 332.700$ kB, 2) Voting: $50 * (128 + 190) = 15.900$ kB, 3) Partial decryption: $40 * (64 + 190)=10.160$ kB, Partial decryption shares $40 * 40 * (64 + 190) = 406.400$ kB. Total: $765.160$ kB.
+
+\begin{table*}
+    \centering
+    \begin{tabular}{|c|c|c|c|c|c|c|}
+    \hline
+        \multirow{2}{*}{\textbf{\shortstack{Measurement}}} & \multicolumn{3}{|c|}{\textbf{FDKG}}  & \multirow{2}{*}{\textbf{\shortstack{Encrypt\\ Ballot}}} & \multirow{2}{*}{\textbf{\shortstack{Partial\\ Decryption}}} & \multirow{2}{*}{\textbf{\shortstack{Partial Decryption\\ Share}}} \\ 
+        \cline{2-4}
+        & \textbf{3 of 10} & \textbf{10 of 30} & \textbf{30 of 100} & &  &  \\ 
+        \hline
+        \textbf{Proving time} & 3.358 s & 4.415s & 14.786s & 0.211s & 0.619 s & 0.580 s/share \\ \hline
+        \textbf{Message size} & 1.854 kB & 5.054 kB & 16.254 kB & 318 B & 254 B & 254 B/share \\ \hline
+        % \hline
+        % \textbf{Plonk} & 522.30 s &  1  & 1 & 16.822 s & 16.543 s & 8.137 s/share \\ 
+    \end{tabular}
+    \caption{Proving Time and Messages Size}
+    \label{table:proving-time}
+\end{table*}
+
+% \subsubsection{Discrete Logarithm Problem (DLP)}
+
+% To evaluate the performance of the offline tallying phase, we measured the time to solve the DLP, which is needed to recover the actual votes. Figure~\ref{fig:dlog-search} visualizes the relationship between the time required to solve the DLP and the number of voters, and the number of candidates.
+% This result shows that solving the DLP is linear in the number of voters but grows exponentially in the number of candidates, which suggests a potential scalability issue in larger elections.
+
+% \begin{figure}
+%     \centering
+%     \includegraphics[width=.45\textwidth]{dlog-search.png}
+%     \caption{Time required to solve DLP with respect to the number of candidates and number of voters (log-log scale).}
+%     \label{fig:dlog-search}
+% \end{figure}
+
+\section{Deployments}
+\label{sec:deployments}
+The protocol can be deployed on any platform that supports a shared communication space (message board) where everyone can post and read messages. We consider three potential deployment scenarios:
+
+\begin{enumerate}
+    \item \textbf{Peer-to-peer Networks:} Our protocol is designed to be suitable for peer-to-peer networks, leveraging technologies such as Wesh Network\footnote{Wesh Network, asynchronous mesh network protocol powered by Berty Technologies' non-profit organisation, \url{https://wesh.network/}}, to provide a fully decentralized infrastructure.
+    \item \textbf{Public Blockchains:}  The protocol can be implemented as a smart contract on a public blockchain using ERC-4337~\cite{ERC4337AccountAbstraction}, which enables centralized payment of transaction fees for all participants, thereby reducing the economic barrier for wider adoption.
+    \item \textbf{Centralized Messengers}:  For ease of deployment, it is possible to use our protocol on centralized messenger platforms such as Telegram, Signal, or WhatsApp, where the chat room acts as a message board. Note that the centralized party might be able to exploit the censorship property of the system.
+\end{enumerate}
+Figure \ref{fig:stack-bc} visualizes three potential deployment scenarios.
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.5\textwidth]{stack-bc.png}
+    \caption{Three possible deployments of the protocol: Centralised messenger, ad-hoc peer-to-peer network, and public blockchain.}
+    \label{fig:stack-bc}
+\end{figure}
+
+
+% \section{Discussion and Conclusion}\label{sec:discussion-conclusion}
+
+% \subsection{Discussion}
+
+% Our FDKG scheme addresses a key challenge in decentralized settings: how to ensure reliable key reconstruction when not all parties are online or trustworthy. Traditional threshold DKG protocols assume a fixed number of participants with reliable availability, but in many real-world systems, network churn, node dropouts, and variability in trust relationships create practical barriers. By letting each participant define a personal guardian set, FDKG increases flexibility. When several nodes go offline, we can still reconstruct missing partial secrets if at least a threshold of guardians remain. This reduces bottlenecks caused by single points of failure or rigid, predefined trustee sets.
+
+% We tested FDKG under different participation rates and guardian-set sizes, and we explored both Barabási–Albert and Random Graph trust structures. Results show that higher participation and retention rates (where more parties remain active through the key generation and reconstruction phases) naturally increase the probability of successful key reconstruction. Guardian sets that are too small risk losing shares if crucial members are offline. On the other hand, very large guardian sets can become impractical for users to manage (e.g., selecting dozens of guardians). These experiments suggest a balance: users who expect higher network churn may opt for slightly larger guardian sets for extra redundancy, while more stable groups can use smaller ones to reduce overhead. 
+
+% From a performance standpoint, creating zero-knowledge proofs for partial key shares and verifying them adds computation and message overhead. Our measurements show that Groth16 can be used to keep proofs small and generation relatively fast, though proof times can reach a few seconds in more complex threshold settings. For large-scale elections with high candidate counts, we also note that the discrete-log search to decode final tallies might become a bottleneck. This could be mitigated using advanced discrete-log techniques or smaller candidate sets.
+
+% A limitation of FDKG is that to protect privacy, all participants must ensure that no colluding group can satisfy both the threshold condition and Liveness requirements alone. In practical terms, users need to choose guardians who are unlikely to collude. When participants have heavily overlapping sets of guardians, a single adversary controlling those guardians might threaten privacy. Applying real-world reputation systems, social-graph data, or other trust signals can help users make robust guardian choices.
+
+% Future research will focus on optimizing the computational cost of the discrete logarithm problem by employing more efficient algorithms, and exploring different consensus mechanisms for the message board to improve censorship resistance, while preserving the privacy and security of the FDKG.
+% We believe that FDKG represents a valuable contribution to the field of decentralized voting, and that it is a foundational element for decentralized systems where trust should be shifted to the community rather than to a third party.
+
+% \subsection{Conclusion}
+
+% This paper introduced Federated Distributed Key Generation (FDKG), a generalization of traditional DKG that enables each party to select a personal guardian set for reconstructing its share of the secret key. Through simulations, we showed that FDKG retains the main security properties of threshold cryptography (liveness, safety, privacy) while offering flexibility and better resilience against node unavailability. We then illustrated how FDKG can serve as the foundation for a voter-to-voter internet voting scheme, improving decentralization by eliminating fixed authorities and single points of trust. 
+
+% Our findings underscore that real-world conditions—such as varying participation rates, degrees of trust, and node churn—call for adaptive key generation strategies. FDKG aligns with these needs by allowing each participant to pick trusted guardians, and by tolerating absent participants in later phases. While some trade-offs remain, especially in choosing suitable guardian-set sizes and thresholds, FDKG represents a step toward more robust, user-centric cryptographic protocols. Its potential extends to broader applications in decentralized finance, secure multiparty computation, or any scenario where dynamic groups must share and protect cryptographic secrets. We provide an open-source reference implementation to facilitate further experimentation, adaptation, and real-world deployments.
+
+
+\section{Limitations and Future Work}\label{sec:limitations-and-future}
+Our implementation and simulations show that while FDKG substantially improves flexibility, it still inherits some cryptographic overhead. Although Groth16 proofs are efficient enough for mid-scale settings, large-scale or time-critical elections might demand faster proving systems or aggregated proofs. The offline tallying step in our voting example employs brute force to decode final votes; methods to reduce this overhead remain an open research challenge (e.g., more efficient multi-candidate encoding or advanced number-theoretic techniques). While our Barabási-Albert heuristics work well, a deeper exploration of context-aware selection strategies—possibly incorporating social or reputational metrics—would further strengthen the reliability and practical deployment of the protocol. Overall, these points open new avenues for research, particularly in optimizing the cryptographic building blocks and customizing guardian-set selection for varied application requirements.
+
+Although the paper focuses on an i-voting application, the FDKG concept generalizes naturally to any setting where secret reconstruction and threshold cryptography are required but global membership is uncertain or shifts over time. Examples include collaborative data encryption in ad-hoc networks, decentralized credential management for distributed applications, and emergent governance structures (e.g., decentralized autonomous organizations).
 
 
 
+\section{Discussion and conclusions}\label{sec:discussion-conclusion}
 
-\subsection{Proofs Constructions}\label{sec:proofs}
+The FDKG protocol presented in this paper provides a novel, flexible approach to distributed key generation. Unlike standard DKG, which requires predefined sets of participants and threshold parameters, FDKG allows each participant to select its own guardian set of size $k$ without requiring prior knowledge of total network membership; this design ensures that liveness holds whenever the adversary cannot control both a participant and $k-t+1$ of its guardians.
+
+FDKG generalizes traditional DKG by incorporating principles from Federated Byzantine Agreement (FBA), enabling dynamic trust delegation akin to the Stellar Consensus Protocol. Unlike dynamic DKG schemes requiring multiple rounds, FDKG achieves robustness in two phases, making it suitable for human-in-the-loop systems like voting. However, the reliance on zkSNARKs introduces trade-offs absent in non-verifiable DKG variants.
+
+FDKG’s security assumes honest majority in guardian sets, which may not hold in sybil-prone environments. Additionally, the use of zkSNARKs necessitates trusted setups, a potential single point of failure. Future work could explore transparent proof systems (e.g., Bulletproofs) to mitigate this.
+
+Simulations revealed that FDKG’s success rate depends heavily on participation (\(p\)) and retention (\(r\)) rates. For example, with \(n = 100\), \(p = 0.8\), and \(r = 0.9\), FDKG achieved a $100\%$ success rate for all thresholds $t$ lower than $0.7 k$. In contrast, lower retention (\(r = 0.5\)) achieved a $100\%$ success rate, only for small thresholds $t \leq 0.4 k$ (Figure~\ref{fig:guardian_configs}). The Barabási-Albert (BA) selection policy topology outperformed random selection, achieving a higher mean success rate by $\approx 0.025$ due to its hub-based resilience (Figure~\ref{fig:network_model}), the advantage however diminishes at larger networks i.e., $n>1000$.
+
+While FDKG reduces reliance on global thresholds, it introduces communication overhead proportional to guardian set size. For \(n = 100\) participants, each with \(k = 40\) guardians, the Distribution Phase incurred 332.7 kB of data per participant. zkSNARKs, while essential for verifiability, added computational costs: proving times ranged from 3.36 seconds (\(k = 10\)) to 14.79 seconds (\(k = 100\)) (Table~\ref{table:proving-time}). These results underscore the need for parameter tuning based on deployment constraints—smaller \((k,t)\) for latency-sensitive applications, larger \((k,t)\) for adversarial environments.  
+
+
+While smaller guardian sets reduce communication and computation costs, they also make each share holder’s availability more critical. Our security theorems show that an adversary controlling a participant and its $k - t$ nodes in any guardian set can endanger the liveness of the protocol. Hence, choosing too small a guardian set could inadvertently lower security if an attacker manages to compromise a higher fraction of those guardians. Balancing guardian set size against security requirements and node availability is therefore a key design parameter.
+
+We envision FDKG as a versatile primitive for any multi-party setting that demands robust key distribution but faces incomplete or dynamic participation. Moving forward, optimizing zkSNARK proofs, refining the discrete log decoding in multi-candidate elections, and researching new guardian-set selection strategies can further extend the protocol’s usability. By embracing the decentralized and adaptive ethos at the core of FDKG, future systems can be built to scale securely across complex, real-world networks—ranging from small committee-style collaborations to massive global communities.
+
+\section*{Reproducible Research}
+We ensure reproducibility by providing all code, data, and scripts to regenerate results in Sections~\ref{sec:liveness_simulations} and \ref{sec:performance_evaluation}. These are hosted at \url{https://github.com/stanbar/PeerVote}, with a live simulator at \url{https://fdkg.stan.bar}. Instructions detail how to replicate simulation success rates (Figures~\ref{fig:guardian_configs}, \ref{fig:parameters_significance_participation}) and performance metrics (Table~\ref{table:proving-time}).
+
+\section*{Acknowledgment}
+We thank Lev Soukhanov for his early contributions to the FDKG concept and mechanics, and Oskar Goldhahn and Thomas Haines for their insightful reviews, enhancing the paper’s structure and cryptographic rigor.
+
+\printbibliography
+\section{Appendix}
+
+
+\subsection{zkSNARK Constructions}\label{app:proofs}
 
 In our protocol, we employ the general principles of zk-SNARK to construct specific proofs for each phase of the voting process. Each proof is defined by a circuit $C$ that verifies constraints, a public instance (statement) $\vec{s}$, and a private input (witness) $\vec{w}$.
 
-\subsubsection{\ProofFDKG{i}}\label{sec:proof-fdkg}
+\subsubsection{\ProofFDKG{i}}\label{app:proof-fdkg}
 
 \begin{itemize}
     \item \textbf{Circuit} ($C$): Defined as \ProofFDKGInformal{}. The specifics of this circuit are detailed in Algorithm~\ref{alg:circuit_fdkg}.
-    \item \textbf{Public Instance} ($\vec{s}$): Includes the partial encryption key $\PartialEncryptionKey{i}$, the guardian set $\GuardianSetOf{i} = \{\Party{1},\dots,\Party{|\GuardianSetOf{}|}\}$, and the set of encrypted partial decryption key shares $\{\EncryptedPartialDecryptionKeyShare{}{1},\dots, \EncryptedPartialDecryptionKeyShare{}{|\GuardianSetOf{}|}\}$.
+    \item \textbf{Public Instance} ($\vec{s}$): Includes the partial encryption key $\PartialPublicKey{i}$, the guardian set $\GuardianSetOf{i} = \{\Party{1},\dots,\Party{|\GuardianSetOf{}|}\}$, and the set of encrypted partial decryption key shares $\{\EncryptedSharePartialSecretKey{}{1},\dots, \EncryptedSharePartialSecretKey{}{|\GuardianSetOf{}|}\}$.
     \item \textbf{Private Input} ($\vec{w}$): Includes the coefficients of the polynomial $\{a_0, \dots, a_{t-1}\}$ and random values $\{r1_1,\dots,r1_{|\GuardianSetOf{}|}\}$, $\{r2_1,\dots,r2_{|\GuardianSetOf{}|}\}$.
 \end{itemize}
 
-\subsubsection{\ProofBALLOT{i}}\label{sec:proof-ballot}
+\subsubsection{\ProofPS{i}}\label{app:proof-ps}
 
 \begin{itemize}
-    \item \textbf{Circuit} ($C$): Defined as \ProofBALLOTInformal{}. Algorithm~\ref{alg:circuit_proof_ballot} elaborates on this circuit.
-    \item \textbf{Public Instance} ($\vec{s}$): Includes the encryption key $\EncryptionKey{}$ and the encrypted ballot $\Ballot{i} = (C1, C2)$.
-    \item \textbf{Private Input} ($\vec{w}$): Includes the vote $\Vote{i}$ and the random blinding factor $r_i$.
+    \item \textbf{Circuit} ($C$): Defined as ``Given $\PartialPublicKey{i}$, I know a partial secret key $\PartialSecretKey{i}$ s.t. $\PartialPublicKey{i} = \PartialSecretKey{i} G$''. The specifics of this circuit are detailed in Algorithm~\ref{alg:circuit_proof_ps}.
+    \item \textbf{Public Instance} ($\vec{s}$): Includes the partial encryption key $\PartialPublicKey{i}$.
+    \item \textbf{Private Input} ($\vec{w}$): Includes the partial decryption key $\PartialSecretKey{i}$.
 \end{itemize}
 
-\subsubsection{\ProofPD{i}}\label{sec:proof-pd}
+\subsubsection{\ProofSPS{i}{j}}\label{app:proof-sps}
 
 \begin{itemize}
-    \item \textbf{Circuit} ($C$): Specified as \ProofPDInformal{}. Details of this circuit can be found in Algorithm~\ref{alg:circuit_proof_pd}.
-    \item \textbf{Public Instance} ($\vec{s}$): Includes the sum of first ballot components $\TotalA{}$, the partial decryption from party $\PartialDecryptionFrom{i}$, and the partial encryption key $\PartialEncryptionKey{i}$.
-    \item \textbf{Private Input} ($\vec{w}$): Includes the partial decryption key $\PartialDecryptionKey{i}$.
-\end{itemize}
-
-\subsubsection{\ProofPDS{i}{j}}\label{sec:proof-pds}
-
-\begin{itemize}
-    \item \textbf{Circuit} ($C$): Outlined as \ProofPDSInformal{}. For more information, refer to Algorithm~\ref{alg:circuit_proof_pds}.
-    \item \textbf{Public Instance} ($\vec{s}$): Includes the sum of first ballot components $\TotalA{}$, the share of partial decryption $\SharePartialDecryptionFromTo{j}{i}$, the encrypted partial decryption key share $\EncryptedPartialDecryptionKeyShare{j}{i}$, and the difference $\Delta$.
+    \item \textbf{Circuit} ($C$): Defined as ``Given $\SharePartialSecretKey{j}{i}$, $\EncryptedSharePartialSecretKey{j}{i}$, $\Delta$ I know a partial secret key $\PartialSecretKey{i}$ s.t. $\PartialPublicKey{i} = \PartialSecretKey{i} G$ and  $\SharePartialSecretKey{j}{i} = \DecryptionUsingOf{\PartySecretKey{i}}{\EncryptedSharePartialSecretKey{j}{i}}$''. The specifics of this circuit are detailed in Algorithm~\ref{alg:circuit_proof_sps}.
+    
+    \item \textbf{Public Instance} ($\vec{s}$): Includes the share of partial secret key $\SharePartialSecretKey{j}{i}$, the encrypted partial decryption key share $\EncryptedSharePartialSecretKey{j}{i}$, and the difference $\Delta$.
+    
     \item \textbf{Private Input} ($\vec{w}$): Includes the secret key of party $\PartySecretKey{i}$.
 \end{itemize}
 
@@ -575,7 +1127,7 @@ In our protocol, we employ the general principles of zk-SNARK to construct speci
 \caption{Circuit FDKG(k = guardian set size, t = threshold)}
 \label{alg:circuit_fdkg}
 
-\KwIn{Statement $\vec{s}: (\PartialEncryptionKey{i}, \GuardianSetOf{} = \{\Party{1},\dots,\Party{|\GuardianSetOf{}|}\}, \{\EncryptedPartialDecryptionKeyShare{}{1},\dots, \EncryptedPartialDecryptionKeyShare{}{|\GuardianSetOf{}|} \})$}
+\KwIn{Statement $\vec{s}: (\PartialPublicKey{i}, \GuardianSetOf{} = \{\Party{1},\dots,\Party{|\GuardianSetOf{}|}\}, \{\EncryptedSharePartialSecretKey{}{1},\dots, \EncryptedSharePartialSecretKey{}{|\GuardianSetOf{}|} \})$}
 
 \KwIn{Witness $\vec{w}: (\{a_0, \dots, a_{t-1}\}, \{r1_1,\dots,r1_{|\GuardianSetOf{}|}\}, \{r2_1,\dots,r2_{|\GuardianSetOf{}|}\})$}
 
@@ -597,7 +1149,7 @@ In our protocol, we employ the general principles of zk-SNARK to construct speci
 
 \BlankLine
 
-\Assert \PartialEncryptionKey{i} = \EscalarMulFix{\PartySecretKey{i}, \G}\;
+\Assert \PartialPublicKey{i} = \EscalarMulFix{\PartySecretKey{i}, \G}\;
 
 \For{i \KwIn \GuardianSetSize}{
     $\Eval[i][0] \leftarrow a_0$\;
@@ -614,18 +1166,88 @@ In our protocol, we employ the general principles of zk-SNARK to construct speci
     $J \leftarrow \BabyAdd(R, F)$\;
     $\Delta \leftarrow F_x - \Eval[i][\Threshold]$\;
 
-    \Assert $\EncryptedPartialDecryptionKeyShare{}{i}.C1 = \EscalarMulFix{r1[i], \G}$\;
-    \Assert $\EncryptedPartialDecryptionKeyShare{}{i}.C2 = J$\;
-    \Assert $\EncryptedPartialDecryptionKeyShare{}{i}.\Delta = \Delta$\;
+    \Assert $\EncryptedSharePartialSecretKey{}{i}.C1 = \EscalarMulFix{r1[i], \G}$\;
+    \Assert $\EncryptedSharePartialSecretKey{}{i}.C2 = J$\;
+    \Assert $\EncryptedSharePartialSecretKey{}{i}.\Delta = \Delta$\;
 }
 \end{algorithm}
 
+\begin{algorithm}[h!]
+\caption{Circuit PartialSecret}
+\label{alg:circuit_proof_ps}
 
-\begin{algorithm}[H]
+\KwIn{Statement $\vec{s}: (\PartialPublicKey{i})$}
+\KwIn{Witness $\vec{w}: (\PartialSecretKey{i})$}
+\SetKwFunction{Num2Bits}{Num2Bits}
+\SetKwFunction{EscalarMulFix}{EscalarMulFix}
+\SetKwFunction{EscalarMulAny}{EscalarMulAny}
+\SetKwFunction{BabyAdd}{BabyAdd}
+\SetKw{KwTo}{in}
+\SetKw{KwDownTo}{down to}
+\SetKw{Assert}{assert}
+
+\BlankLine
+
+\Assert $\PartialPublicKey{i} = \EscalarMulFix{\PartialSecretKey{i}, \G}$\;
+\end{algorithm}
+
+
+\begin{algorithm}[h!]
+\caption{Circuit SharePartialSecret}
+\label{alg:circuit_proof_sps}
+
+\KwIn{Statement $\vec{s}: (\SharePartialSecretKey{j}{i}, \EncryptedSharePartialSecretKey{j}{i}, \Delta)$}
+\KwIn{Witness $\vec{w}: (\PartySecretKey{i})$}
+\SetKwFunction{Num2Bits}{Num2Bits}
+\SetKwFunction{EscalarMulFix}{EscalarMulFix}
+\SetKwFunction{EscalarMulAny}{EscalarMulAny}
+\SetKwFunction{BabyAdd}{BabyAdd}
+\SetKwFunction{Assert}{Assert}
+\SetKw{KwTo}{in}
+\SetKw{KwDownTo}{down to}
+\SetKw{Assert}{assert}
+
+\BlankLine
+
+$X \leftarrow \EscalarMulAny(\PartySecretKey{i}, \EncryptedSharePartialSecretKey{j}{i}[1])$\; % s_i C_1
+
+$(M_x, M_y) \leftarrow \BabyAdd(\EncryptedSharePartialSecretKey{j}{i}[2], - X)$\; % M = C_2 - s_i C_1
+
+\Assert $\SharePartialSecretKey{j}{i} = M_x - \Delta$\;
+
+\end{algorithm}
+
+\subsubsection{\ProofBALLOT{i}}\label{app:proof-ballot}
+
+\begin{itemize}
+    \item \textbf{Circuit} ($C$): Defined as \ProofBALLOTInformal{}. Algorithm~\ref{alg:circuit_proof_ballot} elaborates on this circuit.
+    \item \textbf{Public Instance} ($\vec{s}$): Includes the encryption key $\PublicKey{}$ and the encrypted ballot $\Ballot{i} = (C1, C2)$.
+    \item \textbf{Private Input} ($\vec{w}$): Includes the vote $\Vote{i}$ and the random blinding factor $r_i$.
+\end{itemize}
+
+\subsubsection{\ProofPD{i}}\label{app:proof-pd}
+
+\begin{itemize}
+    \item \textbf{Circuit} ($C$): Specified as \ProofPDInformal{}. Details of this circuit can be found in Algorithm~\ref{alg:circuit_proof_pd}.
+    \item \textbf{Public Instance} ($\vec{s}$): Includes the sum of first ballot components $\TotalA{}$, the partial decryption from party $\PartialDecryptionFrom{i}$, and the partial encryption key $\PartialPublicKey{i}$.
+    \item \textbf{Private Input} ($\vec{w}$): Includes the partial decryption key $\PartialSecretKey{i}$.
+\end{itemize}
+
+\subsubsection{\ProofPDS{i}{j}}\label{app:proof-pds}
+
+\begin{itemize}
+    \item \textbf{Circuit} ($C$): Outlined as \ProofPDSInformal{}. For more information, refer to Algorithm~\ref{alg:circuit_proof_pds}.
+    \item \textbf{Public Instance} ($\vec{s}$): Includes the sum of first ballot components $\TotalA{}$, the share of partial decryption $\SharePartialDecryptionFromTo{j}{i}$, the encrypted partial decryption key share $\EncryptedSharePartialSecretKey{j}{i}$, and the difference $\Delta$.
+    \item \textbf{Private Input} ($\vec{w}$): Includes the secret key of party $\PartySecretKey{i}$.
+\end{itemize}
+
+
+
+\begin{algorithm}[h!]
 \caption{Circuit EncryptedBallot(m = the smallest integer s.t. $2^m > |\mathbb{P}|$ )}
 \label{alg:circuit_proof_ballot}
 
-\KwIn{Statement $\vec{s}: (\EncryptionKey{}, \Ballot{i} = (C1, C2) )$}
+\KwIn{Statement $\vec{s}: (\PublicKey{}, \Ballot{i} = (C1, C2) )$}
 \KwOut{Witness $\vec{w}: (\Vote{i}, r)$}
 
 \SetKwFunction{Num2Bits}{Num2Bits}
@@ -644,7 +1266,7 @@ In our protocol, we employ the general principles of zk-SNARK to construct speci
 
 \Assert $C1 = \EscalarMulFix{r, \G}$\;
 
-F $\leftarrow$ \EscalarMulAny{r, \EncryptionKey{}}\;
+F $\leftarrow$ \EscalarMulAny{r, \PublicKey{}}\;
 
 e $\leftarrow$ $2^{(\Vote{i} - 1) m}$\;
 
@@ -655,12 +1277,12 @@ H $\leftarrow$ \EscalarMulFix{e, \G}\;
 \end{algorithm}
 
 
-\begin{algorithm}[H]
+\begin{algorithm}[h!]
 \caption{Circuit PartialDecryption}
 \label{alg:circuit_proof_pd}
 
-\KwIn{Statement $\vec{s}: (\TotalA{}, \PartialDecryptionFrom{i}, \PartialEncryptionKey{i})$}
-\KwIn{Witness $\vec{w}: (\PartialDecryptionKey{i})$}
+\KwIn{Statement $\vec{s}: (\TotalA{}, \PartialDecryptionFrom{i}, \PartialPublicKey{i})$}
+\KwIn{Witness $\vec{w}: (\PartialSecretKey{i})$}
 \SetKwFunction{Num2Bits}{Num2Bits}
 \SetKwFunction{EscalarMulFix}{EscalarMulFix}
 \SetKwFunction{EscalarMulAny}{EscalarMulAny}
@@ -671,16 +1293,16 @@ H $\leftarrow$ \EscalarMulFix{e, \G}\;
 
 \BlankLine
 
-\Assert $\PartialEncryptionKey{i} = \EscalarMulFix{\PartialDecryptionKey{i}, \G}$\;
-\Assert $\PartialDecryptionFrom{i} = \EscalarMulAny{\PartialDecryptionKey{i}, \TotalA{}}$\;
+\Assert $\PartialPublicKey{i} = \EscalarMulFix{\PartialSecretKey{i}, \G}$\;
+\Assert $\PartialDecryptionFrom{i} = \EscalarMulAny{\PartialSecretKey{i}, \TotalA{}}$\;
 \end{algorithm}
 
 
-\begin{algorithm}[H]
+\begin{algorithm}[h!]
 \caption{Circuit PartialDecryptionShare}
 \label{alg:circuit_proof_pds}
 
-\KwIn{Statement $\vec{s}: (\TotalA{}, \SharePartialDecryptionFromTo{j}{i}, \EncryptedPartialDecryptionKeyShare{j}{i}, \Delta)$}
+\KwIn{Statement $\vec{s}: (\TotalA{}, \SharePartialDecryptionFromTo{j}{i}, \EncryptedSharePartialSecretKey{j}{i}, \Delta)$}
 \KwIn{Witness $\vec{w}: (\PartySecretKey{i})$}
 \SetKwFunction{Num2Bits}{Num2Bits}
 \SetKwFunction{EscalarMulFix}{EscalarMulFix}
@@ -693,690 +1315,16 @@ H $\leftarrow$ \EscalarMulFix{e, \G}\;
 
 \BlankLine
 
-$X \leftarrow \EscalarMulAny(\PartySecretKey{i}, \EncryptedPartialDecryptionKeyShare{j}{i}[1])$\; % s_i C_1
+$X \leftarrow \EscalarMulAny(\PartySecretKey{i}, \EncryptedSharePartialSecretKey{j}{i}[1])$\; % s_i C_1
 
-$(M_x, M_y) \leftarrow \BabyAdd(\EncryptedPartialDecryptionKeyShare{j}{i}[2], - X)$\; % M = C_2 - s_i C_1
+$(M_x, M_y) \leftarrow \BabyAdd(\EncryptedSharePartialSecretKey{j}{i}[2], - X)$\; % M = C_2 - s_i C_1
 
-$\PartialDecryptionKeyShare{j}{i} \leftarrow M_x - \Delta$\;
+$\SharePartialSecretKey{j}{i} \leftarrow M_x - \Delta$\;
 
-\Assert $\SharePartialDecryptionFromTo{j}{i} = \EscalarMulAny(\PartialDecryptionKeyShare{j}{i}, \TotalA{})$
+\Assert $\SharePartialDecryptionFromTo{j}{i} = \EscalarMulAny(\SharePartialSecretKey{j}{i}, \TotalA{})$
 \end{algorithm}
 
 
 
-\section{Security Analysis}
-
-This section analyses key properties of the PeerVote protocol, focusing on Decipherability, Privacy, Integrity and Availability as crucial aspects underpinning the security of the system. We discuss the conditions under which these properties are maintained or violated, particularly in the context of honest and dishonest parties within a distributed, multi-party computational framework.
-
-\newpage
-
-% \begin{definition}[Decipherability] \label{def:decipherability}
-%     Decipherability is achieved if for each participant $\Party{i} \in \mathbb{D}$, either the participant publishes the full partial decryption, or at least $t$ members of its guardian set $\mathbb{G}_i$ publishes their respective shares of partial decryption. Formally: 
-%     \begin{align*}\forall \Party{i} \in \mathbb{D},  \textrm{publish}(\PartialDecryptionFrom{i}) \lor & \\ \exists \mathbb{S}_i \subseteq  \mathbb{G}_i & : |\mathbb{S}_i| \geq t \land \forall P_{j} \in \mathbb{S}_i \textrm{publish}(\SharePartialDecryptionFromTo{i}{j}) \end{align*}
-%     where \(\textrm{publish}(\cdot)\) denotes the publication of either the full partial decryption $\PartialDecryptionFrom{i}$ or the share of partial decryption $\SharePartialDecryptionFromTo{i}{j}$ in the Online Tally phase.
-% \end{definition}
-
-% Decipherability is guaranteed when a sufficient number of parties act honestly and fulfill their role in the decryption process. If the set of honest and available parties drops below the decipherability threshold, the protocol's ability to ensure decipherability is compromised, potentially leading to an inability to decrypt the final tally.
-
-
-% \begin{definition}[Decipherability2] \label{def:decipherability}
-%     Let $\mathbb{P}$ be the set of participants who have published their full partial decryption $\PartialDecryptionFrom{i}$. Let $\mathbb{S}_i$ be the set of guardians in $\mathbb{G}_i$ who have published their shares of partial decryption $\SharePartialDecryptionFromTo{i}{j}$ for participant $\Party{i}$. Decipherability is achieved if for each participant $\Party{i} \in \mathbb{D}$:
-%     \begin{align*}
-%     \Party{i} \in \mathbb{P} \quad \lor \quad |\mathbb{S}_i| \geq t
-%     \end{align*}
-%     In other words, either the participant $\Party{i}$ has published their full partial decryption, or at least $t$ members of their guardian set $\mathbb{G}_i$ have published their respective shares of partial decryption for $\Party{i}$.
-% \end{definition}
-
-\begin{definition}[Decipherability] \label{def:decipherability}
-    Let $\mathbb{P}$ be the set of participants who have published their full partial decryption $\PartialDecryptionFrom{i}$. Let $\mathbb{S}_i$ be the set of guardians in $\mathbb{G}_i$ who have published their shares of partial decryption $\SharePartialDecryptionFromTo{i}{j}$ for participant $\Party{i}$. Decipherability is achieved if for each participant $\Party{i} \in \mathbb{D}$:
-    \begin{align*}
-    \Party{i} \in \mathbb{P} \quad \lor \quad |\mathbb{S}_i| \geq t
-    \end{align*}
-    In other words, either the participant $\Party{i}$ has published their full partial decryption, or at least $t$ members of their guardian set $\mathbb{G}_i$ have published their respective shares of partial decryption for $\Party{i}$.
-\end{definition}
-
-
-
-\begin{definition}[Privacy] \label{def:privacy}
-    Privacy is achieved if and only if there does not exist any collusion that achieves Decipherability. Formally, privacy is achieved when:
-    \[
-    \nexists \mathbb{A} \subseteq \mathbb{P} : (\text{Decipherability}(\mathbb{A}) \land \text{Colludes}(\mathbb{A}))
-    \]
-    where \( \text{Decipherability}(\mathbb{A}) \) denotes that the set \( \mathbb{A} \) achieves Decipherability, and \( \text{Colludes}(\mathbb{A}) \) indicates that the set \( \mathbb{A} \) colludes.
-\end{definition}
-
-Privacy depends on the assumption that there is no collusion that achieves Decipherability. The existence of such a subset could lead to a compromise of the confidentiality of the vote, as such parties could collude to decipher individual votes and count votes before the official tally.
-
-\begin{definition}[Censorship resistance]
-    Censorship resistance is achieved when the network accepts messages from all eligible voters.
-\end{definition}
-
-Censorship resistance should be guaranteed by the message board used to run the protocol. In practice, it's achieved by the consensus protocol and an honest majority of the parties running it. In Section ~\ref{sec:deployments} we discuss possible instantiations of the message board.
-
-\begin{definition}[Integrity]
-    Integrity ensures that votes are counted accurately and cannot be altered by unauthorised parties. Integrity is achieved as long as everyone verifies all messages from other parties and the eligibility of the voters submitting the ballot. In addition, this property relies on the security of all cryptographic primitives used in the protocol.
-\end{definition}
-
-Integrity is maintained through the verification of proofs of correctness. Robust cryptographic mechanisms, including secure pseudorandom number generators, digital signatures, ElGamal encryption and zkSNARKs, are used to ensure integrity, ensuring that any unauthorised changes are detectable.
-
-\section{FDKG Example}
-
-To illustrate the FDKG process and highlight its improvements over traditional DKG, consider a scenario involving a set of parties $\{P_1, \ldots, P_{10}\}$. In this example, we have $k = 3$ and $t = 2$. A subset of these parties, namely $\mathbb{D} = \{P_1, P_3, P_5, P_7, P_9\}$, participates in the FDKG, each forming their respective guardian set. This setup is shown in Figure \ref{fig:FDKG}.
-
-\begin{figure*}
-    \centering
-    \includegraphics[width=.75\textwidth]{FDKG.png}
-    \caption{Example of Federated Distributed Key Generation}
-    \label{fig:FDKG}
-\end{figure*}
-
-The FDKG process for each participant is as follows:
-
-\begin{enumerate}
-    \item \textbf{Party $P_1$}:
-        \begin{itemize}
-            \item Chooses Guardian Set $\mathbb{G}_1 = \{P_2, P_3, P_5\}$.
-            \item Samples a random polynomial $f_1(X) \in_R \mathbb{Z}_q[X]$, computes decryption key $d_1 = f_1(0)$.
-            \item Distributes $d_1$ among $\mathbb{G}_1$, yielding shares $\PartialDecryptionKeyShare{1}{2}, \PartialDecryptionKeyShare{1}{3}, \PartialDecryptionKeyShare{1}{5}$.
-        \end{itemize}
-
-    \item \textbf{Party $P_3$}:
-        \begin{itemize}
-            \item Chooses $\mathbb{G}_3 = \{P_1, P_2, P_4\}$.
-            \item Samples $f_3(X)$, computes $d_3$, and distributes it among $\mathbb{G}_3$, yielding shares $\PartialDecryptionKeyShare{3}{1}, \PartialDecryptionKeyShare{3}{2}, \PartialDecryptionKeyShare{3}{4}$.
-        \end{itemize}
-
-    \item \textbf{Party $P_5$}:
-        \begin{itemize}
-            \item Chooses $\mathbb{G}_5 = \{P_3, P_6, P_7\}$.
-            \item Samples $f_5(X)$, computes $d_5$, and distributes it among $\mathbb{G}_5$, yielding shares $\PartialDecryptionKeyShare{5}{3}, \PartialDecryptionKeyShare{5}{6}, \PartialDecryptionKeyShare{5}{7}$.
-        \end{itemize}
-
-    \item \textbf{Party $P_7$}:
-        \begin{itemize}
-            \item Chooses $\mathbb{G}_7 = \{P_8, P_9, P_{10}\}$.
-            \item Samples $f_7(X)$, computes $d_7$, and distributes it among $\mathbb{G}_7$, yielding shares $\PartialDecryptionKeyShare{7}{8}, \PartialDecryptionKeyShare{7}{9}, \PartialDecryptionKeyShare{7}{10}$.
-        \end{itemize}
-
-    \item \textbf{Party $P_9$}:
-        \begin{itemize}
-            \item Chooses $\mathbb{G}_9 = \{P_5, P_7, P_{10}\}$.
-            \item Samples $f_9(X)$, computes $d_9$, and distributes it among $\mathbb{G}_9$, yielding shares $\PartialDecryptionKeyShare{9}{5}, \PartialDecryptionKeyShare{9}{7}, \PartialDecryptionKeyShare{9}{10}$.
-        \end{itemize}
-\end{enumerate}
-
-In a traditional DKG protocol, the minimum set of parties required to achieve Decipherability would be \(\{P_1, P_3, P_5, P_7, P_9 \}\). However, with the FDKG approach and the use of Guardian Sets, this minimum set is reduced to \(M = \{P_3, P_5, P_6\}\), demonstrating the protocol's efficiency in reducing the number of participants required for successful decryption.
-
-\paragraph{Decipherability}
-The set $M$ ensures Decipherability because the shares $\PartialDecryptionKey{3},\PartialDecryptionKey{5},\PartialDecryptionKey{6}$ are published directly by these parties, while \PartialDecryptionKey{1} is recoverable by shares \(\{P_3, P_5\}\) and \PartialDecryptionKey{9} is recoverable by shares \(\{P_5, P_7\}\).
-
-\paragraph{Privacy}
-Privacy in the FDKG system is compromised when all parties from any Decipherability set collude. In this example, if all parties \(\{P_3, P_5, P_6\}\) collude, they can collectively reconstruct the secret \DecryptionKey{} and therefore decrypt each individual ballot \Ballot{i}. Because they have been selected as the most trusted parties in the group, the chance of them colluding is reduced.
-
-
-\section{o1-mini-older: Liveness experiments}
-
-In this section, we present the results of our peer-to-peer voting scheme simulations. The simulations were conducted with varying parameters to understand their impact on the success rate of the voting process. We utilized a Random Forest regression model to analyze the data and identify the most significant factors influencing the success rate.
-
-\subsection{Simulation Parameters}
-
-The simulations were executed with the following ranges of parameters:
-
-\begin{itemize}
-    \item \textbf{No. Participants ($|\mathbb{P}|$)}: 10, 50, 100, 200, 500, 1,000
-    \item \textbf{FDKG Participation ($\frac{|\mathbb{D}|}{|\mathbb{P}|}$)}: 10\% to 100\% (25\% steps)
-    \item \textbf{Tallier Retention ($\frac{|\mathbb{T}|}{|\mathbb{D}|}$)}: 10\% to 100\% (10\% steps)
-    
-    \item \textbf{No. Guardians ($k$)}: 2, 3, 4, 5, 6, 7
-    \item \textbf{Threshold ($t$)}: 1, 2, 3, 4
-\end{itemize}
-
-\subsection{Data Analysis}
-
-We performed exploratory data analysis to identify correlations between the simulation parameters and the success rate. The top correlations with the success rate are presented in Table~\ref{tab:correlations}.
-
-\begin{table}[h]
-    \centering
-    \caption{Top Correlations with Success Rate}
-    \label{tab:correlations}
-    \begin{tabular}{lr}
-        \textbf{Variable} & \textbf{Correlation with Success Rate} \\
-        Tallier Retention ($\frac{|\mathbb{T}|}{|\mathbb{D}|}$) & 0.625136 \\
-        FDKG Participation ($\frac{|\mathbb{D}|}{|\mathbb{P}|}$) & 0.156382 \\
-        No. Guardians ($k$) & 0.047390 \\
-        No. Participants ($|\mathbb{P}|$) & -0.116685 \\
-        Threshold ($t$)        & -0.223456 \\
-    \end{tabular}
-\end{table}
-
-As shown in Table~\ref{tab:correlations}, the \textit{Tallier Retention Percentage} ($P_{\text{Ret}}$) has the strongest positive correlation with the success rate, indicating its significant impact on the outcome of the voting process. The \textit{FDKG Percentage} ($P_{\text{FDKG}}$) also shows a positive correlation, though to a lesser extent. The number of \textit{Guardians} and \textit{Nodes} have weaker correlations, and the \textit{Threshold} has a moderate negative correlation with the success rate.
-
-\subsection{Machine Learning Model}
-
-We trained a Random Forest regression model to predict the success rate based on the simulation parameters. The model was evaluated using Mean Squared Error (MSE) and the coefficient of determination ($R^2$) metrics. The model achieved an MSE of 27.5875 and an $R^2$ score of 0.9799, indicating a high level of accuracy.
-
-\begin{table}[h]
-    \centering
-    \caption{Model Evaluation Metrics}
-    \label{tab:model_metrics}
-    \begin{tabular}{lr}
-        \toprule
-        \textbf{Metric} & \textbf{Value} \\
-        \midrule
-        Mean Squared Error (MSE) & 27.5875 \\
-        Coefficient of Determination ($R^2$) & 0.9799 \\
-        Mean Cross-Validation $R^2$ Score & 0.9766 \\
-        \bottomrule
-    \end{tabular}
-\end{table}
-
-Cross-validation was performed to assess the model's generalizability, yielding a mean $R^2$ score of 0.9766 across five folds.
-
-\subsection{Feature Importance}
-
-Feature importance analysis was conducted to identify which parameters had the most significant impact on the success rate. The results are presented in Figure~\ref{fig:feature_importance}.
-
-\begin{figure}[h]
-    \centering
-    \includegraphics[width=0.7\textwidth]{feature_importance.png}
-    \caption{Feature Importances from the Random Forest Model}
-    \label{fig:feature_importance}
-\end{figure}
-
-As depicted in Figure~\ref{fig:feature_importance}, the \textit{Tallier Retention Percentage} ($P_{\text{Ret}}$) is the most influential feature, contributing approximately 64.86\% to the model's predictive power. The \textit{Threshold} and \textit{FDKG Percentage} also contribute to the success rate, albeit to a lesser extent.
-
-\section{o1-mini-old: Simulation Results and Analysis} \label{sec:simulation}
-
-To evaluate the liveness and robustness of the PeerVote protocol's Federated Distributed Key Generation (FDKG) scheme, we conducted simulations to analyze how various system parameters influence the success rate of the Decipherability. The simulations aimed to identify which variables most significantly affect the liveness of the scheme, thereby informing optimal configurations for practical deployment.
-
-\subsection{Simulation Setup}
-
-We simulated the FDKG process under varying conditions, focusing on key parameters that could impact the protocol's performance:
-
-\begin{itemize} 
-    \item \textbf{Number of Guardians} ($guardians$): Ranged from 2 to 7. 
-    \item \textbf{Threshold} ($threshold$): Values from 1 to 4. 
-    \item \textbf{FDKG Participation Percentage} ($fdkgPercentage$): Varied between 10\% and 100\%. 
-    \item \textbf{Tallier Retention Percentage} ($tallierRetPct$): Varied between 10\% and 100\%. 
-    \item \textbf{Number of Nodes} ($nodes$): Treated as an independent variable, not included in optimization. 
-\end{itemize}
-
-Each simulation run recorded the \textbf{Success Rate} ($successRate$) of the decryption process, defined as the percentage of simulations where the protocol successfully completed the decryption phase.
-
-\subsection{Network Modeling and Guardians Selection}
-
-To accurately simulate the dynamics of the PeerVote protocol in a real-world scenario, it was essential to model the network of trust among participants. We employed the \textit{Barabási-Albert (BA) model}~\cite{barabasiEmergenceScalingRandom1999} to generate a scale-free network that represents the trust relationships within the voting population. This approach reflects the preferential attachment phenomenon observed in social networks, where some nodes (participants) become highly connected due to their popularity or trustworthiness.
-
-\subsubsection{Barabási-Albert Model for Trust Networks}
-
-The Barabási-Albert model generates networks where the probability of a new node connecting to an existing node is proportional to the existing node's degree (i.e., the number of connections it already has). This results in a network with a few highly connected nodes and many nodes with fewer connections, mirroring real-world social and trust networks.
-
-In the context of our simulations, nodes represent participants in the voting process, and edges represent trust relationships. The highly connected nodes can be interpreted as participants who are more trusted or influential, making them more likely to be selected as guardians by other participants.
-
-\subsubsection{Guardians Selection Algorithm}
-
-We implemented an algorithm based on the Barabási-Albert model to simulate the network of trust and the selection of guardians by participants. The key steps of the algorithm are as follows:
-
-\begin{enumerate} \item \textbf{Initialization}: Start with a fully connected network of a small number of nodes equal to the desired number of guardians. This ensures that initial nodes have connections to each other, establishing a base level of trust among the initial guardians. \item \textbf{Preferential Attachment}: Add new nodes to the network one at a time. Each new node establishes connections to existing nodes based on the probability proportional to the degree of the existing nodes. This means that nodes with higher degrees (more connections) are more likely to receive new connections, simulating the preferential trust in more connected (trusted) participants. \item \textbf{Edge Formation}: For each new node, we connect it to a fixed number of existing nodes (equal to the number of guardians) selected based on their degrees. This process results in a network where some nodes become hubs with many connections, representing highly trusted participants. \item \textbf{Guardians Selection}: To select guardians for a participant, we use the degrees of nodes to model the likelihood of being chosen. Participants are more likely to select nodes with higher degrees as their guardians, reflecting the natural tendency to trust more connected or reputable individuals in a network. \end{enumerate}
-
-The algorithm ensures that the trust network exhibits the scale-free properties characteristic of real-world social networks. By simulating the network in this manner, we can more accurately assess how the structure of trust relationships impacts the liveness and success rate of the PeerVote protocol.
-
-\subsubsection{Impact on Simulation Outcomes}
-
-Incorporating the Barabási-Albert model into the simulations allowed us to capture the heterogeneity of trust relationships among participants. This approach acknowledges that in practical scenarios, some participants are inherently more trusted and thus more likely to be selected as guardians. The scale-free nature of the network means that a small number of participants (hubs) play a critical role in the protocol's success.
-
-The guardians' selection influenced the distribution of responsibilities in the decryption process. Highly connected guardians are pivotal; their participation or absence significantly affects the overall success rate. This modeling choice underscores the importance of designing protocols that are resilient to the unavailability of key participants.
-
-\subsection{Simulation Results}
-
-\subsubsection{Correlation Analysis}
-
-We computed the Pearson correlation coefficients to identify the relationships between the $successRate$ and the independent variables. The top correlations with $successRate$ are presented in Table~\ref{tab:correlations}.
-
-\begin{table}[h] \centering \caption{Correlation coefficients with $successRate$.} \label{tab:correlations} \begin{tabular}{lr} \toprule \textbf{Variable} & \textbf{Correlation with $successRate$} \ \midrule $tallierRetPct$ & 0.625 \ $fdkgPercentage$ & 0.156 \ $guardians$ & 0.047 \ $nodes$ & -0.117 \ $threshold$ & -0.223 \ \bottomrule \end{tabular} \end{table}
-
-The $tallierRetPct$ variable shows a strong positive correlation with $successRate$ (0.625), indicating that higher tallier retention significantly enhances the likelihood of successful decryption. The $fdkgPercentage$ also exhibits a positive correlation, albeit weaker (0.156). Conversely, $threshold$ has a moderate negative correlation (-0.223), suggesting that higher threshold values may impede the decryption process.
-
-\subsubsection{Distribution of Success Rate}
-
-Figure~\ref{fig:success_rate_distribution} illustrates the distribution of the $successRate$ across all simulation runs. The distribution is slightly skewed, with a tendency toward higher success rates, but with significant variance depending on the configuration.
-
-\begin{figure}[h] \centering % Include a placeholder or actual figure here 
-\includegraphics[width=0.7\textwidth]{success_rate_distribution.png} \caption{Distribution of $successRate$ across simulations.} 
-\label{fig:success_rate_distribution} \end{figure}
-
-\subsection{Random Forest Regression Analysis}
-
-To quantify the influence of each variable on the $successRate$, we trained a Random Forest Regressor model using the simulation data.
-
-\subsubsection{Model Training and Evaluation}
-
-The dataset was split into training and testing sets using an 80/20 split. The Random Forest model was trained on the training set, and its performance was evaluated on the test set.
-
-\begin{itemize} \item \textbf{Mean Squared Error (MSE)}: 258.58 \item \textbf{Coefficient of Determination ($R^2$)}: 0.812 \end{itemize}
-
-The $R^2$ score of 0.812 indicates that the model explains 81.2\% of the variance in $successRate$, demonstrating a strong fit. Cross-validation was performed to ensure the model's robustness, yielding an average $R^2$ score of 0.822 across five folds.
-
-\subsubsection{Feature Importance}
-
-The feature importance scores derived from the Random Forest model are shown in Figure~\ref{fig:feature_importance} and detailed in Table~\ref{tab:feature_importance}.
-
-\begin{table}[h] \centering \caption{Feature importance scores.} \label{tab:feature_importance} \begin{tabular}{lr} \toprule \textbf{Feature} & \textbf{Importance Score} \ \midrule $tallierRetPct$ & 0.707 \ $threshold$ & 0.129 \ $fdkgPercentage$ & 0.086 \ $guardians$ & 0.078 \ \bottomrule \end{tabular} \end{table}
-
-\begin{figure}[h] \centering % Include a placeholder or actual figure here 
-\includegraphics[width=0.7\textwidth]{feature_importance.png} \caption{Feature importances for predicting $successRate$.} \label{fig:feature_importance} \end{figure}
-
-The $tallierRetPct$ emerged as the most influential variable, accounting for approximately 70.7\% of the model's decision-making process. The $threshold$ value was the second most significant factor, with an importance score of 12.9\%. The $fdkgPercentage$ and $guardians$ had lower importance scores, indicating a less pronounced effect on the $successRate$.
-
-\subsection{Interpretation of Results}
-
-\subsubsection{Impact of Tallier Retention Percentage}
-
-The strong positive correlation and high feature importance of $tallierRetPct$ highlight its critical role in ensuring the liveness of the FDKG scheme. High tallier retention means that more nodes remain active and participate in the decryption process, thereby increasing the likelihood of meeting the threshold required for successful decryption.
-
-\subsubsection{Influence of Threshold and Guardians}
-
-While the $threshold$ variable negatively correlates with $successRate$, its impact is significant. A higher threshold requires more participants to successfully decrypt, which may not be feasible if participation rates are low. Therefore, selecting an optimal threshold is crucial for balancing security requirements with practical considerations of participant availability. The number of $guardians$ has a minimal positive effect, suggesting that simply increasing the number of guardians without addressing participation rates may not substantially improve the success rate.
-
-\subsubsection{Role of FDKG Participation Percentage}
-
-The $fdkgPercentage$ has a modest positive influence on $successRate$. This indicates that while increasing participation in the key generation phase can enhance the success rate, it is less critical than ensuring high retention during the decryption phase.
-
-\subsection{Discussion}
-
-The simulation results underscore the importance of participant retention in the PeerVote protocol. Ensuring that talliers remain active throughout the voting process is paramount for the success of the FDKG scheme. Strategies to maintain high tallier retention could include incentivization mechanisms or protocol designs that accommodate intermittent participation.
-
-The negative impact of higher threshold values suggests a trade-off between security and liveness. While higher thresholds provide increased security by requiring more participants for decryption, they also raise the risk of the decryption process failing due to insufficient participation.
-
-\subsection{Limitations and Future Work}
-
-The simulations assume uniform participation probabilities and do not account for network conditions or adversarial behaviors. Future work could extend the simulation model to incorporate these factors, providing a more comprehensive assessment of the protocol's performance under real-world conditions.
-
-\subsection{Conclusion}
-
-By integrating the Barabási-Albert model into our simulations, we accounted for the complex interplay of trust relationships among participants, providing a more nuanced understanding of how network structure affects the PeerVote protocol's liveness and reliability. The findings highlight the critical importance of tallier retention and optimal threshold selection in ensuring the successful operation of the protocol.
-
-\section{o1-mini: Liveness Simulation Results and Analysis}
-\label{sec:extended-results}
-
-To evaluate the liveness and robustness of the PeerVote protocol's Federated Distributed Key Generation (FDKG) scheme, we conducted extensive simulations to analyze how various system parameters influence the success rate of the decryption process. The simulations aimed to identify which variables most significantly affect the liveness of the scheme, thereby informing optimal configurations for practical deployment.
-
-\subsection{Simulation Setup}
-
-We performed simulations under two different network models to capture how varying trust relationships and participant selection strategies affect the protocol:
-
-\begin{itemize}
-    \item \textbf{Barabási-Albert (BA) Network:} 
-    A scale-free network generated using a preferential attachment mechanism, modeling a scenario where some participants (nodes) are highly trusted and influential.
-    
-    \item \textbf{Random Graph Network:} 
-    A network where guardians are selected uniformly at random from all nodes, representing an environment with no inherent preferential trust structure.
-\end{itemize}
-
-Both simulations were executed at a larger scale (e.g., with up to 10,000 nodes) to test the protocol’s behavior under more complex and realistic conditions. Each simulation run recorded the \textbf{Success Rate} ($successRate$) of the decryption process, defined as the percentage of simulations where the protocol successfully completed the decryption phase.
-
-Key parameters examined include:
-\begin{itemize}
-    \item \textbf{Number of Guardians} ($guardians$): 2 to 7
-    \item \textbf{Threshold} ($threshold$): 1 to 4
-    \item \textbf{FDKG Participation} ($fdkgPercentage$): 10\% to 100\%
-    \item \textbf{Tallier Retention Percentage} ($tallierRetPct$): 10\% to 100\%
-    \item \textbf{Number of Nodes} ($nodes$): Treated as independent; not optimized, but recorded
-\end{itemize}
-
-\subsection{Network Modeling and Guardians Selection}
-
-\subsubsection{Barabási-Albert Model}
-
-The Barabási-Albert model~\cite{barabasi1999emergence} generates a scale-free network by adding nodes one at a time and connecting them to existing nodes with a probability proportional to the existing nodes’ degrees. This produces a few highly connected nodes (hubs) and many nodes with fewer connections. In our context, nodes represent participants, and edges represent trust relationships. Highly connected participants become more likely to be chosen as guardians due to their perceived reliability.
-
-\subsubsection{Random Graph Model}
-
-In contrast to the scale-free structure of the BA model, we also implemented a Random Graph approach, where guardians are selected uniformly at random from the entire set of participants. This model assumes no preferential attachment or inherent trust biases, resulting in a more uniform distribution of trust relationships. By comparing the BA and Random Graph models, we can assess how the structure of the trust network influences the protocol’s performance.
-
-\subsubsection{Impact on Simulation Outcomes}
-
-The Barabási-Albert model, with its scale-free structure, tends to concentrate trust in a few well-connected nodes. In this scenario, the presence or absence of these "hub" participants significantly influences the success rate. Conversely, the Random Graph model distributes trust relationships more evenly, reducing reliance on specific individuals but potentially requiring broader participation across the network to maintain a high success rate.
-
-\subsection{Exploratory Data Analysis (EDA)}
-
-We conducted correlation analyses and distribution checks to understand how variables relate to $successRate$ under each network model.
-
-\subsubsection{Barabási-Albert Network Correlation Analysis}
-
-For the Barabási-Albert network:
-\[
-\begin{aligned}
-\text{corr}(tallierRetPct, successRate) &= 0.6401, \\
-\text{corr}(fdkgPercentage, successRate) &= 0.1896, \\
-\text{corr}(guardians, successRate) &= 0.0567, \\
-\text{corr}(nodes, successRate) &= -0.1274, \\
-\text{corr}(threshold, successRate) &= -0.2633.
-\end{aligned}
-\]
-
-As before, $tallierRetPct$ shows a strong positive correlation, reinforcing its critical role. The negative correlation with $threshold$ indicates that higher threshold values may impede the decryption process due to more stringent requirements for participation.
-
-\subsubsection{Random Graph Network Correlation Analysis}
-
-For the Random Graph network:
-\[
-\begin{aligned}
-\text{corr}(tallierRetPct, successRate) &= 0.6070, \\
-\text{corr}(fdkgPercentage, successRate) &= 0.3391, \\
-\text{corr}(guardians, successRate) &= 0.0811, \\
-\text{corr}(nodes, successRate) &= -0.1513, \\
-\text{corr}(threshold, successRate) &= -0.2466.
-\end{aligned}
-\]
-
-While $tallierRetPct$ remains the top positive correlate, $fdkgPercentage$ now plays a more substantial role (0.3391), suggesting that when guardians are chosen uniformly at random, broader participation in the FDKG generation phase becomes more crucial.
-
-\subsection{Model Training and Evaluation}
-
-We trained Random Forest regressors on both datasets to quantify variable importance and predict $successRate$.
-
-\subsubsection{Barabási-Albert Network Model Results}
-
-\begin{itemize}
-    \item \textbf{Test Set Performance:} MSE = 427.0391, $R^2$ = 0.7677
-    \item \textbf{Cross-Validation:} Mean $R^2$ = 0.7745
-\end{itemize}
-
-\noindent The model explains about 76.8\% of the variance in $successRate$ on the test set. Cross-validation confirms the model’s stability, with a mean $R^2$ of 0.7745.
-
-\subsubsection{Random Graph Network Model Results}
-
-\begin{itemize}
-    \item \textbf{Test Set Performance:} MSE = 483.8672, $R^2$ = 0.7554
-    \item \textbf{Cross-Validation:} Mean $R^2$ = 0.7529
-\end{itemize}
-
-\noindent The Random Graph model also achieves reasonably high predictive performance, with about 75.5\% variance explained on the test set and a mean $R^2$ of 0.7529 from cross-validation.
-
-\subsection{Feature Importance}
-
-Feature importance scores were derived from the trained Random Forest models. In both networks, $tallierRetPct$ remains the most influential factor, though its relative importance may differ slightly.
-
-\begin{table}[h]
-\centering
-\caption{Feature Importances for Both Network Types}
-\label{tab:feature_importances_networks}
-\begin{tabular}{lcc}
-\toprule
-\textbf{Feature} & \textbf{Importance (Barabasi)} & \textbf{Importance (Random)} \\
-\midrule
-$tallierRetPct$ & Highest (approx. similar to previous runs) & Highest (slightly reduced but still dominant) \\
-$threshold$     & 2nd most important                         & 2nd or 3rd most important \\
-$fdkgPercentage$& 3rd or 4th                                  & Increased importance compared to Barabasi \\
-$guardians$     & Lowest                                      & Still low, but slightly higher than in Barabasi \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-\noindent Under the Random Graph model, $fdkgPercentage$ gains more significance, indicating that widespread participation in FDKG is more critical when trust relationships are uniformly distributed.
-
-\subsection{Comparative Analysis and Discussion}
-
-Comparing the Barabási-Albert and Random Graph models reveals several key insights:
-
-\begin{itemize}
-    \item \textbf{Dominance of $tallierRetPct$:} In both network types, maintaining high tallier retention is paramount. The presence of active talliers remains the single most important factor driving higher $successRate$.
-    
-    \item \textbf{Role of $fdkgPercentage$:} The importance of $fdkgPercentage$ is more pronounced in the Random Graph network, suggesting that when guardians are selected without preferential attachment, ensuring broad participation in key generation becomes increasingly vital for achieving consistent decryption success.
-    
-    \item \textbf{Threshold Effects:} Higher thresholds continue to negatively correlate with $successRate$. While this trade-off holds in both networks, the scale-free structure of the BA network seemed to provide slightly more predictable outcomes at similar threshold levels.
-    
-    \item \textbf{Model Performance Differences:} The BA network model demonstrated better predictive performance (slightly higher $R^2$ and lower MSE) than the Random Graph model. This may be due to the more pronounced structures and patterns in a scale-free network, making it easier for the model to learn reliable relationships.
-\end{itemize}
-
-Overall, these expanded simulations confirm previous findings while highlighting the influence of network topology on the PeerVote protocol’s performance. In a scale-free environment, a few highly connected participants play a central role, whereas in a random environment, ensuring broad participation across a more uniform distribution of trust relationships becomes more critical.
-
-\subsection{Implications and Future Work}
-
-The results underscore the importance of maintaining high tallier retention for reliable decryption. Network topology emerges as a crucial factor: in scale-free networks, hub participants simplify achieving high success rates, whereas random networks demand more uniform participation.
-
-Future work may involve:
-
-\begin{itemize}
-    \item Examining adversarial behaviors or incomplete trust links.
-    \item Exploring other network models (e.g., small-world networks) and assessing their impact.
-    \item Conducting sensitivity and robustness analyses to understand parameter variations.
-    \item Investigating strategies to encourage tallier retention and balanced participation, ensuring that both highly connected and peripheral nodes contribute to the protocol’s liveness.
-\end{itemize}
-
-By incorporating the Random Graph model results, we present a more comprehensive picture of how differing network conditions affect the PeerVote protocol. This broader perspective supports more informed decisions regarding system design and operational strategies, ultimately guiding towards more resilient and effective decentralized internet voting solutions.
-
-
-
-\section{o1: Liveness Simulation Results and Analysis}
-\label{sec:extended-results-o1}
-
-To evaluate the liveness and robustness of the PeerVote protocol's Federated Distributed Key Generation (FDKG) scheme, we conducted extensive simulations that model how various parameters influence the success rate of the decryption process. Initially, we tested the protocol under a Barabási-Albert (BA) network model. To broaden our understanding, we introduced a Random Graph model, allowing us to compare how different network structures affect the protocol's performance. We have also scaled our simulations up to scenarios with 10,000 nodes to assess the protocol’s behavior at larger scales.
-
-\subsection{Simulation Setup}
-
-We focus on key parameters that can impact the scheme's performance:
-
-\begin{itemize}
-    \item \textbf{Number of Guardians} ($guardians$): Ranged from 2 to 7.
-    \item \textbf{Threshold} ($threshold$): Values from 1 to 4.
-    \item \textbf{FDKG Participation Percentage} ($fdkgPercentage$): Varied between 10\% and 100\%.
-    \item \textbf{Tallier Retention Percentage} ($tallierRetPct$): Varied between 10\% and 100\%.
-    \item \textbf{Number of Nodes} ($nodes$): [10, 50, 100, 200, 500, 1000, 1000]
-\end{itemize}
-
-The \textbf{Success Rate} ($successRate$) is defined as the percentage of simulation runs where the protocol successfully completes the decryption phase. We conducted simulations under two different network generation models:
-
-\begin{enumerate}
-    \item \textbf{Barabási-Albert (BA) Network:} A scale-free network generated using preferential attachment \cite{barabasi1999emergence}.
-    \item \textbf{Random Graph Network:} A network where guardians are selected uniformly at random from all nodes, resulting in a more uniform and less skewed degree distribution.
-\end{enumerate}
-
-For both models, we extended the simulations to up to 10,000 nodes, ensuring that the results reflect more complex and large-scale scenarios.
-
-\subsection{Network Modeling and Guardians Selection}
-
-\subsubsection{Barabási-Albert Model}
-The Barabási-Albert model generates a scale-free network where a small number of nodes (hubs) become highly connected due to preferential attachment. In this setting, participants that are more frequently chosen as guardians accumulate higher degrees, reflecting greater trust. This structure mirrors realistic social networks, where certain individuals or entities are more trusted and therefore pivotal for ensuring the liveness of the scheme.
-
-\subsubsection{Random Graph Model}
-In the Random Graph model, guardians are selected uniformly at random from the entire set of nodes, eliminating any preferential attachment. This represents a scenario where trust relationships are not skewed toward a few hubs. The absence of scale-free properties can alter which parameters dominate in ensuring a high $successRate$.
-
-\subsection{Correlation Analysis}
-
-Table~\ref{tab:correlations_ba_random} presents the top correlations with $successRate$ for both the BA and Random networks using the new, larger-scale (10,000 nodes) simulation results.
-
-\begin{table}[h]
-\centering
-\caption{Correlation coefficients with $successRate$ for Barabási-Albert and Random networks (10,000-node simulations).}
-\label{tab:correlations_ba_random}
-\begin{tabular}{lcc}
-\toprule
-\textbf{Variable} & \textbf{Corr. (BA)} & \textbf{Corr. (Random)} \\
-\midrule
-$tallierRetPct$   & 0.5847  & 0.6070 \\
-$fdkgPercentage$  & 0.2823  & 0.3391 \\
-$guardians$       & 0.0543  & 0.0811 \\
-$nodes$           & -0.1384 & -0.1513 \\
-$threshold$       & -0.3086 & -0.2466 \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-\noindent The $tallierRetPct$ remains the most influential variable for both networks, confirming its critical role in ensuring liveness. However, the Random network shows a stronger influence of $fdkgPercentage$ (0.3391 vs. 0.2823 in BA), suggesting that when guardians are chosen uniformly, broader participation in FDKG is more crucial to maintaining a high $successRate$.
-
-\subsection{Comparative Analysis of Network Models}
-
-The comparison between the BA and Random networks at a larger scale (10,000 nodes) reinforces previous observations while highlighting new nuances:
-
-\begin{enumerate}
-    \item \textbf{Tallier Retention Dominance:} $tallierRetPct$ remains key in both networks, confirming the importance of ensuring that participants remain active through the decryption phase.
-    \item \textbf{Increased Role of $fdkgPercentage$ in Random Networks:} The stronger correlation and potentially greater impact of $fdkgPercentage$ in the Random network suggest that without preferential attachment, it becomes more essential to ensure widespread participation in FDKG.
-    \item \textbf{Effect of Threshold and Guardians:} Negative correlation of $threshold$ with $successRate$ persists, underscoring the trade-off between security (higher threshold) and liveness. The $guardians$ variable shows a modest positive influence, slightly more pronounced in the Random network, possibly because uniform guardian selection reduces the reliance on a few well-connected nodes.
-\end{enumerate}
-
-\subsection{Discussion}
-
-The extended simulations show that the network topology continues to play a significant role in the protocol’s performance. The Barabási-Albert model, with its scale-free structure, makes it easier for certain parameters like $tallierRetPct$ to dominate. In contrast, the Random network model reveals that when trust (or selection) is uniformly distributed, parameters such as $fdkgPercentage$ gain prominence.
-
-The slightly reduced performance metrics (MSE and $R^2$) compared to smaller-scale scenarios may reflect the increased complexity and heterogeneity at the 10,000-node scale. Nevertheless, the relative differences between network models remain informative. The BA network's inherent structure yields more stable conditions, while the Random network highlights the need for strategies ensuring broad participation and engagement.
-
-\subsection{Parameter Recommendations for Decision-Makers}
-
-Based on our simulation results, we provide a guideline for decision-makers to select the optimal \textbf{Threshold} ($t$) and \textbf{Number of Guardians} ($k$) to achieve a minimum of 90\% decryption success rate. The recommendations are contingent upon the total number of participants ($N$), the \textbf{FDKG Participation Percentage} ($fdkgPct$), and the \textbf{Tallier Retention Percentage} ($retPct$).
-
-\subsubsection{Guideline Table}
-
-\begin{table}[h]
-\centering
-\caption{Recommended Threshold ($t$) and Number of Guardians ($k$) for Desired Success Rate}
-\label{tab:parameter_recommendation}
-\begin{tabular}{cccccc}
-\toprule
-\textbf{Number of Nodes} ($N$) & \textbf{FDKG \%} ($fdkgPct$) & \textbf{Retention \%} ($retPct$) & \textbf{Threshold} ($t$) & \textbf{Guardians} ($k$) & \textbf{Success Rate (\%)} \\
-\midrule
-10000 & 50 & 75 & 3 & 5 & 92.5 \\
-10000 & 60 & 80 & 3 & 4 & 91.2 \\
-10000 & 70 & 90 & 4 & 3 & 93.8 \\
-% Add more rows based on the generated recommendations
-\bottomrule
-\end{tabular}
-\end{table}
-
-\subsubsection{Visualization of Optimal Parameters}
-
-Figure~\ref{fig:parameter_heatmap} presents a heatmap illustrating the relationship between different Threshold ($t$) and Number of Guardians ($k$) combinations and their corresponding success rates for a sample scenario ($N=10000$, $fdkgPct=50\%$, $retPct=75\%$).
-
-\begin{figure}[h]
-\centering
-\includegraphics[width=0.7\textwidth]{parameter_heatmap.png}
-\caption{Heatmap of Success Rates for Various $(t, k)$ Combinations}
-\label{fig:parameter_heatmap}
-\end{figure}
-
-\subsubsection{Interpretation}
-
-For a voting system with 10,000 participants, a 50\% participation rate in FDKG, and a 75\% retention rate among talliers, setting the Threshold ($t$) to 3 and the Number of Guardians ($k$) to 5 ensures a decryption success rate of 92.5\%. This configuration balances the need for security (through a moderate threshold) and liveness (by maintaining a manageable number of guardians).
-
-Decision-makers can utilize the provided table and heatmap to adjust $t$ and $k$ based on different operational parameters to achieve their desired success rates.
-
-\subsection{Conclusion}
-
-By analyzing both Barabási-Albert and Random Graph models at a larger scale, we have reinforced the essential role of $tallierRetPct$ and gained new insights into how network structure influences other parameters. Ensuring high tallier retention remains paramount, while in more uniform networks, encouraging widespread participation in FDKG becomes a greater priority. These findings guide future protocol design, highlighting the importance of selecting thresholds, incentivizing participation, and considering network topologies to maximize the probability of successful decryption.
-
-
-\section{Experimental Results}
-
-This section evaluates the PeerVote protocol, focusing on proof times and message sizes for two prominent proof systems: Plonk and Groth16, as implemented in the \texttt{snarkjs} WebAssembly (WASM) framework. The execution time for solving the Discrete Logarithm Problem (DLP) in the Offline Tally phase was also evaluated. These experiments were performed on a MacBook Pro with an Apple M1 Pro processor and 16GB of RAM.
-
-\paragraph{Proving Time}
-
-Table~\ref{table:proving-time} shows the time taken to generate a zkSNARK proof for each message using Groth16 and Plonk. The results show a significant performance difference between the two, with Groth16 showing superior efficiency. In particular, during the FDKG phase, Groth16 required a maximum of 2.414 seconds for a 3 out of 4 configuration, compared to Plonk's 146.026 seconds for the same setup.
-
-
-\begin{table*}
-    \centering
-    \begin{tabular}{|c|c|c|c|c|c|c|}
-    \hline
-        \multirow{2}{*}{\textbf{\shortstack{Proving\\ System}}} & \multicolumn{3}{|c|}{\textbf{FDKG}}  & \multirow{2}{*}{\textbf{\shortstack{Encrypt\\ Ballot}}} & \multirow{2}{*}{\textbf{\shortstack{Partial\\ Decryption}}} & \multirow{2}{*}{\textbf{\shortstack{Partial Decryption\\ Share}}} \\ 
-        \cline{2-4}
-        & \textbf{1 of 2} & \textbf{2 of 3} & \textbf{3 of 4} & &  &  \\ 
-        \hline
-        \textbf{Groth16} & 1.388 s & 2.135 s & 2.414 s & 0.747 s & 0.619 s & 0.580 s/share \\ 
-        \hline
-        \textbf{Plonk} & 67.753 s & 71.902 s & 146.026 s & 16.822 s & 16.543 s & 8.137 s/share \\ 
-        \hline
-    \end{tabular}
-    \caption{Proving Time}
-    \label{table:proving-time}
-\end{table*}
-
-\paragraph{Message Size}
-
-Table~\ref{table:message-size} details the message sizes required in each round of the protocol. Messages using Groth16 are smaller due to their proofs comprising only 3 elliptic-curve points, whereas Plonk-based proofs require 9 points and 6 scalars \cite{gabizonPLONKPermutationsLagrangebases2019}.
-
-\begin{table*}
-    \centering
-    \begin{tabular}{|c|c|c|c|c|c|c|}
-    \hline
-        \multirow{2}{*}{\textbf{\shortstack{Proving\\ System}}} & \multicolumn{3}{|c|}{\textbf{FDKG}}  & \multirow{2}{*}{ \textbf{\shortstack{Encrypt\\ Ballot}}} & \multirow{2}{*}{\textbf{\shortstack{Partial\\ Decryption}}} & \multirow{2}{*}{\textbf{\shortstack{Partial Decryption\\ Share}}} \\ 
-        \cline{2-4}
-        & \textbf{1 of 2} & \textbf{2 of 3} & \textbf{3 of 4} & &  &  \\ 
-        \hline
-        \textbf{Groth16} & 1152 B & 1568 B & 1984 B & 512 B & 576 B & 768 B/share \\ \hline
-        \textbf{Plonk} & 1472 B & 1888 B & 2304 B & 832 B & 896 B & 1088 B/share \\ \hline
-    \end{tabular}
-    \caption{Sizes of the Messages in Each Round}
-    \label{table:message-size}
-\end{table*}
-
-\paragraph{Discrete Logarithm Problem (DLP)}
-
-A critical part of the Offline Tally in our protocol involves solving the DLP to extract the number of votes for each candidate. Although typically infeasible, the DLP can be solved by exhaustive search for a small number of voters. Using the method described in \cite{haoAnonymousVotingTworound2010}, we extracted each $x_i$ from the final output point $M$. 
-
-Figure~\ref{fig:dlog-search} shows that solving the DLP follows a power law relationship \( Y = aX^b \), where \( b \) varies linearly with the number of options. This finding suggests that while the time to solve the DLP is linear in the number of voters, it grows exponentially with the number of candidates, posing scalability challenges in larger elections.
-
-\begin{figure*}
-    \centering
-    \includegraphics[width=.9\textwidth]{dlog-search.png}
-    \caption{Time required to solve DLP with respect to the number of candidates and number of voters (log-log scale).}
-    \label{fig:dlog-search}
-\end{figure*}
-
-\section{Deployments}\label{sec:deployments}
-The protocol can be deployed on any platform that supports message board functionality, i.e. it provides a shared communication space where everyone can post messages and read them all in the same order.
-The ideal concept of a message board is difficult to achieve in practice due to the unreliable nature of distributed systems, especially in the presence of Byzantine nodes. 
-However, there are many approximations.
-In particular, blockchain is the most promising, as it provides the highest level of security in a trustless environment. 
-Blockchain comes at the cost of high transaction fees that all interacting parties have to bear. This is the price we want to avoid in democratic voting.
-In the future, as the standardisation of the ERC-4337~\cite{ERC4337AccountAbstraction} progresses, transaction fees could be centralised under a single paymaster (e.g. the organiser), allowing gasless voting for participants.
-
-A viable option are peer-to-peer networks. 
-We find a promising framework for our protocol in the Wesh Network\footnote{Wesh Network, asynchronous mesh network protocol powered by Berty Technologies' non-profit organisation, \url{https://wesh.network/}}, a toolkit based on the libp2p stack for building peer-to-peer applications.
-It is designed for use in a mobile environment, focusing on ease of use, resilience and integrity.
-
-Finally, the PeerVote protocol can be deployed on an centralised messenger platform such as Telegram, Signal or WhatsApp, where the message board is the chat room. This approach is less secure than the previous two, as the central server has potential control over the censorship and order of messages. 
-
-It's worth noting that PeerVote deployed on a central instant messaging platform still provides a high level of security and privacy as all messages are encrypted and authenticated, only the censorship property can potentially be exploited by the central server.
-
-See Figure~\ref{fig:stack-bc} for the conceptual stack of the protocol.
-
-\begin{figure}
-    \centering
-    \includegraphics[width=\textwidth]{stack-bc.png}
-    \caption{Three possible deployments of the protocol: Centralised messenger, ad-hoc peer-to-peer network, and public blockchain.}
-    \label{fig:stack-bc}
-\end{figure}
-
-\section{Discussion and conclusion}
-
-Our work introduces a robust voting protocol that eliminates reliance on centralised entities and demonstrates resilience to node unavailability. Federated Distributed Key Generation (FDKG) is our main innovation, extending traditional Distributed Key Generation (DKG) methods. FDKG uniquely allows key reconstruction by parties within their Guardian sets, in addition to those participating in the original DKG. This generalisation of DKG—where standard DKG is equivalent to a 0-of-k FDKG protocol—significantly improves the robustness of the protocol by minimising the size of the decipherability sets while preserving privacy, where these sets include the most trusted parties in the network.
-
-The protocol's robustness is particularly valuable in contexts with uncertain network reliability and participant availability, ensuring secure and uninterrupted voting processes. Future research could include simulating real-world trust dynamics in communities to assess the applicability of the protocol \cite{healdMathematicalDescriptionTrust2019}.
-
-However, implementing zkSNARKs for message attestation involves a trade-off between setup complexity and computational efficiency. Trusted setup ceremonies, such as those used in Groth16 \cite{grothSizePairingbasedNoninteractive2016}, offer greater efficiency compared to transparent setups such as Plonk \cite{gabizonPlonkPermutationsLagrangebases2019a}. Our experiments showed that on a high-end personal computer, Groth16's verification time per message was 1-3 seconds, while Plonk required 16-145 seconds. Although trusted setups involve strong assumptions, they are a one-time requirement and can be reused in future votes, a common practice in zkSNARK-based protocols.
-
-A critical aspect of our protocol is offline tallying, which relies on solving the Discrete Logarithm Problem (DLP). The complexity of this task follows a power law \( Y = aX^b \), where \( X \) is proportional to the number of voters and \( b \) increases with the number of candidates, implying linear growth with the number of voters and exponential growth with the number of candidates. The computational challenge can be partially mitigated by parallelizing the exhaustive search over all parties. The overall time complexity would be reduced to $\frac{1}{n}$ time. Overcoming this scalability challenge remains an area for future improvement, possibly through the development of more efficient algorithms.
-
-Three deployment options for our protocol are proposed (see Figure~\ref{fig:stack-bc}): as a peer-to-peer application using Wesh Network, or as a smart contract on public blockchains using ERC-4337~\cite{ERC4337AccountAbstraction} to centralise voting costs under a single paymaster (e.g., organiser), allowing gasless voting for participants, or via a centralised messenger application such as Telegram, WhatsApp, Signal or Discord.
-
-We have open sourced the implementation of our protocol in TypeScript and Golang to facilitate widespread use and improve accessibility. The codebase is available at \url{https://github.com/anonymised/for/review}
-
-Optimization avenues include improving proof times and sizes by batching proofs or reformulating them into more efficient Sigma Proofs. Another path involves on-chain implementation with gasless transactions, leveraging ERC-4337's paymaster concept.
-
-In the future, the anonymity of the voters could be additionally protected from collusion by the malicious parties by using zero-knowledge set membership proofs~\cite{Semaphorea}, as seen in protocols like Cicada~\cite{BuildingCicadaPrivate} and Vocdoni~\cite{VocdoniIntroductionVocdoni}. In this way, although the colluding parties could decrypt individual ballots, they could not determine who had cast them. 
-
-Recent studies on e-voting protocols~\cite{kustersOrdinosVerifiableTallyHiding2020} have focused on the tally-hiding feature, which conceals the full vote count per candidate and reveals only the final outcome, such as the winner. This property can be useful in situations where disclosing the full tally is problematic. For instance, in elections with a small number of voters (e.g., boardroom or jury votes), showing the detailed vote count can compromise voter privacy, potentially discouraging them from voting according to their true preferences. In other cases, revealing the tally may cause unnecessary embarrassment for candidates. Often, the election outcome is limited to identifying a winner or a candidate ranking, making it sufficient to disclose just this information without the complete tally.
-
-Coercion resistance is another property that could improve the PeerVote protocol. While Daian et al.~\cite{daianOnChainVoteBuying2018} argue that achieving coercion resistance in a permissionless environment without trusted hardware is impossible, various strategies have been explored that come close to the ideal model. These include allowing voters to submit multiple votes, with each new vote overriding the previous one~\cite{VocdoniIntroductionVocdoni}, and allowing signing key changes to invalidate any subsequent votes signed with the old key~\cite{ethereumfoundationMinimalAntiCollusionInfrastructure2022, PrivacyscalingexplorationsMaci2023}. We plan to extend the protocol with both of these mechanisms in the future.
-
-In conclusion, our protocol represents a significant step forward in the evolution of Internet voting systems. By embracing decentralisation, enhancing security and prioritising privacy, we aim to contribute to the development of more resilient, trustworthy and inclusive voting mechanisms in the digital age. As we continue to refine and optimise our protocol, we remain focused on the broader goal of modernising democratic processes and empowering communities with reliable and accessible voting technologies.
-
-% \section*{Acknowledgements}
-% We would like to thank Lev Soukhanov for his crucial role in designing the voting protocol and the Delendum team for their support and valuable insights during our research fellowship. We are grateful to Maya Dotan for her detailed review and helpful feedback, which significantly improved the quality and clarity of our work.
-
-\bibliographystyle{splncs04}
-\bibliography{bibliography}
 
 \end{document}
