@@ -9,7 +9,9 @@ export const circomkit = new Circomkit({
 const circuits = [
     // { circuit: "pvss_3_of_4", ptau: "./ptau/powersOfTau28_hez_final_18.ptau" },
     // { circuit: "pvss_2_of_3", ptau: "./ptau/powersOfTau28_hez_final_17.ptau" },
-    { circuit: "pvss_1_of_2", ptau: "./ptau/powersOfTau28_hez_final_16.ptau" },
+    // { circuit: "pvss_1_of_2", ptau: "./ptau/powersOfTau28_hez_final_16.ptau" },
+    // { circuit: "pvss_3_of_10", ptau: "./ptau/powersOfTau28_hez_final_19.ptau" },
+    { circuit: "pvss_15_of_50", ptau: "./ptau/powersOfTau28_hez_final_21.ptau" },
     // { circuit: "partial_decryption", ptau: "./ptau/powersOfTau28_hez_final_14.ptau" },
     // { circuit: "decrypt_share", ptau: "./ptau/powersOfTau28_hez_final_13.ptau" },
     // { circuit: "encrypt_ballot", ptau: "./ptau/powersOfTau28_hez_final_15.ptau" }

@@ -54,7 +54,7 @@ describe(`test ${CIRCUIT_NAME}`, () => {
             await circuit.expectConstraintCount(2565);
         });
 
-        it.only("should decrypt correctly", async () => {
+        it("should decrypt correctly", async () => {
             await circuit.expectPass(input);
         });
 
@@ -68,10 +68,10 @@ describe(`test ${CIRCUIT_NAME}`, () => {
         let circuit: ProofTester<["C1", "partialDecryption", "partialEncryptionKey", "partialPrivKey"]>;
 
         before(async () => {
-            circuit = await circomkit.ProofTester(CIRCUIT_NAME);
+            circuit = await circomkit.ProofTester(CIRCUIT_NAME, "groth16");
         });
 
-        it.only("should verify a proof correctly", async () => {
+        it("should verify a proof correctly", async () => {
             await measureTime("Proof generation", async () => {
                 const { proof, publicSignals } = await circuit.prove(input)
                 console.log(`Size of proof object: ${Buffer.byteLength(JSON.stringify(proof))} bytes`);
