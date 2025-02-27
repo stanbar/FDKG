@@ -180,8 +180,8 @@ def batch_recommendations(data, N_values, fdkgPct_values, retPct_values, success
 
 def main():
     # Path to the simulation data CSV (update this path as necessary)
-    graph="RandomGraph" # "RandomGraph" # BarabasiAlbert
-    filepath = f'../../liveness_sim/simulation_results_nodes_{graph}_100000.csv'
+    graph="DKG" # "RandomGraph" "BarabasiAlbert" "DKG"
+    filepath = f'../../liveness_sim/full_simulation_results_nodes_{graph}_1000.csv'
     
     # Load the simulation data
     data = load_simulation_data(filepath)
@@ -189,9 +189,9 @@ def main():
         return
 
     # Define parameter ranges for batch recommendations
-    N_values = [10, 100, 500, 1_000, 10_000, 100_000]  # Extend as needed
-    fdkgPct_values = [.2, .3, .4, .5, .6, .7, .8, .9, 1.0]  # Example percentages
-    retPct_values = [0.5, 0.7, 0.9]        # Example percentages
+    N_values = [10, 100, 1_000]  # Extend as needed
+    fdkgPct_values = [.2, .4, .6, .8, 1.0]  # Example percentages
+    retPct_values = [0.5, 0.7, 0.9, 1.0]        # Example percentages
     
     success_threshold = 99
     # Generate batch recommendations
