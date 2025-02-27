@@ -13,7 +13,7 @@ from scipy.optimize import minimize
 
 
 # Load the CSV data
-filepath_barabasi = '../../liveness_sim/simulation_results_nodes_BarabasiAlbert_100000.csv'
+filepath_barabasi = '../liveness_sim/simulation_results_nodes_BarabasiAlbert_100000.csv'
 data = pd.read_csv(filepath_barabasi)
 
 # Inspect the data

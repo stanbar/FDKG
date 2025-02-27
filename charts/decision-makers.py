@@ -181,7 +181,7 @@ def batch_recommendations(data, N_values, fdkgPct_values, retPct_values, success
 def main():
     # Path to the simulation data CSV (update this path as necessary)
     graph="DKG" # "RandomGraph" "BarabasiAlbert" "DKG"
-    filepath = f'../../liveness_sim/full_simulation_results_nodes_{graph}_1000.csv'
+    filepath = f'../liveness_sim/full_simulation_results_nodes_{graph}_1000.csv'
     
     # Load the simulation data
     data = load_simulation_data(filepath)
