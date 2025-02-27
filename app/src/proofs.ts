@@ -36,15 +36,15 @@ export const provePVSS = async (coefficients: bigint[], r1: bigint[], r2: bigint
   }
 
   const name = PVSSVariantName('pvss', coefficients.length, guardiansPubKeys.length)
-  console.log(snarkyInput)
-  writeFileSync(
-    `${name}.json`,
-    JSON.stringify(
-      snarkyInput,
-      (_, value) => (typeof value === 'bigint' ? value.toString() : value),
-      2
-    )
-  )
+  // console.log(snarkyInput)
+  // writeFileSync(
+  //   `${name}.json`,
+  //   JSON.stringify(
+  //     snarkyInput,
+  //     (_, value) => (typeof value === 'bigint' ? value.toString() : value),
+  //     2
+  //   )
+  // )
   return await fullProve(name, PROVER, snarkyInput, `./build/${name}/${name}_js/${name}.wasm`, `./build/${name}/${PROVER}_pkey.zkey`)
 }
 
