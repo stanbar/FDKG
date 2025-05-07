@@ -20,8 +20,6 @@ template PartialDecryption() {
     partialEncryptionKey[0] === E_i[0];
     partialEncryptionKey[1] === E_i[1];
 
-    // TODO continute from here
-    // assert PDi = EscalarMulAny(di, C1)
     signal outPartialDecryption[2] <== EscalarMulAny(254)(e <== partialPrivKeyBits, p <== C1);
     partialDecryption[0] === outPartialDecryption[0];
     partialDecryption[1] === outPartialDecryption[1];

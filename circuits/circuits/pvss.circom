@@ -53,12 +53,8 @@ template PVSS(guardian_set_size, threshold) {
         var x = i+1;
         for (var j = 1; j < threshold; j++) {
             var exp = (x ** j) % BABYJUB_BASE8_ORDER; // EXPONENTS[i+1][j]; // ((i+1) ** j); 
-            // log("exp[",i,"][",j,"]", exp);
-            // log("coeff[",j,"]", coefficients[j]);
             var mul = (coefficients[j] * exp) % BABYJUB_BASE8_ORDER;
-            // log("mul[",i,"][",j,"]", mul);
             eval[i][j] <-- (eval[i][j-1] + mul) % BABYJUB_BASE8_ORDER;
-            // log("eval[",i,"][",j,"]", eval[i][j]);
         }
 
 
