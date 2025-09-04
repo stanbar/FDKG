@@ -743,8 +743,9 @@
   file = {/Users/stanbar/Zotero/storage/2Z9NWAPA/448713-anxieties-over-internet-voting-reflect-wider-social-concerns.html}
 }
 
-@online{ElGamalEncryptionDecryption2020,
+@online{weijiekohElGamalEncryptionDecryption2020,
   title = {{{ElGamal}} Encryption, Decryption, and Rerandomization, with Circom Support - Zk-s[Nt]Arks},
+  author = {{Wei Jie Koh}},
   date = {2020-10-06T04:35:43+00:00},
   url = {https://ethresear.ch/t/elgamal-encryption-decryption-and-rerandomization-with-circom-support/8074},
   urldate = {2023-12-19},
@@ -753,6 +754,7 @@
   organization = {Ethereum Research},
   file = {/Users/stanbar/Zotero/storage/8YBDVTAY/8074.html}
 }
+
 
 @online{elsheikhDisputefreeScalableOpen2022,
   title = {Dispute-Free {{Scalable Open Vote Network}} Using Zk-{{SNARKs}}},
@@ -2266,4 +2268,135 @@
   pubstate = {prepublished},
   keywords = {Asynchronous Networks,Distributed Key Generation,Distributed Polynomial Sampling,High-threshold},
   annotation = {Publication info: Published elsewhere. USENIX Security 2023}
+}
+
+@online{katzOptimalFullySecure2023,
+  title = {Round {{Optimal Fully Secure Distributed Key Generation}}},
+  author = {Katz, Jonathan},
+  date = {2023},
+  number = {2023/1094},
+  url = {https://eprint.iacr.org/2023/1094},
+  urldate = {2025-04-16},
+  abstract = {Protocols for distributed (threshold) key generation (DKG) in the discrete-logarithm setting have received a tremendous amount of attention in the past few years. Several synchronous DKG protocols have been proposed, but most such protocols are not fully secure: they either allow corrupted parties to bias the key, or are not robust and allow malicious parties to prevent successful generation of a key. We explore the round complexity of fully secure DKG in the honest-majority setting where it is feasible. We show the impossibility of one-round, unbiased DKG protocols (even satisfying weaker notions of security), regardless of any prior setup. On the positive side, we show various round-optimal protocols for fully secure DKG offering tradeoffs in terms of their efficiency, necessary setup, and required assumptions.},
+  pubstate = {prepublished},
+  keywords = {key generation,threshold cryptography},
+  annotation = {Publication info: A minor revision of an IACR publication in CRYPTO 2024},
+  file = {/Users/stanbar/Zotero/storage/ITQX5U5W/Katz - 2023 - Round Optimal Fully Secure Distributed Key Generat.pdf}
+}
+
+@book{katzIntroductionModernCryptography2020,
+  title = {Introduction to {{Modern Cryptography}}: {{Third Edition}}},
+  shorttitle = {Introduction to {{Modern Cryptography}}},
+  author = {Katz, Jonathan and Lindell, Yehuda},
+  date = {2020-12-21},
+  edition = {3rd edition},
+  publisher = {{Chapman and Hall/CRC}},
+  location = {Boca Raton, FL},
+  abstract = {Now the most used texbook for introductory cryptography courses in both mathematics and computer science, the Third Edition builds upon previous editions by offering several new sections, topics, and exercises. The authors present the core principles of modern cryptography, with emphasis on formal definitions, rigorous proofs of security.},
+  isbn = {978-0-8153-5436-9},
+  langid = {english},
+  pagetotal = {648},
+  file = {/Users/stanbar/Zotero/storage/53KSV2QN/Katz and Lindell - 2020 - Introduction to Modern Cryptography Third Edition.pdf}
+}
+@article{bonehGraduateCourseApplied2020,
+  title = {A Graduate Course in Applied Cryptography},
+  author = {Boneh, Dan and Shoup, Victor},
+  date = {2020},
+  journaltitle = {Draft 0.5},
+  url = {https://dlib.hust.edu.vn/bitstream/HUST/18098/3/OER000000253.pdf},
+  urldate = {2025-04-24},
+  file = {/Users/stanbar/Zotero/storage/A55HY4V9/Boneh and Shoup - 2020 - A graduate course in applied cryptography.pdf}
+}
+
+@inproceedings{feldmanPracticalSchemeNoninteractive1987,
+  title = {A Practical Scheme for Non-Interactive Verifiable Secret Sharing},
+  booktitle = {28th {{Annual Symposium}} on {{Foundations}} of {{Computer Science}} (Sfcs 1987)},
+  author = {Feldman, Paul},
+  date = {1987-10},
+  pages = {427--438},
+  issn = {0272-5428},
+  doi = {10.1109/SFCS.1987.4},
+  url = {https://ieeexplore.ieee.org/abstract/document/4568297},
+  urldate = {2025-05-12},
+  eventtitle = {28th {{Annual Symposium}} on {{Foundations}} of {{Computer Science}} (Sfcs 1987)},
+  keywords = {Access protocols,Broadcasting,Computational modeling,Cryptography,Distributed computing,Identity-based encryption,Nominations and elections,Tiles,Variable structure systems,Voting}
+}
+
+@online{grothNoninteractiveDistributedKey2021,
+  title = {Non-Interactive Distributed Key Generation and Key Resharing},
+  author = {Groth, Jens},
+  date = {2021},
+  number = {2021/339},
+  url = {https://eprint.iacr.org/2021/339},
+  urldate = {2025-05-12},
+  pubstate = {prepublished},
+  keywords = {Distributed key generation,encryption with forward secrecy,non-interactive zero-knowledge proofs,resharing,threshold signatures},
+  annotation = {Publication info: Preprint.},
+  file = {/Users/stanbar/Zotero/storage/473BM72J/Groth - 2021 - Non-interactive distributed key generation and key.pdf}
+}
+
+@inproceedings{stadlerPubliclyVerifiableSecret1996,
+  title = {Publicly {{Verifiable Secret Sharing}}},
+  booktitle = {Advances in {{Cryptology}} — {{EUROCRYPT}} ’96},
+  author = {Stadler, Markus},
+  editor = {Maurer, Ueli},
+  date = {1996},
+  pages = {190--199},
+  publisher = {Springer},
+  location = {Berlin, Heidelberg},
+  doi = {10.1007/3-540-68339-9_17},
+  abstract = {A secret sharing scheme allows to share a secret among sev- eral participants such that only certain groups of them can recover it. Verifiable secret sharing has been proposed to achieve security against cheating participants. Its first realization had the special property that everybody, not only the participants, can verify that the shares are cor- rectly distributed. We will call such schemes publicly verifiable secret sharing schemes, we discuss new applications to escrow cryptosystems and to payment systems with revocable anonymity, and we present two new realizations based on ElGamal’s cryptosystem.},
+  isbn = {978-3-540-68339-1},
+  langid = {english},
+  keywords = {Access Structure,Discrete Logarithm,Secret Sharing,Secret Sharing Scheme,Signature Scheme},
+  file = {/Users/stanbar/Zotero/storage/QYZLBQTX/Stadler - 1996 - Publicly Verifiable Secret Sharing.pdf}
+}
+
+@inproceedings{schoenmakersSimplePubliclyVerifiable1999,
+  title = {A {{Simple Publicly Verifiable Secret Sharing Scheme}} and Its {{Application}} to {{Electronic Voting}}},
+  booktitle = {Advances in {{Cryptology}}—{{CRYPTO}}’99: 19th {{Annual International Cryptology Conference Santa Barbara}}, {{California}}, {{USA}}, {{August}} 15–19, 1999 {{Proceedings}}},
+  author = {Schoenmakers, Berry},
+  date = {1999},
+  pages = {148--164},
+  publisher = {Springer},
+  file = {/Users/stanbar/Zotero/storage/IP9H8EJI/Schoenmakers - 1999 - A simple publicly verifiable secret sharing scheme.pdf;/Users/stanbar/Zotero/storage/VBPYH8ZS/3-540-48405-1_10.html}
+}
+
+@online{ben-sassonScalableTransparentPostquantum2018,
+  title = {Scalable, Transparent, and Post-Quantum Secure Computational Integrity},
+  author = {Ben-Sasson, Eli and Bentov, Iddo and Horesh, Yinon and Riabzev, Michael},
+  date = {2018},
+  number = {2018/046},
+  url = {https://eprint.iacr.org/2018/046},
+  urldate = {2025-05-12},
+  pubstate = {prepublished},
+  keywords = {blockchains,computational integrity,interactive oracle proofs,interactive proofs,zero knowledge},
+  annotation = {Publication info: Preprint. MINOR revision.},
+  file = {/Users/stanbar/Zotero/storage/ECCMJ6X2/Ben-Sasson et al. - 2018 - Scalable, transparent, and post-quantum secure com.pdf}
+}
+
+@inproceedings{steffenZeestarPrivateSmart2022,
+  title = {Zeestar: {{Private}} Smart Contracts by Homomorphic Encryption and Zero-Knowledge Proofs},
+  shorttitle = {Zeestar},
+  booktitle = {2022 {{IEEE Symposium}} on {{Security}} and {{Privacy}} ({{SP}})},
+  author = {Steffen, Samuel and Bichsel, Benjamin and Baumgartner, Roger and Vechev, Martin},
+  date = {2022},
+  pages = {179--197},
+  publisher = {IEEE},
+  url = {https://ieeexplore.ieee.org/abstract/document/9833732/},
+  urldate = {2025-05-12}
+}
+
+@online{chiesaMarlinPreprocessingZkSNARKs2019,
+  title = {Marlin: {{Preprocessing zkSNARKs}} with {{Universal}} and {{Updatable SRS}}},
+  shorttitle = {Marlin},
+  author = {Chiesa, Alessandro and Hu, Yuncong and Maller, Mary and Mishra, Pratyush and Vesely, Psi and Ward, Nicholas},
+  date = {2019},
+  number = {2019/1047},
+  url = {https://eprint.iacr.org/2019/1047},
+  urldate = {2025-05-12},
+  pubstate = {prepublished},
+  keywords = {algebraic holographic proofs,polynomial commitments,succinct arguments,universal SRS},
+  annotation = {Publication info: A major revision of an IACR publication in EUROCRYPT 2020},
+  file = {/Users/stanbar/Zotero/storage/LRMAGY49/Chiesa et al. - 2019 - Marlin Preprocessing zkSNARKs with Universal and .pdf}
 }
