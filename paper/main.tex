@@ -38,6 +38,8 @@
 \usepackage{multirow}
 \usepackage{array}
 \usepackage{lipsum}
+\usepackage{booktabs} % For professional-looking tables
+\usepackage{tabularx} % For flexible column widths
 
 
 \newtheorem{lemma}{Lemma}
@@ -52,6 +54,7 @@
 \newcommand{\PartySecretKey}[1]{\ensuremath{\textrm{sk}_{#1}}}
 \newcommand{\Party}[1]{\ensuremath{P_{#1}}}
 \newcommand{\Parties}{\ensuremath{\mathbb{P}}}
+\newcommand{\Corrupted}{\ensuremath{\mathcal{C}}}
 \newcommand{\VotesSize}{\ensuremath{|\mathbb{V}}|}
 
 % Voting keys
@@ -162,9 +165,10 @@ Distributed Key Generation (DKG) protocols are essential for establishing shared
 
 A standard $(t, n)$-DKG protocol \cite{gennaroSecureDistributedKey1999} involves a fixed set of $n$ nodes collectively generating a secret key whose shares are distributed such that any $t$ or more nodes can reconstruct or use the secret, while fewer than $t$ learn nothing. This model typically requires $n$ to be known at the outset to determine polynomial degrees and sharing parameters. In open settings where participation is voluntary (e.g., public blockchains or ad-hoc networks), the actual number of participants may only become clear after an initial interaction phase. If this number deviates significantly from an anticipated $n$, a pre-selected global threshold $t$ might become unachievable~\cite{seifelnasrScalableOpenVoteNetwork2020,elsheikhDisputefreeScalableOpen2022} or insecure, rendering the system ineffective. Furthermore, traditional DKG often assumes uniform trust among all $n$ participants, which may not hold in diverse decentralized ecosystems.
 
-To overcome these limitations, we introduce \emph{Federated Distributed Key Generation (FDKG)}, a novel protocol that draws conceptual inspiration from Federated Byzantine Agreement (FBA) protocols~\cite{mazieresStellarConsensusProtocol2015}, designed for scenarios with uncertain participation and heterogeneous trust relationships. FDKG allows any subset of potential parties to participate in the key generation process. Its core innovation lies in \emph{Guardian Sets}: each participating party $\Party{i}$ independently selects a trusted subset of $k$ other parties (its guardians) and defines a local threshold $t$ necessary for these guardians to reconstruct $\Party{i}$'s partial secret key. This federated approach to trust delegation provides enhanced flexibility and resilience.
+To overcome these limitations, we introduce \emph{Federated Distributed Key Generation (FDKG)}, a novel protocol that draws conceptual inspiration from Federated Byzantine Agreement (FBA) protocols~\cite{mazieresStellarConsensusProtocol2015}, designed for scenarios with uncertain participation and heterogeneous trust relationships. FDKG allows any subset of potential parties to participate in the key generation process. Its core innovation lies in \emph{Guardian Sets}: each participating party $\Party{i}$ independently selects a trusted subset of $k$ other parties (its guardians) and defines a local threshold $t$ necessary for these guardians to reconstruct $\Party{i}$'s partial secret key.
+%This federated approach to trust delegation provides enhanced flexibility and resilience.
 
-Formally, an FDKG protocol involves $n$ potential parties. A subset $\SetOfFDKG \subseteq \Parties$ chooses to participate in generating partial secret keys. Each participant $\Party{i} \in \SetOfFDKG$ distributes its partial secret key $\PartialSecretKey{i}$ among its chosen guardian set $\GuardianSetOf{i}$ of size $k$ using a local $(t,k)$-threshold SSS scheme. The global secret key $\SecretKey$ is the sum of all valid partial secrets $\PartialSecretKey{i}$. During reconstruction, $\SecretKey$ can be recovered if, for each $\Party{i} \in \SetOfFDKG$, either $\Party{i}$ itself provides $\PartialSecretKey{i}$, or at least $t$ of its guardians in $\GuardianSetOf{i}$ provide their respective shares. FDKG generalizes traditional $(t,n)$-DKG, which can be viewed as a special case where all $n$ parties participate and each party's guardian set comprises all other $n-1$ parties.
+Formally, an FDKG protocol involves $n$ potential parties. A subset $\SetOfFDKG \subseteq \Parties$ chooses to participate in generating partial secret keys. Each participant $\Party{i} \in \SetOfFDKG$ distributes its partial secret key $\PartialSecretKey{i}$ among its chosen guardian set $\GuardianSetOf{i}$ of size $k$ using a local $(t,k)$-threshold secret sharing scheme. The global secret key $\SecretKey$ is the sum of all valid partial secrets $\PartialSecretKey{i}$. During reconstruction, $\SecretKey$ can be recovered if, for each $\Party{i} \in \SetOfFDKG$, either $\Party{i}$ itself provides $\PartialSecretKey{i}$, or at least $t$ of its guardians in $\GuardianSetOf{i}$ provide their respective shares. FDKG generalizes traditional $(t,n)$-DKG, which can be viewed as a special case where all $n$ parties participate and each party's guardian set comprises all other $n-1$ parties.
 
 This novel approach offers several advantages:
 \begin{itemize}
@@ -193,25 +197,178 @@ This paper makes the following contributions:
 The remainder of this paper is organized as follows. Section~\ref{sec:related_work} reviews related work in DKG. Section~\ref{sec:preliminaries} presents the cryptographic primitives. Section~\ref{sec:fdkg} describes the FDKG protocol. Section~\ref{sec:security_analysis} provides the security analysis. Section~\ref{sec:liveness_simulations} discusses simulation results. Section~\ref{sec:voting_scheme} details the voting application. Section~\ref{sec:performance_evaluation} assesses performance. Section~\ref{sec:deployments} outlines deployment strategies. Finally, Section~\ref{sec:limitations-and-future} discusses limitations and future work, and Section~\ref{sec:discussion-conclusion} offers concluding remarks.
 
 
+
+% \begin{table*}[htbp]
+%     \centering
+%     \caption{Comparison of DKG: Standard, Dynamic/Proactive, and Federated}
+%     \label{tab:dkg_comparison}
+%     \renewcommand{\arraystretch}{1.4} 
+%     \begin{tabularx}{\textwidth}{
+%         >{\raggedright\arraybackslash}p{0.16\textwidth} % Feature column
+%         >{\raggedright\arraybackslash}p{0.2\textwidth}  % Standard DKG
+%         >{\raggedright\arraybackslash}p{0.28\textwidth} % DPSS
+%         >{\raggedright\arraybackslash}X               % FDKG (takes remaining space)
+%     }
+%         \toprule
+%         \textbf{Feature / Property} &
+%         \textbf{Standard DKG}~\cite{katzOptimalFullySecure2023} &
+%         \textbf{Dynamic \& Proactive DKG (DPSS)}~\cite{maramCHURPDynamicCommitteeProactive2019,huDyCAPSAsynchronousDynamiccommittee2022} &
+%         \textbf{Federated DKG (FDKG) (This work)} \\
+%         \midrule
+        
+%         \textbf{Application} &
+%         Distributed key management in static groups. &
+%         Distributed key management in evolving groups. &
+%         Distributed key management in ad-hoc groups. \\
+%         \addlinespace
+
+%         \textbf{Dependencies} &
+%         Assumes a broadcast channel; protocol implements its own agreement logic. &
+%         Hybrid: often builds its own Byzantine Agreement, but may leverage an existing blockchain for ordering (e.g., CHURP). &
+%         Requires an existing consensus layer for broadcast and ordering, and CRS for NIZK. \\
+%         \addlinespace
+        
+%         \textbf{Network Model} &
+%         Synchronous &
+%         Synchronous~\cite{maramCHURPDynamicCommitteeProactive2019} to Asynchronous~\cite{huDyCAPSAsynchronousDynamiccommittee2022} &
+%         Synchronous \\
+%         \addlinespace
+
+%         \textbf{Trust Model} &
+%         Homogeneous &
+%         Homogeneous, but evolving &
+%         Heterogeneous \\
+%         \addlinespace
+        
+%         \textbf{Fault Model} &
+%         Static Byzantine Faults &
+%         Adaptive Byzantine Faults &
+%         Static Byzantine Faults \\
+%         \addlinespace
+
+%         \textbf{Participant Set Assumption} &
+%         Requires a \textbf{fixed, pre-defined set} of $n$ participants. &
+%         Requires a \textbf{defined set} of $n$ participants for the \textbf{initial setup and for each subsequent handoff}. &
+%         Requires only a pool of $n$ potential participants; \textbf{the active set is discovered.} \\
+%         \addlinespace
+
+%         \textbf{Setup Robustness} &
+%         Requires an \textbf{honest majority} of the $n$ participants. &
+%         Requires an \textbf{honest majority} of the active committees. &
+%         Requires \textbf{at least one} honest participant. \\
+%         \addlinespace
+
+%         \textbf{Reconstruction/Handoff Liveness} &
+%         Fails if $\geq n-t$ participants are unavailable. &
+%         Fails if $>t$ participants are Byzantine nodes. &
+%         Fails if both a contributor $P_i$ and $>k-t$ of its guardians are unavailable. \\
+
+%         \bottomrule
+%     \end{tabularx}
+% \end{table*}
+
+
+
+% \begin{table*}[htbp]
+%     \centering
+%     \caption{Comparison of synchronous biasable DKG protocols. The methodology and notation are adapted from work by Bacho and Kavousi~\cite{bachoSoKDlogbasedDistributed2025}. $BC_n(b)$ denotes the cost of a broadcast of $b$ bits to $n$ parties, and $BC_n$ alone denotes the number of broadcast rounds.}
+%     \label{tab:sok_comparison}
+%     \renewcommand{\arraystretch}{1.4}
+%     \begin{tabularx}{\textwidth}{l l l >{\raggedright}p{2.2cm} l l l l X}
+%         \toprule
+%         \textbf{Protocol} & \textbf{Year} & \textbf{Corruption} & \textbf{Communication} & \textbf{Rounds} & \textbf{Field} & \textbf{Sharing} & \textbf{Secrecy} & \textbf{Miscellaneous} \\
+%         \midrule
+%         Pedersen~\cite{pedersen1991threshold} & 1991 & $t<n/2$ & $n \cdot BC_n(\lambda n)$ & $3 \cdot BC_n$ & $\checkmark$ & VSS & $\boldsymbol{\times}$ & Complaint-based, forms basis for many schemes \\
+%         Fouque-Stern~\cite{fouque2001one} & 2001 & $t<n$ & $n \cdot BC_n(\lambda n)$ & $1 \cdot BC_n$ & $\checkmark$ & PVSS & $\boldsymbol{\times}$ & Non-interactive, heavy NIZKs, DCR assumption \\
+%         Groth~\cite{grothNoninteractiveDistributedKey2021} & 2021 & $t<n$ & $n \cdot BC_n(\lambda^2 n)$ & $1 \cdot BC_n$ & $\checkmark$ & PVSS & $\boldsymbol{\times}$ & Non-interactive, heavy NIZKs \\
+%         Cascudo-David~\cite{cascado2023publicly} & 2023 & $t<n$ & $n \cdot BC_n(\lambda n)$ & $1 \cdot BC_n$ & $\checkmark$ & PVSS & $\boldsymbol{\times}$ & Non-interactive, heavy NIZKs, Class Groups \\
+%         \midrule
+%         \rowcolor{gray!20} % Highlight FDKG
+%         \textbf{FDKG (this work)} & \textbf{2024} & \textbf{Configurable $t$} & $\boldsymbol{n \cdot BC_n(\lambda k)}$ & $\boldsymbol{1 \cdot BC_n}$ & $\boldsymbol{\checkmark}$ & \textbf{PVSS} & $\boldsymbol{\times}$ & \textbf{Robust to non-participation, federated trust (guardian sets), non-interactive setup.} \\
+%         \bottomrule
+%     \end{tabularx}
+% \end{table*}
+
+\begin{table*}[htbp]
+\centering
+\caption{Comparison of synchronous, biasable DKG protocols. Core columns follow Bacho–Kavousi~\cite{bachoSoKDlogbasedDistributed2025}. We split “Corrupt” into \emph{Privacy} and \emph{Liveness}, and add \emph{Trust} and \emph{Setup}. 
+Privacy: adversary cannot learn the shared secret. 
+Liveness: adversary cannot prevent honest parties from recovering the shared secret.
+Let $\Corrupted\subseteq\Parties$ be the statically corrupted set, and let
+\[
+R := \{\, S \subseteq \Parties \mid \forall i \in \SetOfFDKG:\ i \in S \ \lor\ |S \cap \GuardianSetOf{i}| \ge t \,\}.
+\]
+\textbf{Communication} is total broadcast cost; $BC_n(b)$ is the cost for one party to broadcast $b$ bits to $n$ parties. 
+\textbf{Rounds} denotes the number of broadcast rounds. 
+\textbf{Sharing} indicates the secret-sharing type (VSS, PVSS, or APVSS). 
+\textbf{Trust Model}: ``Homo'' (homogeneous) means a global, uniform trust assumption; ``Hetero'' (heterogeneous) allows participant-defined, non-uniform trust. 
+\textbf{Setup}: ``Required'' means a fixed participant set must take part; ``Optional'' discovers participants from a larger pool.}
+\label{tab:dkg_comparison_final}
+\renewcommand{\arraystretch}{1.25}
+\begin{tabularx}{\textwidth}{l l l l l l l l l}
+\toprule
+\textbf{Protocol} & \textbf{Year} & \textbf{Privacy} & \textbf{Liveness} & \textbf{Communication} & \textbf{Rounds} & \textbf{Sharing} & \textbf{Trust} & \textbf{Setup} \\
+\midrule
+Pedersen~\cite{pedersen1991threshold} & 1991 & $|\Corrupted| < t < n/2$ & $|\Corrupted| < n - t$ & $n \cdot BC_n(\lambda n)$ & $3 \cdot BC_n$ & VSS  & Homo & Required \\
+Fouque–Stern~\cite{fouque2001one}    & 2001 & $|\Corrupted| < t < n$   & $|\Corrupted| < n - t$ & $n \cdot BC_n(\lambda n)$ & $1 \cdot BC_n$ & PVSS & Homo & Required \\
+Kate et al.~\cite{kate2010constant}   & 2010 & $|\Corrupted| < t < n/2$ & $|\Corrupted| < n - t$ & $n \cdot BC_n(\lambda + \delta\lambda n)$ & $3 \cdot BC_n$ & VSS  & Homo & Required \\
+Gürkan et al.~\cite{gurkan2021aggregatable} & 2021 & $|\Corrupted| < t < \log n$ & $|\Corrupted| < n - t$ & $n BC_n(\lambda) + \ell^2BC_n(\lambda n)$ & $\ell \cdot BC_n$ & APVSS & Homo & Required \\
+Groth~\cite{grothNoninteractiveDistributedKey2021} & 2021 & $|\Corrupted| < t < n$ & $|\Corrupted| < n - t$ & $n \cdot BC_n(\lambda^2 n)$ & $1 \cdot BC_n$ & PVSS & Homo & Required \\
+Kate et al.~\cite{kate2023non}        & 2023 & $|\Corrupted| < t < n$   & $|\Corrupted| < n - t$ & $n \cdot BC_n(\lambda n)$ & $1 \cdot BC_n$ & PVSS & Homo & Required \\
+Cascudo–David~\cite{cascado2023publicly} & 2023 & $|\Corrupted| < t < n$ & $|\Corrupted| < n - t$ & $n \cdot BC_n(\lambda n)$ & $1 \cdot BC_n$ & PVSS & Homo & Required \\
+Feng et al.~\cite{feng2023coin}        & 2023 & $|\Corrupted| < t < n/2$ & $|\Corrupted| < n - t$ & $\kappa BC_n(\lambda n) + n\lambda \kappa$ & $2 \cdot BC_n$ & VSS  & Homo & Required \\
+Bacho et al.~\cite{bacho2023network}   & 2023 & $|\Corrupted| < t < n/2$ & $|\Corrupted| < n - t$ & $BC_n(\lambda n) + n^2 \lambda \log n$ & $4 \cdot BC_n$ & APVSS & Homo & Required \\
+Feng et al.~\cite{feng2024scalable}    & 2024 & $|\Corrupted| < t < n/2$ & $|\Corrupted| < n - t$ & $\sqrt{n}\cdot BC_n(\lambda n)$ & $2 \cdot BC_n$ & APVSS & Homo & Required \\
+\midrule
+\rowcolor{gray!20}
+\textbf{FDKG (this work)} & \textbf{2024} &
+$\boldsymbol{\Corrupted \notin R}$ &
+$\boldsymbol{\exists\, S \in R:\ S \subseteq \Parties \setminus \Corrupted}$ &
+$\boldsymbol{n \cdot BC_n(\lambda k)}$ &
+$\boldsymbol{1 \cdot BC_n}$ &
+\textbf{PVSS} & \textbf{Hetero} & \textbf{Optional} \\
+\bottomrule
+\end{tabularx}
+\end{table*}
+
+% \section{Related Work}
+% \label{sec:related_work}
+
+% Distributed Key Generation (DKG) is a cornerstone of threshold cryptography, enabling a set of parties to jointly compute a shared public key and individual secret key shares without any single party learning the entire secret key. Seminal DKG protocols, such as those by Gennaro et al. \cite{gennaroSecureDistributedKey1999}, established foundational techniques based on verifiable secret sharing (VSS) \cite{feldmanPracticalSchemeNoninteractive1987} over discrete logarithm-based cryptosystems, typically using Shamir's Secret Sharing (SSS) \cite{shamirHowShareSecret1979} for share distribution. These protocols ensure that any authorized threshold of parties can reconstruct or use the secret, while unauthorized subsets gain no information.
+
+% Subsequent research has extensively explored DKG, focusing on various aspects such as robustness against adversarial behavior, efficiency, round complexity, and applicability in different network models (synchronous vs. asynchronous).
+% Considerable effort has been dedicated to enhancing DKG for reliable operation in challenging environments like the internet, with a focus on asynchronous settings and high thresholds of corruptions \cite{kateDistributedKeyGeneration2012, dasPracticalAsynchronousDistributed2022, dasPracticalAsynchronousHighthreshold2022, zhangPracticalAsynchronousDistributed2023}. These works primarily address fault tolerance and adversarial resilience within a framework where the set of participants is often known or becomes known during an initial setup phase.
+
+% A significant body of work focuses on Publicly Verifiable Secret Sharing (PVSS) \cite{stadlerPubliclyVerifiableSecret1996,schoenmakersSimplePubliclyVerifiable1999}, where the correctness of shared information can be verified by any observer, not just the share recipients. PVSS is crucial for non-interactive DKG protocols, where parties broadcast their contributions along with proofs, minimizing interaction rounds. Groth's work on DKG and key resharing \cite{grothNoninteractiveDistributedKey2021} presents efficient constructions leveraging pairing-based cryptography and NIZK proofs, aiming for minimal rounds and public verifiability, which is a common goal for modern DKG deployed on transparent ledgers or bulletin boards. The security definitions and expected rigor for DKG protocols, particularly those aiming for provable security in simulation-based models, are exemplified in recent literature such as Katz's work on round-optimal, fully secure DKG \cite{katzOptimalFullySecure2023}.
+
+% Our work on Federated Distributed Key Generation (FDKG) addresses a distinct set of challenges primarily related to \textit{dynamic participation} and \textit{flexible trust delegation} in settings where the total number of participants is not known beforehand, and individual participants may have heterogeneous trust in others. Traditional DKG and many NI-DKG schemes \cite{gennaroSecureDistributedKey1999, grothNoninteractiveDistributedKey2021, katzOptimalFullySecure2023} typically assume a fixed set of $n$ participants for whom the DKG is run, or require mechanisms to establish this set. The polynomial degree in SSS, for example, depends on the intended threshold, which itself is often related to $n$. If $n$ is unknown until after the first round of messages (where parties declare participation), pre-determining a globally optimal polynomial degree becomes problematic.
+
+% Dynamic DKG schemes \cite{delerableeDynamicThresholdPublickey2008} were proposed to allow parties to join and leave an existing DKG setup. While these offer flexibility, they often involve multiple rounds of interaction for updates, which can be cumbersome for applications requiring rapid setup or involving human-in-the-loop interaction, such as ad-hoc collaborations or internet voting applications. FDKG aims to achieve its key generation and initial share distribution within a minimal number of rounds (one for distribution and one for reconstruction).
+
+% FDKG introduces participant-defined "guardian sets," allowing each key contributor to specify a trusted subset of parties responsible for helping reconstruct their specific partial secret key. This localized trust model, where each participant $\Party{i}$ defines its own $(t,k)$-threshold for its share $\PartialSecretKey{i}$ among $k$ guardians, contrasts with the global $(t,n)$-threshold common in standard DKG. This approach offers enhanced adaptability in unreliable or permissionless networks where global trust assumptions are hard to establish or maintain. The flexibility offered by FDKG generalizes traditional DKG protocols; a standard $(t,n)$-DKG can be seen as a special case of FDKG where every participant considers all other $n-1$ parties as their guardians.
+
+% Our design draws conceptual inspiration from Federated Byzantine Agreement (FBA) protocols, such as the Stellar Consensus Protocol \cite{mazieresStellarConsensusProtocol2015}. FBA allows open participation by letting nodes choose their own "quorum slices" (sets of trusted peers), enabling decentralized consensus without a globally predefined set of validators. Similarly, FDKG allows participants to define their local trust spheres (guardian sets) for key management. As a party is included in more guardian sets, its importance for liveness within the FDKG network naturally increases, reflecting a form of emergent trust or criticality.
+
+% The primary motivation for FDKG in this paper is its application to internet voting. Existing e-voting systems often rely on a pre-selected, fixed set of trusted authorities (Key Holders or Trustees) to manage decryption keys \cite{adidaHeliosWebbasedOpenAudit2008, cortierBeleniosSimplePrivate2019, haenniCHVoteProtocolSpecification2017, barandiaranDecidimTechnopoliticalNetwork2024, mattbeckerProofVoteEndtoend2018, larraiaSVoteControlComponents2022}. While these systems use threshold cryptography to protect privacy against a subset of colluding authorities, their reliance on a static, globally trusted set makes them vulnerable if these authorities are compromised, collude beyond the threshold, or are simply unavailable during critical phases like tallying. FDKG aims to decentralize this trust by allowing individual participants (or groups acting on their behalf) to establish partial keys and manage their recovery through self-chosen guardians, enhancing system resilience and flexibility against such failures. This approach aligns with the goal of creating more robust and decentralized foundations for secure multi-party applications.
+
+% In our comparison in Table~\ref{tab:dkg_comparison_final}, we classify prior DKG schemes by their architectural assumptions. We define participation as 'Required' if the protocol is defined for a fixed set of n participants, where non-participation is treated as a fault. This stands in contrast to 'Optional' participation, where the protocol is designed to discover the active participant set from a larger pool. Similarly, we classify the trust model as 'Homogeneous' if security is governed by a single, global threshold (t of n) that applies uniformly to all. This is distinct from a 'Heterogeneous' model, where trust and security are defined by local, participant-specific choices. Our analysis reveals that, despite vast differences in their internal mechanisms (e.g., gossiping or recursion), the synchronous DKG protocols in the literature uniformly adhere to a model of required participation and homogeneous trust. FDKG is, to our knowledge, the first protocol to break from this paradigm on both fronts.
+
 \section{Related Work}
 \label{sec:related_work}
 
-Distributed Key Generation (DKG) is a cornerstone of threshold cryptography, enabling a set of parties to jointly compute a shared public key and individual secret key shares without any single party learning the entire secret key. Seminal DKG protocols, such as those by Gennaro et al. \cite{gennaroSecureDistributedKey1999}, established foundational techniques based on verifiable secret sharing (VSS) \cite{feldmanPracticalSchemeNoninteractive1987} over discrete logarithm-based cryptosystems, typically using Shamir's Secret Sharing (SSS) \cite{shamirHowShareSecret1979} for share distribution. These protocols ensure that any authorized threshold of parties can reconstruct or use the secret, while unauthorized subsets gain no information.
+Distributed Key Generation (DKG) is a fundamental cryptographic primitive that enables a set of parties to jointly create a shared key without a trusted third party. Foundational protocols, such as Pedersen DKG~\cite{pedersen1991threshold}, established the core paradigm: `n` participants, each acting as a dealer for a partial secret, combine their contributions to form a single joint public key and distributed secret shares. These protocols are typically based on Verifiable Secret Sharing (VSS)~\cite{feldmanPracticalSchemeNoninteractive1987}, which allows participants to verify the integrity of their received shares.
 
-Subsequent research has extensively explored DKG, focusing on various aspects such as robustness against adversarial behavior, efficiency, round complexity, and applicability in different network models (synchronous vs. asynchronous).
-Considerable effort has been dedicated to enhancing DKG for reliable operation in challenging environments like the internet, with a focus on asynchronous settings and high thresholds of corruptions \cite{kateDistributedKeyGeneration2012, dasPracticalAsynchronousDistributed2022, dasPracticalAsynchronousHighthreshold2022, zhangPracticalAsynchronousDistributed2023}. These works primarily address fault tolerance and adversarial resilience within a framework where the set of participants is often known or becomes known during an initial setup phase.
+The landscape of DKG protocols is vast, as recently surveyed in a Systematization of Knowledge (SoK) by Bacho and Kavousi~\cite{bachoSoKDlogbasedDistributed2025}. The SoK identifies two primary axes for classifying DKG protocols: the underlying network model and the secret sharing mechanism employed. To accurately position FDKG, we adopt this framework and establish a coherent baseline for comparison.
 
-A significant body of work focuses on Publicly Verifiable Secret Sharing (PVSS) \cite{stadlerPubliclyVerifiableSecret1996,schoenmakersSimplePubliclyVerifiable1999}, where the correctness of shared information can be verified by any observer, not just the share recipients. PVSS is crucial for non-interactive DKG protocols, where parties broadcast their contributions along with proofs, minimizing interaction rounds. Groth's work on DKG and key resharing \cite{grothNoninteractiveDistributedKey2021} presents efficient constructions leveraging pairing-based cryptography and NIZK proofs, aiming for minimal rounds and public verifiability, which is a common goal for modern DKG deployed on transparent ledgers or bulletin boards. The security definitions and expected rigor for DKG protocols, particularly those aiming for provable security in simulation-based models, are exemplified in recent literature such as Katz's work on round-optimal, fully secure DKG \cite{katzOptimalFullySecure2023}.
+First, DKG protocols are distinguished by their network model assumption. \textbf{Synchronous protocols} assume bounded message delays, allowing them to operate in well-defined rounds. In contrast, \textbf{asynchronous protocols}~\cite{huDyCAPSAsynchronousDynamiccommittee2022} are designed to tolerate unbounded message delays, a significantly stronger guarantee that requires more complex consensus mechanisms (e.g., MVBA) and often results in higher communication overhead. As FDKG is designed for synchronous environments, such as blockchains with regular block production, we omit asynchronous DKG protocols from our direct comparison to ensure an evaluation of protocols operating under similar network guarantees.
 
-Our work on Federated Distributed Key Generation (FDKG) addresses a distinct set of challenges primarily related to \textit{dynamic participation} and \textit{flexible trust delegation} in settings where the total number of participants is not known beforehand, and individual participants may have heterogeneous trust in others. Traditional DKG and many NI-DKG schemes \cite{gennaroSecureDistributedKey1999, grothNoninteractiveDistributedKey2021, katzOptimalFullySecure2023} typically assume a fixed set of $n$ participants for whom the DKG is run, or require mechanisms to establish this set. The polynomial degree in SSS, for example, depends on the intended threshold, which itself is often related to $n$. If $n$ is unknown until after the first round of messages (where parties declare participation), pre-determining a globally optimal polynomial degree becomes problematic.
+A second critical distinction is the protocol's resilience to key biasing by a rushing adversary. Modern research differentiates between \textbf{biasable} protocols and \textbf{unbiasable} (or "fully secure") protocols~\cite{katzOptimalFullySecure2023}. Fully secure DKGs guarantee that the final public key's distribution is uniform and cannot be influenced by a malicious minority. This robustness typically requires additional rounds of communication (e.g., commit-reveal schemes) or more complex cryptographic machinery. FDKG, in line with many practical protocols like the original Pedersen DKG, prioritizes simplicity and a minimal round count, and is therefore biasable. Consequently, to evaluate FDKG against schemes with similar design trade-offs, we focus our comparison on the class of biasable protocols.
 
-Dynamic DKG schemes \cite{delerableeDynamicThresholdPublickey2008} were proposed to allow parties to join and leave an existing DKG setup. While these offer flexibility, they often involve multiple rounds of interaction for updates, which can be cumbersome for applications requiring rapid setup or involving human-in-the-loop interaction, such as ad-hoc collaborations or internet voting applications. FDKG aims to achieve its key generation and initial share distribution within a minimal number of rounds (one for distribution and one for reconstruction).
+Furthermore, it is important to distinguish DKG from Dynamic and Proactive Secret Sharing (DPSS) schemes~\cite{maramCHURPDynamicCommitteeProactive2019}. DPSS protocols are designed for the long-term lifecycle management of a secret, enabling committees to evolve and shares to be proactively refreshed to defend against adaptive adversaries. Since FDKG focuses on the crucial initial \textit{bootstrapping} of a key in an ad-hoc setting, DPSS protocols address a different problem domain and are thus not directly included in our setup-focused analysis.
 
-FDKG introduces participant-defined "guardian sets," allowing each key contributor to specify a trusted subset of parties responsible for helping reconstruct their specific partial secret key. This localized trust model, where each participant $\Party{i}$ defines its own $(t,k)$-threshold for its share $\PartialSecretKey{i}$ among $k$ guardians, contrasts with the global $(t,n)$-threshold common in standard DKG. This approach offers enhanced adaptability in unreliable or permissionless networks where global trust assumptions are hard to establish or maintain. The flexibility offered by FDKG generalizes traditional DKG protocols; a standard $(t,n)$-DKG can be seen as a special case of FDKG where every participant considers all other $n-1$ parties as their guardians.
+To establish a coherent analytical baseline and facilitate a scientifically sound comparison, we therefore narrow our focus to the class of \textbf{synchronous, biasable DKG protocols}. Within this class, different secret sharing mechanisms are used, as detailed in the SoK. These include complaint-based \textbf{VSS}, non-interactive \textbf{Publicly Verifiable Secret Sharing (PVSS)}~\cite{schoenmakers1999simple} which is crucial for one-round protocols, and \textbf{Aggregatable PVSS (APVSS)}~\cite{gurkan2021aggregatable} which allows for the efficient combination of transcripts to reduce communication costs.
 
-Our design draws conceptual inspiration from Federated Byzantine Agreement (FBA) protocols, such as the Stellar Consensus Protocol \cite{mazieresStellarConsensusProtocol2015}. FBA allows open participation by letting nodes choose their own "quorum slices" (sets of trusted peers), enabling decentralized consensus without a globally predefined set of validators. Similarly, FDKG allows participants to define their local trust spheres (guardian sets) for key management. As a party is included in more guardian sets, its importance for liveness within the FDKG network naturally increases, reflecting a form of emergent trust or criticality.
-
-The primary motivation for FDKG in this paper is its application to internet voting. Existing e-voting systems often rely on a pre-selected, fixed set of trusted authorities (Key Holders or Trustees) to manage decryption keys \cite{adidaHeliosWebbasedOpenAudit2008, cortierBeleniosSimplePrivate2019, haenniCHVoteProtocolSpecification2017, barandiaranDecidimTechnopoliticalNetwork2024, mattbeckerProofVoteEndtoend2018, larraiaSVoteControlComponents2022}. While these systems use threshold cryptography to protect privacy against a subset of colluding authorities, their reliance on a static, globally trusted set makes them vulnerable if these authorities are compromised, collude beyond the threshold, or are simply unavailable during critical phases like tallying. FDKG aims to decentralize this trust by allowing individual participants (or groups acting on their behalf) to establish partial keys and manage their recovery through self-chosen guardians, enhancing system resilience and flexibility against such failures. This approach aligns with the goal of creating more robust and decentralized foundations for secure multi-party applications.
+Our comparative analysis, presented in Table~\ref{tab:dkg_comparison_final}, evaluates FDKG against this established baseline. The table reveals a consistent architectural paradigm across all surveyed protocols. To the best of our knowledge, FDKG is the first protocol in its class to break from this paradigm in two fundamental ways. First, it introduces a \textbf{heterogeneous trust model}, moving away from the assumption that trust is global and uniform ("Homo"). Second, it supports \textbf{optional participation}, whereas all prior schemes require the participation of a fixed, pre-defined set of members ("Required"). These architectural innovations are precisely what enable FDKG to provide robust key generation in dynamic and permissionless environments.
 
 
 \section{Preliminaries}
@@ -467,11 +624,14 @@ In this section, we provide a formal security analysis of the Federated Distribu
 \subsection{Security Model}
 
 \begin{itemize}
-    \item \textbf{Parties:} We consider a set of $n$ potential parties $\Parties = \{\Party{1}, \dots, \Party{n}\}$.
-    \item \textbf{Communication Model:} Parties communicate via a secure broadcast channel (emulating a bulletin board where messages are public and authenticated). Communication occurs in synchronous rounds.
-    \item \textbf{Adversary:} We consider a static Probabilistic Polynomial-Time (PPT) adversary $\mathcal{A}$ who corrupts a subset $\mathcal{C} \subset \Parties$ of parties at the beginning of the protocol execution. The adversary controls the corrupted parties entirely, receiving their inputs and determining their messages. Let $|\mathcal{C}|$ be the number of corrupted parties.
-    \item \textbf{Participation:} Participation in the FDKG generation phase is optional. The set of actual participants $\SetOfFDKG \subseteq \Parties$ emerges during the protocol execution.
+    \item \textbf{Parties and Participation:} We consider a set of $n$ \textbf{potential} parties $\Parties = \{\Party{1}, \dots, \Party{n}\}$. In the FDKG the key generation phase is optional. The set of \textbf{actual} participants, $\SetOfFDKG \subseteq \Parties$, is unknown \textit{a priori}, but emerges during the setup phase.
+    
+    \item \textbf{Communication Model:} Parties communicate via a secure broadcast channel (emulating a bulletin board where messages are public and authenticated). Communication occurs in synchronous rounds—there is a known upper bound on message delivery time for messages sent by honest parties
+
+    \item \textbf{Adversary Model:} We consider a \textbf{static, Byzantine} adversary $\mathcal{A}$ who corrupts a subset of parties $\mathcal{C} \subset \Parties$ at the beginning of the protocol execution. The adversary is \textbf{computationally bounded} (Probabilistic Polynomial-Time, PPT) but can make corrupted parties deviate from the protocol in any arbitrary manner. The adversary controls the corrupted parties entirely, receiving their inputs and determining their messages.
+    
     \item \textbf{Setup Requirements:} The protocol requires a pre-existing Public Key Infrastructure (PKI) where each party $\Party{i}$ has published an authenticated public encryption key $\textrm{pk}_i$ (with corresponding secret key $\textrm{sk}_i$) for the private channel mechanism (Section~\ref{subsec:encrypted_channels}). Additionally, the use of NIZK (specifically Groth16 in our implementation) presupposes the existence of a Common Reference String (CRS), $\textrm{crs}$, generated via a trusted setup procedure or an equivalent setup mechanism.
+    
     \item \textbf{Cryptographic Assumptions:} The security proofs rely on the standard cryptographic assumptions associated with the underlying primitives:
         \begin{itemize}
             \item \textbf{PKE Security:} The public-key encryption scheme $(\texttt{Enc}, \texttt{Dec})$ used for private channels must be IND-CPA secure.
@@ -480,6 +640,7 @@ In this section, we provide a formal security analysis of the Federated Distribu
         \end{itemize}
     \item \textbf{Security Definition:} Security is defined using the Real/Ideal paradigm \cite{canettiUniversallyComposableSecurity2001, katzIntroductionModernCryptography2020}. We define an ideal functionality $\mathcal{F}_{FDKG}$ that captures the desired properties of FDKG (see Figure~\ref{fig:ideal_functionality_fdkg}). The real protocol $\Pi_{FDKG}$ securely realizes $\mathcal{F}_{FDKG}$ if for any PPT adversary $\mathcal{A}$ controlling a set $\mathcal{C}$ in the real world, there exists a PPT simulator $\mathcal{S}$ controlling $\mathcal{C}$ in the ideal world such that no PPT environment $\mathcal{Z}$ can distinguish between interacting with $\mathcal{A}$ and the real protocol, or with $\mathcal{S}$ and the ideal functionality $\mathcal{F}_{FDKG}$.
 \end{itemize}
+
 
 \subsection{Ideal Functionality $\mathcal{F}_{FDKG}$}
 
