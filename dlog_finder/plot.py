@@ -5,7 +5,7 @@ from sklearn.linear_model import LinearRegression
 
 # Load the data
 data = pd.read_csv("results27.csv")
-data["Time"] = data["Time"] / 60000  # Convert time to minutes
+data["Time"] = data["Time"] / 1000  # Convert time to seconds
 
 
 # Function for the power-law fit: Y = a * X^b
@@ -23,9 +23,17 @@ plt.figure(figsize=(14, 8))
 min_voters = data["Voters"].min()
 max_voters = data["Voters"].max()
 
+plt.rcParams.update({
+    "font.size": 16,
+    "axes.titlesize": 18,
+    "axes.labelsize": 16,
+    "xtick.labelsize": 14,
+    "ytick.labelsize": 14,
+    "legend.fontsize": 14
+})
+
 for idx, option in enumerate(sorted(data["Options"].unique())):
     subset = data[(data["Options"] == option) & (data["Time"] > 0)]
-
     if not subset.empty:
         # Logarithmic transformation of the data
         log_X = np.log(subset["Voters"]).values.reshape(-1, 1)
@@ -61,7 +69,6 @@ for idx, option in enumerate(sorted(data["Options"].unique())):
             fit_X[-1],
             fit_Y[-1],
             equation_text,
-            fontsize=14,
             color=color_palette[idx],
             horizontalalignment="left",
             verticalalignment="bottom",
@@ -69,13 +76,14 @@ for idx, option in enumerate(sorted(data["Options"].unique())):
 
 # Adding plot details
 # plt.title("Time [minutes] vs. Number of voters (Log-Log Scale)")
-plt.xlabel("Number of voters", fontsize=16)
-plt.ylabel("Time (in minutes)", fontsize=16)
-plt.ylabel("Time (in minutes)")
+plt.xlabel("Number of voters")
+plt.ylabel("Time (in seconds)")
+plt.ylabel("Time (in seconds)")
 plt.xscale("log")  # Using log scale for x-axis
 plt.yscale("log")  # Also using log scale for y-axis for better visualization
 plt.legend(loc='upper left')
 plt.grid(True)
+plt.tight_layout()
 
 # Show the plot
 plt.show()

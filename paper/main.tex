@@ -80,8 +80,8 @@
 \newcommand{\IthPublicKey}[1]{E_{#1}}
 
 % Private channel
-\newcommand{\DecryptionUsingOf}[2]{\ensuremath{\texttt{Dec}_{#1}(#2)}}
-\newcommand{\EncryptionUsingOf}[2]{\ensuremath{\texttt{Enc}_{#1}(#2)}}
+\newcommand{\DecryptionUsingOf}[2]{\ensuremath{\textrm{Dec}_{#1}(#2)}}
+\newcommand{\EncryptionUsingOf}[2]{\ensuremath{\textrm{Enc}_{#1}(#2)}}
 
 \newcommand{\ProofPS}[1]{\ensuremath{\textrm{PROOF}_{\PartialSecretKey{#1}}}}
 
@@ -148,34 +148,53 @@ Poland}
 \date{}
 \maketitle
 
-\begin{abstract}
-    Distributed Key Generation (DKG) is foundational to many threshold-based cryptographic protocols, including threshold signatures, secure multiparty computation, and i-voting systems. However, standard $(t, n)$-DKG protocols typically require a predefined set of $n$ participants and a global threshold $t$, limiting their applicability in open, decentralized settings where network membership is dynamic and node availability can be unpredictable.
+% \begin{abstract}
+%     Distributed Key Generation (DKG) is foundational to many threshold-based cryptographic protocols, including threshold signatures, secure multiparty computation, and i-voting systems. However, standard $(t, n)$-DKG protocols typically require a predefined set of $n$ participants and a global threshold $t$, limiting their applicability in open, decentralized settings where network membership is dynamic and node availability can be unpredictable.
 
-    We introduce Federated Distributed Key Generation (FDKG), which relaxes these constraints by allowing each participant to select its own "guardian set" ($k$ nodes, $t$-of-$k$ local threshold) for reconstructing its partial secret key. This mechanism, inspired by Federated Byzantine Agreement, enables flexible trust delegation and enhances resilience. FDKG generalizes traditional DKG and achieves its core functionality in two communication rounds. Our simulation-based security analysis establishes correctness and privacy for generation, and liveness for reconstruction (if an adversary cannot control a participant and $k-t+1$ of its guardians). Simulations further confirm FDKG's efficacy against node unreliability.
+%     We introduce Federated Distributed Key Generation (FDKG), which relaxes these constraints by allowing each participant to select its own "guardian set" ($k$ nodes, $t$-of-$k$ local threshold) for reconstructing its partial secret key. This mechanism, inspired by Federated Byzantine Agreement, enables flexible trust delegation and enhances resilience. FDKG generalizes traditional DKG and achieves its core functionality in two communication rounds. Our simulation-based security analysis establishes correctness and privacy for generation, and liveness for reconstruction (if an adversary cannot control a participant and $k-t+1$ of its guardians). Simulations further confirm FDKG's efficacy against node unreliability.
 
-    In a scenario with 100 potential parties (50 participating, $k=40$ guardians, 80\% retention for tallying), FDKG distribution broadcasts total approx. $336$\,kB, and reconstruction phase approx. $525$\,kB. Both phases scale with $\mathcal{O}(n \cdot k)$ in terms of broadcast data. Groth16 NIZK client-side proving per participant is $\approx 5$\,s for distribution, and ranges from $0.6$\,s to $29.6$\,s for reconstruction, depending on the number of shares processed.
+%     In a scenario with 100 potential parties (50 participating, $k=40$ guardians, 80\% retention for tallying), FDKG distribution broadcasts total approx. $336$\,kB, and reconstruction phase approx. $525$\,kB. Both phases scale with $\mathcal{O}(n \cdot k)$ in terms of broadcast data. Groth16 NIZK client-side proving per participant is $\approx 5$\,s for distribution, and ranges from $0.6$\,s to $29.6$\,s for reconstruction, depending on the number of shares processed.
     
-    Our work advances distributed cryptography by providing a robust and adaptable DKG primitive suited for dynamic networks, with potential applications ranging from ad-hoc collaborations and decentralized credential management to secure blockchain governance.
+%     Our work advances distributed cryptography by providing a robust and adaptable DKG primitive suited for dynamic networks, with potential applications ranging from ad-hoc collaborations and decentralized credential management to secure blockchain governance.
+% \end{abstract}
+
+
+\begin{abstract}
+    Distributed Key Generation (DKG) underpins threshold cryptography across many domains: decentralized custody and wallets, validator/committee key ceremonies, cross-chain bridges, threshold signatures, secure multiparty computation, and internet voting.
+
+    Classical $(t,n)$-DKG assumes a fixed set of $n$ parties and a global threshold $t$, and effectively requires full, timely participation; when actual participation or availability deviates, setups abort or must be rerun—a severe problem in open or ad-hoc, time-critical settings, especially when $n$ is large and node availability is unpredictable.”
+
+    We introduce \emph{Federated Distributed Key Generation (FDKG)}, inspired by Federated Byzantine Agreement, that makes participation optional and trust \emph{heterogeneous}. Each participant selects a personal guardian set $\GuardianSetOf{i}$ of size $k$ and a local threshold $t$; its partial secret can later be reconstructed either by itself or by any $t$ of its guardians. FDKG generalizes PVSS-based DKG and completes both \emph{generation} and \emph{reconstruction} in a single broadcast round each, with total communication $\Theta(n\ k)$ and (in the worst case) $\mathcal{O}(n^2)$ for reconstruction.
+
+    Our security analysis shows that: (i) \emph{Generation} achieves correctness, privacy, and robustness under standard PVSS-based DKG assumptions; and (ii) \emph{Reconstruction} provides liveness and privacy characterized by the \emph{guardian-set topology} $\{\GuardianSetOf{i}\}$. Liveness holds provided that, for every participant $i$, the adversary does not control $i$ together with at least $k - t + 1$ of its guardians. Conversely, reconstruction privacy holds unless the corrupted set itself is reconstruction-capable.
+
+    In a scenario with $n{=}100$ potential parties ($|\SetOfFDKG|{=}50$, $k{=}40$, 80\% retention for tallying), FDKG distribution broadcasts $\approx 336$\,kB and reconstruction $\approx 525$\,kB. Client-side Groth16 proving per participant is $\approx 5$\,s for distribution, and $0.6$–$29.6$\,s for reconstruction depending on the number of revealed shares.
 \end{abstract}
 
 \section{Introduction}
 \label{sec:introduction}
 
-Distributed Key Generation (DKG) protocols are essential for establishing shared cryptographic keys in decentralized systems, thereby eliminating single points of trust and failure. They form the bedrock of numerous applications, including threshold signatures, secure multi-party computation (MPC), and privacy-preserving internet voting systems where distributed trust is paramount \cite{baranskiTrustCentricApproachQuantifying2024}. However, classical DKG approaches often fall short in highly dynamic or permissionless environments due to their inherent assumptions about network stability and participant knowledge.
+Distributed Key Generation (DKG) is a multi-party protocol that lets a group of mutually distrustful parties jointly create a public/secret key pair and hold it via threshold shares: any $t$ out of $n$ parties can reconstruct or use the secret, while fewer learn nothing \cite{pedersenThresholdCryptosystemTrusted1991, gennaroSecureDistributedKey1999}. By shifting key creation from a single entity to a committee, DKG removes single point of failure for core operations such as decryption or signing. DKGs are widely used across threshold encryption and signatures~\cite{gennaroSecureDistributedKey1999,pedersenThresholdCryptosystemTrusted1991,shoupSecuringThresholdCryptosystems1998,boldyrevaThresholdSignaturesMultisignatures2002,kokoris-kogiasCALYPSOPrivateData2018}, consensus protocols~\cite{cachinRandomOraclesConstantinople2000}, multi party computation (MPC)~\cite{cramerMultipartyComputationThreshold2000,damgardUniversallyComposableEfficient2003,brakerskiThresholdFHEEfficient2025}, distributed randomness beacons (DRB) \cite{choiSoKDistributedRandomness2023, dasDistributedRandomnessUsing2024,kavousiSoKPublicRandomness2023}, cryptocurrency wallets~\cite{gennaroThresholdoptimalDSAECDSA2016,LITProtocolWhitepaper2024} and internet voting protocols~\cite{adidaHeliosWebbasedOpenAudit2008, cortierBeleniosSimplePrivate2019,haenniCHVoteProtocolSpecification2017,baranskiTrustCentricApproachQuantifying2024}.
 
-A standard $(t, n)$-DKG protocol \cite{gennaroSecureDistributedKey1999} involves a fixed set of $n$ nodes collectively generating a secret key whose shares are distributed such that any $t$ or more nodes can reconstruct or use the secret, while fewer than $t$ learn nothing. This model typically requires $n$ to be known at the outset to determine polynomial degrees and sharing parameters. In open settings where participation is voluntary (e.g., public blockchains or ad-hoc networks), the actual number of participants may only become clear after an initial interaction phase. If this number deviates significantly from an anticipated $n$, a pre-selected global threshold $t$ might become unachievable~\cite{seifelnasrScalableOpenVoteNetwork2020,elsheikhDisputefreeScalableOpen2022} or insecure, rendering the system ineffective. Furthermore, traditional DKG often assumes uniform trust among all $n$ participants, which may not hold in diverse decentralized ecosystems.
 
-To overcome these limitations, we introduce \emph{Federated Distributed Key Generation (FDKG)}, a novel protocol that draws conceptual inspiration from Federated Byzantine Agreement (FBA) protocols~\cite{mazieresStellarConsensusProtocol2015}, designed for scenarios with uncertain participation and heterogeneous trust relationships. FDKG allows any subset of potential parties to participate in the key generation process. Its core innovation lies in \emph{Guardian Sets}: each participating party $\Party{i}$ independently selects a trusted subset of $k$ other parties (its guardians) and defines a local threshold $t$ necessary for these guardians to reconstruct $\Party{i}$'s partial secret key.
+However, a standard $(t,n)$-DKG protocol \cite{pedersenThresholdCryptosystemTrusted1991,gennaroSecureDistributedKey1999} requires $n$ to be known a priori to determine polynomial degrees and sharing parameters. In settings where participation is voluntary (e.g., public blockchains or ad hoc networks), the realized participant count $n'$ may only become clear after an initial interaction phase. If $n'$ deviates from the anticipated $n$, the pre-selected global threshold $t$ may be unattainable ($t>n'$) or misaligned with the actual corruption/availability assumptions; in either case the system must be reparameterized and restarted, incurring coordination cost and delay that are often unacceptable in time-critical deployments. Furthermore, \textbf{traditional DKGs enforce uniform (homogeneous) trust among all $n$ parties, discarding the organic trust structure that could otherwise be leveraged to improve security and availability.}
+
+To overcome these limitations, we introduce \emph{Federated Distributed Key Generation (FDKG)}, a protocol that draws conceptual inspiration from Federated Byzantine Agreement (FBA) protocols~\cite{mazieresStellarConsensusProtocol2015}, designed for scenarios with uncertain participation and heterogeneous trust relationships. FDKG allows any subset of potential parties to participate in the key generation process. Its core innovation lies in \emph{Guardian Sets}: each participating party $\Party{i}$ independently selects a trusted subset of $k$ other parties (its guardians) and defines a local threshold $t$ necessary for these guardians to reconstruct $\Party{i}$'s partial secret key.
 %This federated approach to trust delegation provides enhanced flexibility and resilience.
 
 Formally, an FDKG protocol involves $n$ potential parties. A subset $\SetOfFDKG \subseteq \Parties$ chooses to participate in generating partial secret keys. Each participant $\Party{i} \in \SetOfFDKG$ distributes its partial secret key $\PartialSecretKey{i}$ among its chosen guardian set $\GuardianSetOf{i}$ of size $k$ using a local $(t,k)$-threshold secret sharing scheme. The global secret key $\SecretKey$ is the sum of all valid partial secrets $\PartialSecretKey{i}$. During reconstruction, $\SecretKey$ can be recovered if, for each $\Party{i} \in \SetOfFDKG$, either $\Party{i}$ itself provides $\PartialSecretKey{i}$, or at least $t$ of its guardians in $\GuardianSetOf{i}$ provide their respective shares. FDKG generalizes traditional $(t,n)$-DKG, which can be viewed as a special case where all $n$ parties participate and each party's guardian set comprises all other $n-1$ parties.
 
 This novel approach offers several advantages:
 \begin{itemize}
-    \item \textbf{Dynamic Participation:} FDKG accommodates an arbitrary number of participants $\Party{i} \in \SetOfFDKG$ joining the key generation process without prior global coordination on the total number of participants.
-    \item \textbf{Flexible Trust Model:} By allowing each participant to define its own guardian set $\GuardianSetOf{i}$ and local threshold $t$, FDKG supports diverse and evolving trust relationships, making it suitable for decentralized settings where trust is not uniform. This is illustrated in Figure~\ref{fig:trust-models}, which contrasts FDKG's federated trust with centralized and traditional distributed trust models.
+    \item \textbf{Optional Participation:} FDKG accommodates any subset of parties $\Party{i} \in \SetOfFDKG$ joining the key generation process without a prior commitment phase, improving UX by reducing interaction and avoiding costly reparameterizations/restarts when $n' \neq n$.
+    \item \textbf{Heterogeneous Trust Model:} By allowing each participant to define its own guardian set $\GuardianSetOf{i}$, FDKG supports diverse and evolving trust relationships, making it suitable for decentralized settings where trust is not uniform. This is illustrated in Figure~\ref{fig:trust-models}, which contrasts FDKG's federated trust with centralized and traditional distributed trust models.
     \item \textbf{Resilience to Node Unavailability:} The use of local thresholding via guardian sets ensures that a participant's contribution to the global key can be recovered even if the participant itself becomes unavailable, provided a sufficient number of its designated guardians remain honest and active.
 \end{itemize}
+
+In practice, FDKG succeeds in settings where classical $(t,n)$\mbox{-}DKG cannot tolerate participation uncertainty without costly restarts and timeline slips. Consider a public voting with a 24-hour enrollment window for talliers. The organizer publishes a list of $n=60$ eligible talliers and plans a classical DKG with $t=40$. After the window, only $n'=37$ complete enrollment and verification. Since classical DKG pre-fixes $t$ against the planned $n$, \textbf{the chosen $t=40$ is unattainable ($t>n'$), so setup must abort or be restarted with new parameters}. In FDKG, the same upper bound $n=60$ is published, but Round~1 accepts any subset $\SetOfFDKG$ of those who post valid transcripts (here $|\SetOfFDKG|=37$).
+
+A time-critical disclosure scenario similarly benefits. A whistleblower wants to share files with up to $n=12$ independent journalists; the case is urgent, so he sets a 6-hour enrollment window. His goal is to include as many as possible by the deadline, encrypt once the window closes, and avoid being blocked by a few non-responders. With FDKG, the joint key emerges from the actual participants $\SetOfFDKG$, so progress does not hinge on every individual being present. Classical DKG, by contrast, requires full participation; if fewer than the planned $n$ attend within 6 hours, the setup fails and must be rerun—missing the deadline the whistleblower cannot extend.
+
 
 \begin{figure}
     \centering
@@ -184,121 +203,25 @@ This novel approach offers several advantages:
     \label{fig:trust-models}
 \end{figure}
 
-In this paper, we provide a detailed specification of the FDKG protocol, a formal security analysis within the simulation-based (Real/Ideal) paradigm (Section~\ref{sec:security_analysis}), and demonstrate its practical utility through an application to an internet voting scheme. Our primary contribution is the FDKG framework itself, which enables robust and verifiable key generation with adaptable trust for dynamic networks.
+In this paper, we provide a detailed specification of the FDKG protocol, a formal security analysis within the simulation-based paradigm (Section~\ref{sec:security_analysis}), and demonstrate its practical utility through an application to an internet voting scheme. Our primary contribution is the FDKG framework itself, which enables robust and verifiable key generation with adaptable trust for dynamic networks.
 
 This paper makes the following contributions:
 \begin{itemize}
-    \item We formally define the FDKG protocol, detailing its key distribution and reconstruction phases.
-    \item We provide a security analysis of FDKG in the simulation-based framework, proving its correctness and privacy for key generation, and analyzing the liveness conditions for key reconstruction (Section~\ref{sec:security_analysis}).
+    \item We formally define the FDKG protocol.
+    \item We provide a security analysis in the simulation-based framework, establishing Correctness, Privacy, and Robustness for key generation, and Liveness for reconstruction (Section~\ref{sec:security_analysis}).
     \item We demonstrate FDKG's performance and resilience through extensive simulations under various network conditions, participation rates, and retention scenarios (Section~\ref{sec:liveness_simulations}), and evaluate the computational and communication costs of its cryptographic components (Section~\ref{sec:performance_evaluation}).
-    \item We integrate FDKG into an end-to-end internet voting scheme, showcasing its practical application using threshold ElGamal encryption and NIZK-based verifiability (Section~\ref{sec:voting_scheme}). A corresponding open-source implementation is provided.
+    \item We integrate FDKG into an end-to-end internet voting scheme, showcasing its practical application using threshold ElGamal encryption and NIZK-based verifiability (Section~\ref{sec:voting_scheme}). A corresponding open-source implementation, together with reproducibility scripts, is provided.
 \end{itemize}
 
 The remainder of this paper is organized as follows. Section~\ref{sec:related_work} reviews related work in DKG. Section~\ref{sec:preliminaries} presents the cryptographic primitives. Section~\ref{sec:fdkg} describes the FDKG protocol. Section~\ref{sec:security_analysis} provides the security analysis. Section~\ref{sec:liveness_simulations} discusses simulation results. Section~\ref{sec:voting_scheme} details the voting application. Section~\ref{sec:performance_evaluation} assesses performance. Section~\ref{sec:deployments} outlines deployment strategies. Finally, Section~\ref{sec:limitations-and-future} discusses limitations and future work, and Section~\ref{sec:discussion-conclusion} offers concluding remarks.
 
-
-
-% \begin{table*}[htbp]
-%     \centering
-%     \caption{Comparison of DKG: Standard, Dynamic/Proactive, and Federated}
-%     \label{tab:dkg_comparison}
-%     \renewcommand{\arraystretch}{1.4} 
-%     \begin{tabularx}{\textwidth}{
-%         >{\raggedright\arraybackslash}p{0.16\textwidth} % Feature column
-%         >{\raggedright\arraybackslash}p{0.2\textwidth}  % Standard DKG
-%         >{\raggedright\arraybackslash}p{0.28\textwidth} % DPSS
-%         >{\raggedright\arraybackslash}X               % FDKG (takes remaining space)
-%     }
-%         \toprule
-%         \textbf{Feature / Property} &
-%         \textbf{Standard DKG}~\cite{katzOptimalFullySecure2023} &
-%         \textbf{Dynamic \& Proactive DKG (DPSS)}~\cite{maramCHURPDynamicCommitteeProactive2019,huDyCAPSAsynchronousDynamiccommittee2022} &
-%         \textbf{Federated DKG (FDKG) (This work)} \\
-%         \midrule
-        
-%         \textbf{Application} &
-%         Distributed key management in static groups. &
-%         Distributed key management in evolving groups. &
-%         Distributed key management in ad-hoc groups. \\
-%         \addlinespace
-
-%         \textbf{Dependencies} &
-%         Assumes a broadcast channel; protocol implements its own agreement logic. &
-%         Hybrid: often builds its own Byzantine Agreement, but may leverage an existing blockchain for ordering (e.g., CHURP). &
-%         Requires an existing consensus layer for broadcast and ordering, and CRS for NIZK. \\
-%         \addlinespace
-        
-%         \textbf{Network Model} &
-%         Synchronous &
-%         Synchronous~\cite{maramCHURPDynamicCommitteeProactive2019} to Asynchronous~\cite{huDyCAPSAsynchronousDynamiccommittee2022} &
-%         Synchronous \\
-%         \addlinespace
-
-%         \textbf{Trust Model} &
-%         Homogeneous &
-%         Homogeneous, but evolving &
-%         Heterogeneous \\
-%         \addlinespace
-        
-%         \textbf{Fault Model} &
-%         Static Byzantine Faults &
-%         Adaptive Byzantine Faults &
-%         Static Byzantine Faults \\
-%         \addlinespace
-
-%         \textbf{Participant Set Assumption} &
-%         Requires a \textbf{fixed, pre-defined set} of $n$ participants. &
-%         Requires a \textbf{defined set} of $n$ participants for the \textbf{initial setup and for each subsequent handoff}. &
-%         Requires only a pool of $n$ potential participants; \textbf{the active set is discovered.} \\
-%         \addlinespace
-
-%         \textbf{Setup Robustness} &
-%         Requires an \textbf{honest majority} of the $n$ participants. &
-%         Requires an \textbf{honest majority} of the active committees. &
-%         Requires \textbf{at least one} honest participant. \\
-%         \addlinespace
-
-%         \textbf{Reconstruction/Handoff Liveness} &
-%         Fails if $\geq n-t$ participants are unavailable. &
-%         Fails if $>t$ participants are Byzantine nodes. &
-%         Fails if both a contributor $P_i$ and $>k-t$ of its guardians are unavailable. \\
-
-%         \bottomrule
-%     \end{tabularx}
-% \end{table*}
-
-
-
-% \begin{table*}[htbp]
-%     \centering
-%     \caption{Comparison of synchronous biasable DKG protocols. The methodology and notation are adapted from work by Bacho and Kavousi~\cite{bachoSoKDlogbasedDistributed2025}. $BC_n(b)$ denotes the cost of a broadcast of $b$ bits to $n$ parties, and $BC_n$ alone denotes the number of broadcast rounds.}
-%     \label{tab:sok_comparison}
-%     \renewcommand{\arraystretch}{1.4}
-%     \begin{tabularx}{\textwidth}{l l l >{\raggedright}p{2.2cm} l l l l X}
-%         \toprule
-%         \textbf{Protocol} & \textbf{Year} & \textbf{Corruption} & \textbf{Communication} & \textbf{Rounds} & \textbf{Field} & \textbf{Sharing} & \textbf{Secrecy} & \textbf{Miscellaneous} \\
-%         \midrule
-%         Pedersen~\cite{pedersen1991threshold} & 1991 & $t<n/2$ & $n \cdot BC_n(\lambda n)$ & $3 \cdot BC_n$ & $\checkmark$ & VSS & $\boldsymbol{\times}$ & Complaint-based, forms basis for many schemes \\
-%         Fouque-Stern~\cite{fouque2001one} & 2001 & $t<n$ & $n \cdot BC_n(\lambda n)$ & $1 \cdot BC_n$ & $\checkmark$ & PVSS & $\boldsymbol{\times}$ & Non-interactive, heavy NIZKs, DCR assumption \\
-%         Groth~\cite{grothNoninteractiveDistributedKey2021} & 2021 & $t<n$ & $n \cdot BC_n(\lambda^2 n)$ & $1 \cdot BC_n$ & $\checkmark$ & PVSS & $\boldsymbol{\times}$ & Non-interactive, heavy NIZKs \\
-%         Cascudo-David~\cite{cascado2023publicly} & 2023 & $t<n$ & $n \cdot BC_n(\lambda n)$ & $1 \cdot BC_n$ & $\checkmark$ & PVSS & $\boldsymbol{\times}$ & Non-interactive, heavy NIZKs, Class Groups \\
-%         \midrule
-%         \rowcolor{gray!20} % Highlight FDKG
-%         \textbf{FDKG (this work)} & \textbf{2024} & \textbf{Configurable $t$} & $\boldsymbol{n \cdot BC_n(\lambda k)}$ & $\boldsymbol{1 \cdot BC_n}$ & $\boldsymbol{\checkmark}$ & \textbf{PVSS} & $\boldsymbol{\times}$ & \textbf{Robust to non-participation, federated trust (guardian sets), non-interactive setup.} \\
-%         \bottomrule
-%     \end{tabularx}
-% \end{table*}
-
 \begin{table*}[htbp]
 \centering
-\caption{Comparison of synchronous, biasable DKG protocols. Core columns follow Bacho–Kavousi~\cite{bachoSoKDlogbasedDistributed2025}. We split “Corrupt” into \emph{Privacy} and \emph{Liveness}, and add \emph{Trust} and \emph{Setup}. 
+\caption{Comparison of synchronous, biasable DKG protocols. Core columns follow Bacho–Kavousi~\cite{bachoSoKDlogbasedDistributed2025}. We split ``Corrupt'' into \emph{Privacy} and \emph{Liveness}, and add \emph{Trust} and \emph{Setup}. 
 Privacy: adversary cannot learn the shared secret. 
 Liveness: adversary cannot prevent honest parties from recovering the shared secret.
-Let $\Corrupted\subseteq\Parties$ be the statically corrupted set, and let
-\[
-R := \{\, S \subseteq \Parties \mid \forall i \in \SetOfFDKG:\ i \in S \ \lor\ |S \cap \GuardianSetOf{i}| \ge t \,\}.
-\]
-\textbf{Communication} is total broadcast cost; $BC_n(b)$ is the cost for one party to broadcast $b$ bits to $n$ parties. 
+Let $\Corrupted \subseteq \Parties$ be the statically corrupted set, and let $R$ be the family of \emph{reconstruction-capable sets} (as in Eq.~\eqref{eq:R}).
+\textbf{Communication} is total broadcast cost; $BC_n(b)$ is the cost for one party to broadcast $b$ bits to $n$ parties; $k$ denotes the guardian set size used in the FDKG.
 \textbf{Rounds} denotes the number of broadcast rounds. 
 \textbf{Sharing} indicates the secret-sharing type (VSS, PVSS, or APVSS). 
 \textbf{Trust Model}: ``Homo'' (homogeneous) means a global, uniform trust assumption; ``Hetero'' (heterogeneous) allows participant-defined, non-uniform trust. 
@@ -309,67 +232,48 @@ R := \{\, S \subseteq \Parties \mid \forall i \in \SetOfFDKG:\ i \in S \ \lor\ |
 \toprule
 \textbf{Protocol} & \textbf{Year} & \textbf{Privacy} & \textbf{Liveness} & \textbf{Communication} & \textbf{Rounds} & \textbf{Sharing} & \textbf{Trust} & \textbf{Setup} \\
 \midrule
-Pedersen~\cite{pedersen1991threshold} & 1991 & $|\Corrupted| < t < n/2$ & $|\Corrupted| < n - t$ & $n \cdot BC_n(\lambda n)$ & $3 \cdot BC_n$ & VSS  & Homo & Required \\
-Fouque–Stern~\cite{fouque2001one}    & 2001 & $|\Corrupted| < t < n$   & $|\Corrupted| < n - t$ & $n \cdot BC_n(\lambda n)$ & $1 \cdot BC_n$ & PVSS & Homo & Required \\
-Kate et al.~\cite{kate2010constant}   & 2010 & $|\Corrupted| < t < n/2$ & $|\Corrupted| < n - t$ & $n \cdot BC_n(\lambda + \delta\lambda n)$ & $3 \cdot BC_n$ & VSS  & Homo & Required \\
-Gürkan et al.~\cite{gurkan2021aggregatable} & 2021 & $|\Corrupted| < t < \log n$ & $|\Corrupted| < n - t$ & $n BC_n(\lambda) + \ell^2BC_n(\lambda n)$ & $\ell \cdot BC_n$ & APVSS & Homo & Required \\
-Groth~\cite{grothNoninteractiveDistributedKey2021} & 2021 & $|\Corrupted| < t < n$ & $|\Corrupted| < n - t$ & $n \cdot BC_n(\lambda^2 n)$ & $1 \cdot BC_n$ & PVSS & Homo & Required \\
-Kate et al.~\cite{kate2023non}        & 2023 & $|\Corrupted| < t < n$   & $|\Corrupted| < n - t$ & $n \cdot BC_n(\lambda n)$ & $1 \cdot BC_n$ & PVSS & Homo & Required \\
-Cascudo–David~\cite{cascado2023publicly} & 2023 & $|\Corrupted| < t < n$ & $|\Corrupted| < n - t$ & $n \cdot BC_n(\lambda n)$ & $1 \cdot BC_n$ & PVSS & Homo & Required \\
-Feng et al.~\cite{feng2023coin}        & 2023 & $|\Corrupted| < t < n/2$ & $|\Corrupted| < n - t$ & $\kappa BC_n(\lambda n) + n\lambda \kappa$ & $2 \cdot BC_n$ & VSS  & Homo & Required \\
-Bacho et al.~\cite{bacho2023network}   & 2023 & $|\Corrupted| < t < n/2$ & $|\Corrupted| < n - t$ & $BC_n(\lambda n) + n^2 \lambda \log n$ & $4 \cdot BC_n$ & APVSS & Homo & Required \\
-Feng et al.~\cite{feng2024scalable}    & 2024 & $|\Corrupted| < t < n/2$ & $|\Corrupted| < n - t$ & $\sqrt{n}\cdot BC_n(\lambda n)$ & $2 \cdot BC_n$ & APVSS & Homo & Required \\
+Pedersen~\cite{pedersenThresholdCryptosystemTrusted1991} & 1991 & $|\Corrupted| < t < n/2$ & $|\Corrupted| < n - t$ & $n \ BC_n(\lambda n)$ & $3 \cdot BC_n$ & VSS  & Homo & Required \\
+Fouque–Stern~\cite{fouqueOneThresholdDiscreteLog2001}    & 2001 & $|\Corrupted| < t < n$   & $|\Corrupted| < n - t$ & $n \ BC_n(\lambda n)$ & $1 \cdot BC_n$ & PVSS & Homo & Required \\
+Kate et al.~\cite{kateConstantSizeCommitmentsPolynomials2010}   & 2010 & $|\Corrupted| < t < n/2$ & $|\Corrupted| < n - t$ & $n \ BC_n(\lambda + \delta\lambda n)$ & $3 \cdot BC_n$ & VSS  & Homo & Required \\
+Gürkan et al.~\cite{gurkanAggregatableDistributedKey2021} & 2021 & $|\Corrupted| < t < \log n$ & $|\Corrupted| < n - t$ & $n\ BC_n(\lambda) + \ell^2BC_n(\lambda n)$ & $\ell \cdot BC_n$ & APVSS & Homo & Required \\
+Groth~\cite{grothNoninteractiveDistributedKey2021} & 2021 & $|\Corrupted| < t < n$ & $|\Corrupted| < n - t$ & $n \ BC_n(\lambda^2 n)$ & $1 \cdot BC_n$ & PVSS & Homo & Required \\
+Kate et al.~\cite{kateNoninteractiveVSSUsing2023}        & 2023 & $|\Corrupted| < t < n$   & $|\Corrupted| < n - t$ & $n \ BC_n(\lambda n)$ & $1 \cdot BC_n$ & PVSS & Homo & Required \\
+Cascudo–David~\cite{cascudoPubliclyVerifiableSecret2023} & 2023 & $|\Corrupted| < t < n$ & $|\Corrupted| < n - t$ & $n \ BC_n(\lambda n)$ & $1 \cdot BC_n$ & PVSS & Homo & Required \\
+Feng et al.~\cite{fengScalableAdaptivelySecure2023}        & 2023 & $|\Corrupted| < t < n/2$ & $|\Corrupted| < n - t$ & $\kappa \ BC_n(\lambda n) + n\lambda \kappa$ & $2 \cdot BC_n$ & VSS  & Homo & Required \\
+Bacho et al.~\cite{bachoGRandLineAdaptivelySecure2023}   & 2023 & $|\Corrupted| < t < n/2$ & $|\Corrupted| < n - t$ & $BC_n(\lambda n) + n^2 \lambda \log n$ & $4 \cdot BC_n$ & APVSS & Homo & Required \\
+Feng et al.~\cite{fengDragonDecentralizationCost2024}    & 2024 & $|\Corrupted| < t < n/2$ & $|\Corrupted| < n - t$ & $\sqrt{n}\ BC_n(\lambda n\ \kappa)$ & $2 \cdot BC_n$ & PVSS & Homo & Required \\
 \midrule
 \rowcolor{gray!20}
 \textbf{FDKG (this work)} & \textbf{2024} &
-$\boldsymbol{\Corrupted \notin R}$ &
-$\boldsymbol{\exists\, S \in R:\ S \subseteq \Parties \setminus \Corrupted}$ &
-$\boldsymbol{n \cdot BC_n(\lambda k)}$ &
+$\boldsymbol{\mathcal{C} \notin R}$ &
+$\boldsymbol{\exists\, S \in R:\ S \subseteq \Parties \setminus \mathcal{C}}$ &
+$\boldsymbol{n \ BC_n(\lambda k)}$ &
 $\boldsymbol{1 \cdot BC_n}$ &
 \textbf{PVSS} & \textbf{Hetero} & \textbf{Optional} \\
 \bottomrule
 \end{tabularx}
 \end{table*}
 
-% \section{Related Work}
-% \label{sec:related_work}
-
-% Distributed Key Generation (DKG) is a cornerstone of threshold cryptography, enabling a set of parties to jointly compute a shared public key and individual secret key shares without any single party learning the entire secret key. Seminal DKG protocols, such as those by Gennaro et al. \cite{gennaroSecureDistributedKey1999}, established foundational techniques based on verifiable secret sharing (VSS) \cite{feldmanPracticalSchemeNoninteractive1987} over discrete logarithm-based cryptosystems, typically using Shamir's Secret Sharing (SSS) \cite{shamirHowShareSecret1979} for share distribution. These protocols ensure that any authorized threshold of parties can reconstruct or use the secret, while unauthorized subsets gain no information.
-
-% Subsequent research has extensively explored DKG, focusing on various aspects such as robustness against adversarial behavior, efficiency, round complexity, and applicability in different network models (synchronous vs. asynchronous).
-% Considerable effort has been dedicated to enhancing DKG for reliable operation in challenging environments like the internet, with a focus on asynchronous settings and high thresholds of corruptions \cite{kateDistributedKeyGeneration2012, dasPracticalAsynchronousDistributed2022, dasPracticalAsynchronousHighthreshold2022, zhangPracticalAsynchronousDistributed2023}. These works primarily address fault tolerance and adversarial resilience within a framework where the set of participants is often known or becomes known during an initial setup phase.
-
-% A significant body of work focuses on Publicly Verifiable Secret Sharing (PVSS) \cite{stadlerPubliclyVerifiableSecret1996,schoenmakersSimplePubliclyVerifiable1999}, where the correctness of shared information can be verified by any observer, not just the share recipients. PVSS is crucial for non-interactive DKG protocols, where parties broadcast their contributions along with proofs, minimizing interaction rounds. Groth's work on DKG and key resharing \cite{grothNoninteractiveDistributedKey2021} presents efficient constructions leveraging pairing-based cryptography and NIZK proofs, aiming for minimal rounds and public verifiability, which is a common goal for modern DKG deployed on transparent ledgers or bulletin boards. The security definitions and expected rigor for DKG protocols, particularly those aiming for provable security in simulation-based models, are exemplified in recent literature such as Katz's work on round-optimal, fully secure DKG \cite{katzOptimalFullySecure2023}.
-
-% Our work on Federated Distributed Key Generation (FDKG) addresses a distinct set of challenges primarily related to \textit{dynamic participation} and \textit{flexible trust delegation} in settings where the total number of participants is not known beforehand, and individual participants may have heterogeneous trust in others. Traditional DKG and many NI-DKG schemes \cite{gennaroSecureDistributedKey1999, grothNoninteractiveDistributedKey2021, katzOptimalFullySecure2023} typically assume a fixed set of $n$ participants for whom the DKG is run, or require mechanisms to establish this set. The polynomial degree in SSS, for example, depends on the intended threshold, which itself is often related to $n$. If $n$ is unknown until after the first round of messages (where parties declare participation), pre-determining a globally optimal polynomial degree becomes problematic.
-
-% Dynamic DKG schemes \cite{delerableeDynamicThresholdPublickey2008} were proposed to allow parties to join and leave an existing DKG setup. While these offer flexibility, they often involve multiple rounds of interaction for updates, which can be cumbersome for applications requiring rapid setup or involving human-in-the-loop interaction, such as ad-hoc collaborations or internet voting applications. FDKG aims to achieve its key generation and initial share distribution within a minimal number of rounds (one for distribution and one for reconstruction).
-
-% FDKG introduces participant-defined "guardian sets," allowing each key contributor to specify a trusted subset of parties responsible for helping reconstruct their specific partial secret key. This localized trust model, where each participant $\Party{i}$ defines its own $(t,k)$-threshold for its share $\PartialSecretKey{i}$ among $k$ guardians, contrasts with the global $(t,n)$-threshold common in standard DKG. This approach offers enhanced adaptability in unreliable or permissionless networks where global trust assumptions are hard to establish or maintain. The flexibility offered by FDKG generalizes traditional DKG protocols; a standard $(t,n)$-DKG can be seen as a special case of FDKG where every participant considers all other $n-1$ parties as their guardians.
-
-% Our design draws conceptual inspiration from Federated Byzantine Agreement (FBA) protocols, such as the Stellar Consensus Protocol \cite{mazieresStellarConsensusProtocol2015}. FBA allows open participation by letting nodes choose their own "quorum slices" (sets of trusted peers), enabling decentralized consensus without a globally predefined set of validators. Similarly, FDKG allows participants to define their local trust spheres (guardian sets) for key management. As a party is included in more guardian sets, its importance for liveness within the FDKG network naturally increases, reflecting a form of emergent trust or criticality.
-
-% The primary motivation for FDKG in this paper is its application to internet voting. Existing e-voting systems often rely on a pre-selected, fixed set of trusted authorities (Key Holders or Trustees) to manage decryption keys \cite{adidaHeliosWebbasedOpenAudit2008, cortierBeleniosSimplePrivate2019, haenniCHVoteProtocolSpecification2017, barandiaranDecidimTechnopoliticalNetwork2024, mattbeckerProofVoteEndtoend2018, larraiaSVoteControlComponents2022}. While these systems use threshold cryptography to protect privacy against a subset of colluding authorities, their reliance on a static, globally trusted set makes them vulnerable if these authorities are compromised, collude beyond the threshold, or are simply unavailable during critical phases like tallying. FDKG aims to decentralize this trust by allowing individual participants (or groups acting on their behalf) to establish partial keys and manage their recovery through self-chosen guardians, enhancing system resilience and flexibility against such failures. This approach aligns with the goal of creating more robust and decentralized foundations for secure multi-party applications.
-
-% In our comparison in Table~\ref{tab:dkg_comparison_final}, we classify prior DKG schemes by their architectural assumptions. We define participation as 'Required' if the protocol is defined for a fixed set of n participants, where non-participation is treated as a fault. This stands in contrast to 'Optional' participation, where the protocol is designed to discover the active participant set from a larger pool. Similarly, we classify the trust model as 'Homogeneous' if security is governed by a single, global threshold (t of n) that applies uniformly to all. This is distinct from a 'Heterogeneous' model, where trust and security are defined by local, participant-specific choices. Our analysis reveals that, despite vast differences in their internal mechanisms (e.g., gossiping or recursion), the synchronous DKG protocols in the literature uniformly adhere to a model of required participation and homogeneous trust. FDKG is, to our knowledge, the first protocol to break from this paradigm on both fronts.
-
 \section{Related Work}
 \label{sec:related_work}
 
-Distributed Key Generation (DKG) is a fundamental cryptographic primitive that enables a set of parties to jointly create a shared key without a trusted third party. Foundational protocols, such as Pedersen DKG~\cite{pedersen1991threshold}, established the core paradigm: `n` participants, each acting as a dealer for a partial secret, combine their contributions to form a single joint public key and distributed secret shares. These protocols are typically based on Verifiable Secret Sharing (VSS)~\cite{feldmanPracticalSchemeNoninteractive1987}, which allows participants to verify the integrity of their received shares.
+Foundational DKG protocols, such as~\cite{pedersenThresholdCryptosystemTrusted1991, gennaroSecureDistributedKey1999}, established the core paradigm: $n$ participants, each acting as a dealer for a partial secret, combine their contributions to form a single joint public key and distributed secret shares. These protocols are typically based on Verifiable Secret Sharing (VSS)~\cite{feldmanPracticalSchemeNoninteractive1987}, which allows participants to verify the integrity of their received shares.
 
-The landscape of DKG protocols is vast, as recently surveyed in a Systematization of Knowledge (SoK) by Bacho and Kavousi~\cite{bachoSoKDlogbasedDistributed2025}. The SoK identifies two primary axes for classifying DKG protocols: the underlying network model and the secret sharing mechanism employed. To accurately position FDKG, we adopt this framework and establish a coherent baseline for comparison.
+Subsequent research has extensively explored DKG, focusing on various aspects such as robustness against adversarial behavior, efficiency, round complexity, security, and applicability in different network models (synchronous vs. asynchronous)~\cite{bachoSoKDlogbasedDistributed2025}. Considerable effort has been dedicated to enhancing DKG for reliable operation in challenging environments like the internet, with a focus on asynchronous settings and high thresholds of corruptions \cite{kateDistributedKeyGeneration2012, dasPracticalAsynchronousDistributed2022, dasPracticalAsynchronousHighthreshold2022, zhangPracticalAsynchronousDistributed2023}.  A significant body of work focuses on Publicly Verifiable Secret Sharing (PVSS) \cite{stadlerPubliclyVerifiableSecret1996,schoenmakersSimplePubliclyVerifiable1999}, where the correctness of shared information can be verified by any observer, not just the share recipients. PVSS is crucial for non-interactive DKG protocols, where parties broadcast their contributions along with proofs, minimizing interaction rounds. Groth's work on DKG and key resharing \cite{grothNoninteractiveDistributedKey2021} presents efficient constructions leveraging pairing-based cryptography and NIZK proofs, aiming for minimal rounds and public verifiability, which is a common goal for modern DKG deployed on transparent ledgers or bulletin boards.
 
-First, DKG protocols are distinguished by their network model assumption. \textbf{Synchronous protocols} assume bounded message delays, allowing them to operate in well-defined rounds. In contrast, \textbf{asynchronous protocols}~\cite{huDyCAPSAsynchronousDynamiccommittee2022} are designed to tolerate unbounded message delays, a significantly stronger guarantee that requires more complex consensus mechanisms (e.g., MVBA) and often results in higher communication overhead. As FDKG is designed for synchronous environments, such as blockchains with regular block production, we omit asynchronous DKG protocols from our direct comparison to ensure an evaluation of protocols operating under similar network guarantees.
+The recent SoK by Bacho and Kavousi~\cite{bachoSoKDlogbasedDistributed2025} identifies two primary axes for classifying DKG protocols: the underlying network model and the secret sharing mechanism employed. To accurately position FDKG, we adopt this framework and establish a coherent baseline for comparison.
 
-A second critical distinction is the protocol's resilience to key biasing by a rushing adversary. Modern research differentiates between \textbf{biasable} protocols and \textbf{unbiasable} (or "fully secure") protocols~\cite{katzOptimalFullySecure2023}. Fully secure DKGs guarantee that the final public key's distribution is uniform and cannot be influenced by a malicious minority. This robustness typically requires additional rounds of communication (e.g., commit-reveal schemes) or more complex cryptographic machinery. FDKG, in line with many practical protocols like the original Pedersen DKG, prioritizes simplicity and a minimal round count, and is therefore biasable. Consequently, to evaluate FDKG against schemes with similar design trade-offs, we focus our comparison on the class of biasable protocols.
+First, DKG protocols are distinguished by their network model assumption. \textbf{Synchronous protocols} assume bounded message delays, allowing them to operate in well-defined rounds. In contrast, \textbf{asynchronous protocols}~\cite{huDyCAPSAsynchronousDynamiccommittee2022} are designed to tolerate unbounded message delays, a significantly stronger guarantee that requires more complex consensus mechanisms and often results in higher communication overhead. As FDKG is designed for synchronous environments, we omit asynchronous DKG protocols from our direct comparison to ensure an evaluation of protocols operating under similar network guarantees.
 
-Furthermore, it is important to distinguish DKG from Dynamic and Proactive Secret Sharing (DPSS) schemes~\cite{maramCHURPDynamicCommitteeProactive2019}. DPSS protocols are designed for the long-term lifecycle management of a secret, enabling committees to evolve and shares to be proactively refreshed to defend against adaptive adversaries. Since FDKG focuses on the crucial initial \textit{bootstrapping} of a key in an ad-hoc setting, DPSS protocols address a different problem domain and are thus not directly included in our setup-focused analysis.
+A second critical distinction is the protocol's resilience to key biasing by a rushing adversary. Modern research differentiates between \textbf{biasable} protocols and \textbf{unbiasable} (or "fully secure") protocols~\cite{katzOptimalFullySecure2023}. Fully secure DKGs guarantee that the final public key's distribution is uniform and cannot be influenced by a malicious minority. This robustness typically requires additional rounds of communication (e.g., commit-reveal schemes). FDKG, in line with many practical protocols, prioritizes simplicity and a minimal round count, and is therefore biasable. Consequently, to evaluate FDKG against schemes with similar design trade-offs, we focus our comparison on the class of biasable protocols.
 
-To establish a coherent analytical baseline and facilitate a scientifically sound comparison, we therefore narrow our focus to the class of \textbf{synchronous, biasable DKG protocols}. Within this class, different secret sharing mechanisms are used, as detailed in the SoK. These include complaint-based \textbf{VSS}, non-interactive \textbf{Publicly Verifiable Secret Sharing (PVSS)}~\cite{schoenmakers1999simple} which is crucial for one-round protocols, and \textbf{Aggregatable PVSS (APVSS)}~\cite{gurkan2021aggregatable} which allows for the efficient combination of transcripts to reduce communication costs.
+Furthermore, it is important to distinguish DKG from Dynamic and Proactive Secret Sharing (DPSS) schemes~\cite{maramCHURPDynamicCommitteeProactive2019}. DPSS protocols are designed for the long-term lifecycle management of a secret, enabling committees to evolve and shares to be proactively refreshed to defend against adaptive adversaries. Since FDKG focuses on the initial \textit{bootstrapping} of a key, DPSS protocols address a different problem domain and are thus not directly included in our setup-focused analysis.
 
-Our comparative analysis, presented in Table~\ref{tab:dkg_comparison_final}, evaluates FDKG against this established baseline. The table reveals a consistent architectural paradigm across all surveyed protocols. To the best of our knowledge, FDKG is the first protocol in its class to break from this paradigm in two fundamental ways. First, it introduces a \textbf{heterogeneous trust model}, moving away from the assumption that trust is global and uniform ("Homo"). Second, it supports \textbf{optional participation}, whereas all prior schemes require the participation of a fixed, pre-defined set of members ("Required"). These architectural innovations are precisely what enable FDKG to provide robust key generation in dynamic and permissionless environments.
+Our design draws conceptual inspiration from Federated Byzantine Agreement (FBA) protocols—such as the Stellar Consensus Protocol \cite{mazieresStellarConsensusProtocol2015}—where nodes declare local ``quorum slices'' (trusted peers), enabling open participation without a globally pre-defined validator set. FDKG borrows this form of heterogeneous, participant-defined trust: each party $i$ specifies a guardian set $G_i$ with local threshold $t$, and a party included in many guardian sets becomes operationally more critical for liveness. The semantics, however, differ fundamentally. In FBA, safety and liveness are defined via quorum intersection and concern \emph{consensus} over a ledger; in FDKG, properties are defined via the reconstruction family $R$ (defined in Section~\ref{sec:security_analysis}) and concern a one-shot cryptographic reconstruction predicate. Thus, while both systems use local trust slices, FDKG makes no consensus claims; our guarantees (Theorems~\ref{thm:recon_privacy}–\ref{thm:recon_liveness}) address reconstruction privacy and liveness rather than agreement.
 
+To establish a coherent baseline and facilitate a sound comparison, we therefore narrow our focus to the class of \textbf{synchronous, biasable DKG protocols}. Within this class, different secret sharing mechanisms are used, as detailed in the~\cite{bachoSoKDlogbasedDistributed2025}. These include complaint-based VSS, non-interactive Publicly Verifiable Secret Sharing (PVSS)~\cite{stadlerPubliclyVerifiableSecret1996a, fouqueOneThresholdDiscreteLog2001} (enabling one-round designs), and Aggregatable PVSS (APVSS)~\cite{gurkanAggregatableDistributedKey2021, bachoAdaptivelySecureAggregatable2023} (allowing transcript aggregation). Beyond the sharing mechanism, protocols differ in three comparison-relevant dimensions that we report in Table~\ref{tab:dkg_comparison_final}: (i) the \emph{privacy security} and \emph{liveness tolerance} for corrupted parties; (ii) the round complexity, ranging from \emph{one} broadcast round (PVSS) up to \emph{four} rounds (multi-phase APVSS/complaint flows); and (iii) the \emph{communication overhead}.
+
+Our comparative analysis, presented in Table~\ref{tab:dkg_comparison_final}, evaluates FDKG against this established baseline. The table reveals a consistent architectural paradigm across all surveyed protocols. To the best of our knowledge, FDKG is the first protocol in its class to break from this paradigm in two fundamental ways. First, it introduces a \textbf{heterogeneous trust model}, moving away from the assumption that trust is global and uniform (``Homo''). Second, it supports \textbf{optional participation}, whereas all prior schemes require the participation of a fixed, pre-defined set of members (``Required''). These architectural changes are what enable FDKG to provide key generation in time-critical and ad-hoc environments.
 
 \section{Preliminaries}
 \label{sec:preliminaries}
@@ -391,7 +295,7 @@ SSS provides perfect privacy against adversaries controlling fewer than $t$ part
 \subsection{Verifiable and Publicly Verifiable Secret Sharing (VSS/PVSS)}
 \label{subsec:vss_pvss}
 VSS schemes enhance SSS by allowing parties to verify the consistency of their shares relative to some public information. PVSS strengthens this by enabling \textit{any} entity to perform this verification using only public data \cite{stadlerPubliclyVerifiableSecret1996, schoenmakersSimplePubliclyVerifiable1999}.
-PVSS schemes typically involve the dealer encrypting each share $s_i$ under the recipient $\Party{i}$'s public key $\textrm{pk}_i$ and publishing these ciphertexts $C_i = \texttt{Enc}(\textrm{pk}_i, s_i)$ along with public commitments to the secret polynomial (e.g., $\{A_k = G^{a_k}\}$) and a public proof $\pi$ of consistency. Our FDKG protocol employs a PVSS scheme where each participant acts as a dealer.
+PVSS schemes typically involve the dealer encrypting each share $s_i$ under the recipient $\Party{i}$'s public key $\textrm{pk}_i$ and publishing these ciphertexts $C_i = \textrm{Enc}(\textrm{pk}_i, s_i)$ along with public commitments to the secret polynomial (e.g., $\{A_k = G^{a_k}\}$) and a public proof $\pi$ of consistency. Our FDKG protocol employs a PVSS scheme where each participant acts as a dealer.
 
 \textbf{DKG from PVSS:} In a typical PVSS-based DKG \cite{katzOptimalFullySecure2023}, each party $\Party{k}$ acts as a dealer for a partial secret $d_k=f_k(0)$. $\Party{k}$ uses PVSS to distribute shares $d_{k,j} = f_k(j)$ to all parties $\Party{j}$, publishing commitments $\{E_{k,l} = G^{a_{k,l}}\}$, encrypted shares $\{C_{k,j}\}$, and a proof $\pi_k$. The final secret key is $d = \sum_k d_k$, the public key is $E = \prod_k E_{k,0}$, and party $\Party{i}$'s share is $d_i = \sum_k d_{k,i}$.
 
@@ -420,7 +324,7 @@ Our current implementation utilizes Groth16 due to its efficiency and widespread
 
 A NIZK system (e.g., in the CRS model) provides:
 \begin{itemize}
-    \item $\textrm{crs} \sample \textrm{Setup}(1^\lambda, \mathcal{R})$: Generates the public CRS. (A simulator might receive additional trapdoor information during security analysis, depending on the scheme).
+    \item $\textrm{crs} \sample \textrm{Setup}(1^\lambda, \mathcal{R})$: Generates the public CRS.
     \item $\pi \sample \textrm{Prove}(\textrm{crs}, x, w)$: Produces proof $\pi$.
     \item $b \leftarrow \textrm{Verify}(\textrm{crs}, x, \pi)$: Outputs $1$ (accept) or $0$ (reject).
 \end{itemize}
@@ -428,12 +332,12 @@ We require standard Completeness, computational Soundness, and computational Zer
 
 \subsection{Encrypted Channels for Share Distribution}
 \label{subsec:encrypted_channels}
-Protocols like PVSS and DKG often require confidential transmission of secret shares (e.g., $s_i$) to specific recipients ($\Party{i}$) over a public broadcast channel. This is achieved using an IND-CPA secure PKE scheme. Each potential recipient $\Party{i}$ has a key pair $(\textrm{pk}_i, \textrm{sk}_i)$ where $\textrm{pk}_i$ is public. To send $s_i$ to $\Party{i}$, the sender computes $c = \texttt{Enc}(\textrm{pk}_i, s_i, \textrm{rand})$ and broadcasts $c$. Only $\Party{i}$ can compute $s_i = \texttt{Dec}(\textrm{sk}_i, c)$.
+Protocols like PVSS and DKG often require confidential transmission of secret shares ($s_i$) to specific recipients ($\Party{i}$) over a public broadcast channel. This is achieved using an IND-CPA secure PKE scheme. Each potential recipient $\Party{i}$ has a key pair $(\textrm{pk}_i, \textrm{sk}_i)$ where $\textrm{pk}_i$ is public. To send $s_i$ to $\Party{i}$, the sender computes $c = \textrm{Enc}(\textrm{pk}_i, s_i, \textrm{rand})$ and broadcasts $c$. Only $\Party{i}$ can compute $s_i = \textrm{Dec}(\textrm{sk}_i, c)$.
 
 For circuit efficiency with Groth16, we use an ElGamal variant over BabyJub \cite{weijiekohElGamalEncryptionDecryption2020, jieWeijiekohElgamalbabyjub2023, steffenZeestarPrivateSmart2022}. The specific ElGamal variant encryption and decryption algorithms used in our implementation are detailed in Algorithm\ref{alg:encryption} and Algorithm\ref{alg:decryption}, respectively.
 
 \begin{algorithm}[h!]
-    \caption{ElGamal Encryption $\texttt{Enc}(\textrm{pk}_i, m, [k, r])$}
+    \caption{ElGamal Encryption $\textrm{Enc}(\textrm{pk}_i, m, [k, r])$}
     \label{alg:encryption} % New label
     \textbf{Input:} Recipient public key $\textrm{pk}_i$, scalar message $m \in \mathbb{Z}_q$, randomness $(k, r) \in \mathbb{Z}_q \times \mathbb{Z}_q$\\
     \textbf{Output:} Ciphertext tuple $(C_1, C_2, \Delta)$\\
@@ -446,7 +350,7 @@ For circuit efficiency with Groth16, we use an ElGamal variant over BabyJub \cit
 
 % Algorithm 2 (Decryption) remains the same
 \begin{algorithm}[h!]
-    \caption{ElGamal Decryption $\texttt{Dec}(\textrm{sk}_i, (C_1, C_2, \Delta))$}
+    \caption{ElGamal Decryption $\textrm{Dec}(\textrm{sk}_i, (C_1, C_2, \Delta))$}
     \label{alg:decryption} % Keep or update label as needed
     \textbf{Input:} Recipient secret key $\textrm{sk}_i$, ciphertext $(C_1, C_2, \Delta)$\\
     \textbf{Output:} Scalar message $m \in \mathbb{Z}_q$\\
@@ -456,6 +360,7 @@ For circuit efficiency with Groth16, we use an ElGamal variant over BabyJub \cit
 \end{algorithm}
 
 \subsection{Summary of Key Notations}
+
 \begin{table}[h!]
 \centering
 \caption{Key Notations Used in the FDKG Protocol}
@@ -469,29 +374,30 @@ $n$ & Total number of potential parties in the system $\Parties$. \\
 $\Parties$ & Set of all potential parties $\{\Party{1}, \dots, \Party{n}\}$. \\
 $\Party{i}$ & Identifier for party $i$. \\
 $\mathbb{G}, G, q$ & Cyclic group, its generator, and prime order. \\
-$\textrm{pk}_i, \textrm{sk}_i$ & PKE public/secret key pair for $\Party{i}$ (for encrypted channels). \\
+$\textrm{pk}_i, \textrm{sk}_i$ & PKE public/secret key pair for $\Party{i}$. \\
 $\textrm{crs}$ & Common Reference String for NIZK proofs. \\
 $\pi$ & Generic symbol for a NIZK proof (e.g., $\pi_{FDKG_i}$). \\
 \hline
 % FDKG Specific Parameters & Notations
-$t$ & Local threshold for SSS reconstruction within a guardian set. \\
+$\GuardianSetOf{i}$ & Guardian set chosen by participant $\Party{i}$. \\
+$t$ & Threshold for share reconstruction within a guardian set. \\
 $k$ & Size of each participant's chosen guardian set. \\
-$\SetOfFDKG$ & Set of parties participating and validated in the FDKG phase. \\
+$\SetOfFDKG$ & Set of valid parties in the generation phase. \\
 $\PartialSecretKey{i}, \PartialPublicKey{i}$ & Partial secret/public key of participant $\Party{i} \in \SetOfFDKG$. \\
 & ($\PartialPublicKey{i} = G^{\PartialSecretKey{i}}$). \\
 $\SecretKey, \PublicKey$ & Global secret/public key aggregated from partial keys. \\
 & ($\SecretKey = \sum \PartialSecretKey{i}$, $\PublicKey = \prod \PartialPublicKey{i} = G^{\SecretKey}$). \\
-$\GuardianSetOf{i}$ & Guardian set chosen by participant $\Party{i}$. \\
 $s_{i,j}$ & SSS share of $\PartialSecretKey{i}$ for guardian $\Party{j} \in \GuardianSetOf{i}$. \\
 $\EncryptedSharePartialSecretKey{i}{j}$ & Ciphertext of $s_{i,j}$ encrypted under $\textrm{pk}_j$. \\
-% $\texttt{Enc}_{\textrm{pk}_j}, \texttt{Dec}_{\textrm{sk}_j}$ & PKE encryption/decryption with $\Party{j}$'s keys. \\
-$\texttt{Enc}(\textrm{pk}, \cdot, \cdot)$ & PKE encryption algorithm. \\
-$\texttt{Dec}(\textrm{sk}, \cdot)$ & PKE decryption algorithm. \\
+% $\textrm{Enc}_{\textrm{pk}_j}, \textrm{Dec}_{\textrm{sk}_j}$ & PKE encryption/decryption with $\Party{j}$'s keys. \\
+$\textrm{Enc}(\textrm{pk}, \cdot, \cdot)$ & PKE encryption algorithm. \\
+$\textrm{Dec}(\textrm{sk}, \cdot)$ & PKE decryption algorithm. \\
 % Voting Specific (if this table is meant to be global)
 % Consider moving these to a separate table in the Voting section if they don't appear before.
 \hline
 $\Voters$ & Set of parties participating in the voting phase. \\
-$\Ballot{i}, \Vote{i}, \BlindingFactor{i}$ & Voter $\Party{i}$'s encrypted ballot, encoded vote, and blinding factor. \\
+$\Ballot{i}, \Vote{i}, \BlindingFactor{i}$ & Voter $\Party{i}$'s encrypted ballot, encoded vote, \\
+& and blinding factor. \\
 $\Tallies$ & Set of parties participating in the online tally phase. \\
 $\TotalA, \TotalB$ & Aggregated ElGamal components of all cast ballots. \\
 $\PartialDecryptionFrom{i}$ & Partial decryption of $\TotalA$ by $\Party{i}$ using $\PartialSecretKey{i}$. \\
@@ -500,20 +406,23 @@ $\SharePartialDecryptionFromTo{j}{i}$ & Partial decryption of $\TotalA$ by guard
 \end{tabular}
 \end{table}
 
+Our implementation instantiates IND-CPA PKE with an ElGamal variant over BabyJub (Edwards curve) and NIZKs with Groth16. The DLP hardness assumption is therefore the discrete-log assumption in the BabyJub subgroup; IND-CPA security reduces to the DDH assumption in that group. Groth16 soundness/zero-knowledge rely on pairing-friendly curve security (BN254 in our implementation) and a trusted SRS for the given circuits. The security reductions in Section~\ref{sec:security_analysis} use only these abstract properties; other IND-CPA PKEs or NIZKs (PLONK/Marlin/STARKs) could be substituted with corresponding trade-offs in proof size and proving time.
+
+
 \section{Federated Distributed Key Generation (FDKG)}
 \label{sec:fdkg}
 
-Federated Distributed Key Generation (FDKG) extends traditional Distributed Key Generation (DKG) protocols to accommodate settings with dynamic participation and participant-defined trust assumptions. Standard $(t, n)$-DKG protocols require a fixed set of $n$ participants and a global threshold $t$ for secret reconstruction \cite{gennaroSecureDistributedKey1999}. FDKG relaxes these requirements, allowing any subset of potential participants to engage in key generation, each delegating reconstruction authority to a self-chosen "guardian set".
+Federated Distributed Key Generation (FDKG) generalizes DKG to dynamic participation: any subset of parties can generate a joint key and delegate reconstruction to self-chosen guardian sets.
 
 \subsection{Protocol Setting and Goal}
-We consider a set $\Parties = \{\Party{1}, \dots, \Party{n}\}$ of $n$ potential parties. The system operates over a cyclic group $\mathbb{G}$ of prime order $q$ with generator $G$. We assume a Public Key Infrastructure (PKI) where each party $\Party{i}$ possesses a long-term secret key $\textrm{sk}_i$ and a corresponding public key $\textrm{pk}_i$ for an IND-CPA secure public-key encryption scheme $(\texttt{Enc}, \texttt{Dec})$ (Section~\ref{subsec:pke}), used for secure share distribution. Communication occurs via a broadcast channel. The protocol also utilizes a Non-Interactive Zero-Knowledge (NIZK) proof system $(\textrm{Setup}, \textrm{Prove}, \textrm{Verify})$ (Section~\ref{subsec:nizk}) which is assumed to be complete, computationally sound, and zero-knowledge, operating with a common reference string $\textrm{crs}$.
+We consider a set $\Parties = \{\Party{1}, \dots, \Party{n}\}$ of $n$ potential parties. The system operates over a cyclic group $\mathbb{G}$ of prime order $q$ with generator $G$. We assume a Public Key Infrastructure (PKI) where each party $\Party{i}$ possesses a long-term secret key $\textrm{sk}_i$ and a corresponding public key $\textrm{pk}_i$ for an IND-CPA secure public-key encryption scheme $(\textrm{Enc}, \textrm{Dec})$ (Section~\ref{subsec:pke}), used for secure share distribution. Communication occurs via a broadcast channel. The protocol also utilizes a Non-Interactive Zero-Knowledge (NIZK) proof system $(\textrm{Setup}, \textrm{Prove}, \textrm{Verify})$ (Section~\ref{subsec:nizk}) which is assumed to be complete, computationally sound, and zero-knowledge, operating with a common reference string $\textrm{crs}$.
 
-The goal of FDKG is for any subset of participating parties $\SetOfFDKG \subseteq \Parties$ to jointly generate a global public key $\PublicKey \in \mathbb{G}$ such that the corresponding secret key $\SecretKey \in \mathbb{Z}_q$ (where $\PublicKey = G^{\SecretKey}$) is implicitly shared among them. Specifically, each participant $\Party{i} \in \SetOfFDKG$ generates a partial key pair $(\PartialSecretKey{i}, \PartialPublicKey{i})$ where $\PartialPublicKey{i} = G^{\PartialSecretKey{i}}$. The global key pair is formed by aggregation: $\SecretKey = \sum_{i \in \SetOfFDKG} \PartialSecretKey{i}$ and $\PublicKey = \prod_{i \in \SetOfFDKG} \PartialPublicKey{i}$. Each participant $\Party{i}$ uses a local $(t, k)$-Shamir Secret Sharing (SSS) scheme (Section~\ref{subsec:sss}) to distribute its partial secret $\PartialSecretKey{i}$ among a self-selected guardian set $\GuardianSetOf{i} \subset \Parties \setminus \{\Party{i}\}$ of size $k$.
+The goal of FDKG is for any subset of participating parties $\SetOfFDKG \subseteq \Parties$ to jointly generate a global public key $\PublicKey \in \mathbb{G}$ such that the corresponding secret key $\SecretKey \in \mathbb{Z}_q$ (where $\PublicKey = G^{\SecretKey}$) is shared among them. Specifically, each participant $\Party{i} \in \SetOfFDKG$ generates a partial key pair $(\PartialSecretKey{i}, \PartialPublicKey{i})$ where $\PartialPublicKey{i} = G^{\PartialSecretKey{i}}$. The global key pair is formed by aggregation: $\SecretKey = \sum_{i \in \SetOfFDKG} \PartialSecretKey{i}$ and $\PublicKey = \prod_{i \in \SetOfFDKG} \PartialPublicKey{i}$. Each participant $\Party{i}$ uses a local $(t, k)$-Shamir Secret Sharing (SSS) scheme (Section~\ref{subsec:sss}) to distribute its partial secret $\PartialSecretKey{i}$ among a self-selected guardian set $\GuardianSetOf{i} \subset \Parties \setminus \{\Party{i}\}$ of size $k$.
 
 \subsection{The FDKG Protocol ($\Pi_{FDKG}$)}
-The protocol proceeds in two rounds: Distribution and Reconstruction.
+The protocol proceeds in two rounds: Generation and Reconstruction.
 
-\subsubsection{Round 1: Distribution Phase}
+\subsubsection{Round 1: Generation phase}
 \label{subsubsec:fdkg_round1}
 
 Any party $\Party{i} \in \Parties$ may (optionally) participate:
@@ -524,10 +433,10 @@ Any party $\Party{i} \in \Parties$ may (optionally) participate:
     \item \textbf{Share Encryption:} Initialize empty lists for ciphertexts $\mathbb{C}_i$ and randomness $\mathbb{R}_i$. For each $\Party{j} \in \GuardianSetOf{i}$:
         \begin{itemize}
             \item Sample PKE randomness: $(k_{i,j}, r_{i,j}) \sample \mathbb{Z}_q \times \mathbb{Z}_q$.
-            \item Encrypt: $\EncryptedSharePartialSecretKey{i}{j} \leftarrow \texttt{Enc}_{\textrm{pk}_j}(s_{i,j}, [k_{i,j}, r_{i,j}])$.
+            \item Encrypt: $\EncryptedSharePartialSecretKey{i}{j} \leftarrow \textrm{Enc}_{\textrm{pk}_j}(s_{i,j}, [k_{i,j}, r_{i,j}])$.
             \item Store: Add $\EncryptedSharePartialSecretKey{i}{j}$ to $\mathbb{C}_i$ and add $(k_{i,j}, r_{i,j})$ to $\mathbb{R}_i$.
         \end{itemize}
-    \item \textbf{Proof Generation:} Let the statement be $x_i = (\PartialPublicKey{i}, \{\textrm{pk}_j\}_{\Party{j} \in \GuardianSetOf{i}}, \mathbb{C}_i)$. Let the witness be $w_i = (\PartialSecretKey{i}, \{s_{i,j}\}_{\Party{j} \in \GuardianSetOf{i}}, \mathbb{R}_i)$. Generate $\pi_{FDKG_i} \leftarrow \textrm{Prove}(\textrm{crs}, x_i, w_i)$.
+    \item \textbf{Proof Generation:} Let the public statement be $x_i = (\PartialPublicKey{i}, \{\textrm{pk}_j\}_{\Party{j} \in \GuardianSetOf{i}}, \mathbb{C}_i)$. Let the witness be $w_i = (\PartialSecretKey{i}, \{s_{i,j}\}_{\Party{j} \in \GuardianSetOf{i}}, \mathbb{R}_i)$. Generate $\pi_{FDKG_i} \leftarrow \textrm{Prove}(\textrm{crs}, x_i, w_i)$ (see Appendix~\ref{app:proof-fdkg}).
     \item \textbf{Broadcast:} Broadcast $(\Party{i}, \PartialPublicKey{i}, \GuardianSetOf{i}, \mathbb{C}_i, \pi_{FDKG_i})$.
 \end{enumerate}
         
@@ -552,13 +461,13 @@ Any party $\Party{i} \in \Parties$ may (optionally) participate:
 \begin{enumerate}
      \item \textbf{Reveal Partial Secret:} If $\Party{i} \in \SetOfFDKG \cap \Tallies$:
          \begin{itemize}
-             \item Generate $\pi_{PS_i} \leftarrow \textrm{Prove}(\textrm{crs}, \PartialPublicKey{i}, \PartialSecretKey{i})$.
+             \item Generate $\pi_{PS_i} \leftarrow \textrm{Prove}(\textrm{crs}, \PartialPublicKey{i}, \PartialSecretKey{i})$ (see Appendix~\ref{app:proof-ps}).
              \item Broadcast $(\Party{i}, \text{secret}, \PartialSecretKey{i}, \pi_{PS_i})$.
          \end{itemize}
      \item \textbf{Reveal Received Shares:} For each $\EncryptedSharePartialSecretKey{j}{i}$ (where $\Party{j} \in \SetOfFDKG, \Party{i} \in \GuardianSetOf{j}$):
          \begin{itemize}
-             \item Decrypt share: $s_{j,i} \leftarrow \texttt{Dec}(\textrm{sk}_i, \EncryptedSharePartialSecretKey{j}{i})$.
-             \item Generate proof: $\pi_{SPS_{j,i}} \leftarrow \textrm{Prove}(\textrm{crs}, (\EncryptedSharePartialSecretKey{j}{i}, \textrm{pk}_i, s_{j,i}), \textrm{sk}_i)$.
+             \item Decrypt share: $s_{j,i} \leftarrow \textrm{Dec}(\textrm{sk}_i, \EncryptedSharePartialSecretKey{j}{i})$.
+             \item Generate proof: $\pi_{SPS_{j,i}} \leftarrow \textrm{Prove}(\textrm{crs}, (\EncryptedSharePartialSecretKey{j}{i}, \textrm{pk}_i, s_{j,i}), \textrm{sk}_i)$ (see Appendix~\ref{app:proof-sps}).
              \item Broadcast $(\Party{i}, \text{share}, \Party{j}, s_{j,i}, \pi_{SPS_{j,i}})$.
          \end{itemize}
 \end{enumerate}
@@ -574,7 +483,7 @@ Any party $\Party{i} \in \Parties$ may (optionally) participate:
                 \item Let $I_i = \{ \Party{j} \mid (\Party{j}, \cdot) \in S_i \}$. If $|I_i| \ge t$: Select $I'_i \subseteq I_i$, $|I'_i|=t$. Compute $\PartialSecretKey{i} \leftarrow \textrm{Reconstruct}(I'_i, \{s_{i,j} \mid (\Party{j}, s_{i,j}) \in S_i \text{ and } \Party{j} \in I'_i\})$. If $G^{\PartialSecretKey{i}} = \PartialPublicKey{i}$, add $\PartialSecretKey{i}$ to $D$.
             \end{enumerate}
         \end{itemize}
-    \item \textbf{Compute Global Key:} If $D$ contains a valid entry for every $\Party{i} \in \SetOfFDKG$, compute $\SecretKey = \sum_{\PartialSecretKey{i} \in D} \PartialSecretKey{i} \pmod{q}$. Output $\SecretKey$. Else output failure.
+    \item \textbf{Compute Global Key:} If $D$ contains a valid entry for every $\Party{i} \in \SetOfFDKG$, compute $\SecretKey = \sum_{\PartialSecretKey{i} \in D} \PartialSecretKey{i}$. Output $\SecretKey$. Else output failure.
 \end{enumerate}
 
 
@@ -583,13 +492,13 @@ Any party $\Party{i} \in \Parties$ may (optionally) participate:
 The communication complexity depends on the number of participants $|\SetOfFDKG|$ and the size of guardian sets $k$.
 
 \begin{itemize}
-    \item \textbf{Round 1 (Distribution):} Each participant $\Party{i} \in \SetOfFDKG$ broadcasts its partial public key $\PartialPublicKey{i}$ (1 group element), $k$ encrypted shares $\{\EncryptedSharePartialSecretKey{i}{j}\}$ (size depends on PKE scheme, in our scheme $k \times (2 |\mathbb{G}| + |\mathbb{Z}_q|)$), and one NIZK proof $\pi_{FDKG_i}$. Assuming $|\SetOfFDKG| \approx n$, the complexity is roughly $O(n k \cdot |\EncryptedSharePartialSecretKey{i}{j}| + n \cdot |\pi_{FDKG}|)$. In our BabyJub/Groth16 instantiation, this leads to $O(nk)$ complexity dominated by encrypted shares.
+    \item \textbf{Round 1 (Generation):} Each participant $\Party{i} \in \SetOfFDKG$ broadcasts its partial public key $\PartialPublicKey{i}$ (1 group element), $k$ encrypted shares $\{\EncryptedSharePartialSecretKey{i}{j}\}$ (size depends on PKE scheme, in our scheme $k \times (2 |\mathbb{G}| + |\mathbb{Z}_q|)$), and one NIZK proof $\pi_{FDKG_i}$. Assuming $|\SetOfFDKG| \approx n$, the complexity is roughly $O(n k \cdot |\EncryptedSharePartialSecretKey{i}{j}| + n \cdot |\pi_{FDKG}|)$. In our BabyJub/Groth16 instantiation, this leads to $O(nk)$ complexity dominated by encrypted shares.
     \item \textbf{Round 2 (Online Reconstruction):} Each online party $\Party{i} \in \Tallies$ might broadcast its partial secret $\PartialSecretKey{i}$ (1 scalar) and proof $\pi_{PS_i}$, plus potentially many decrypted shares $s_{j,i}$ (1 scalar each) and proofs $\pi_{SPS_{j,i}}$. Let $m_i$ be the number of shares party $\Party{i}$ reveals (as a guardian for others). The complexity is roughly $O(|\Tallies| \cdot (|\mathbb{Z}_q| + |\pi_{PS_i}| + m_{max} \cdot (|\mathbb{Z}_q| + |\pi_{SPS_{j,i}}|)))$, where $m_{max} = \max_i m_i$. In the worst case, where $|\Tallies| \approx n$ and $m_{max} \approx n$, this can approach $O(n^2)$.
 \end{itemize}
-FDKG offers $O(n \cdot k)$ complexity for distribution, which is similar to standard DKG if $k \approx n$. Reconstruction complexity varies but can reach $O(n^2)$ in worst-case guardian configurations.
+FDKG offers $O(n \cdot k)$ complexity for distribution, which is similar to standard DKG if $k \approx n$. Reconstruction complexity varies but can reach $O(n^2)$ in worst-case guardian—when a single party is selected as a guardian by every other participant and must reveal all $n-1$ shares.
 
 \subsection{FDKG Example}
-Consider $n=10$ potential parties $\{\Party{1}, \dots, \Party{10}\}$, local threshold $t=2$, and guardian set size $k=3$. Suppose $\SetOfFDKG = \{\Party{1}, \Party{3}, \Party{5}, \Party{7}, \Party{9}\}$ participate validly in Round 1.
+Consider $n=10$ potential parties $\{\Party{1}, \dots, \Party{10}\}$, local threshold $t=2$, and guardian set size $k=3$. Suppose $\SetOfFDKG = \{\Party{1}, \Party{3}, \Party{5}, \Party{7}, \Party{9}\}$ participate correctly in Round 1.
 
 \begin{figure}[H]
     \centering
@@ -601,329 +510,420 @@ Consider $n=10$ potential parties $\{\Party{1}, \dots, \Party{10}\}$, local thre
 \end{figure}
 
 \begin{itemize}
-    \item \textbf{Round 1 (as per Section~\ref{subsubsec:fdkg_round1}):} $\Party{1}$ chooses $\GuardianSetOf{1} = \{\Party{2}, \Party{3}, \Party{5}\}$, generates $(\PartialSecretKey{1}, \PartialPublicKey{1})$, shares $\PartialSecretKey{1}$ into $s_{1,2}, s_{1,3}, s_{1,5}$, encrypts them to get $\mathbb{C}_1 = \{\EncryptedSharePartialSecretKey{1}{2}, \EncryptedSharePartialSecretKey{1}{3}, \EncryptedSharePartialSecretKey{1}{5}\}$, generates $\pi_{FDKG_1}$, and broadcasts. Other participants in $\SetOfFDKG$ do similarly. Observers compute $\PublicKey = \prod_{\Party{i} \in \SetOfFDKG} \PartialPublicKey{i}$.
-    \item \textbf{Round 2 (Reconstruction, as per Section~\ref{subsubsec:fdkg_round2}):} Suppose $\Tallies = \{\Party{1}, \Party{2}, \Party{3}, \Party{4}, \Party{5}, \Party{7}\}$.
+    \item \textbf{Round 1 Online}
         \begin{itemize}
-            \item $\Party{1}$ broadcasts $(\Party{1}, \text{secret}, \PartialSecretKey{1}, \pi_{PS_1})$.
-            \item $\Party{2}$ (guardian for $\Party{1}$) decrypts $\EncryptedSharePartialSecretKey{1}{2}$ (using $\textrm{sk}_2$) to get $s_{1,2}$. Broadcasts $(\Party{2}, \text{share}, \Party{1}, s_{1,2}, \pi_{SPS_{1,2}})$.
-            \item (Similar actions for other talliers and shares).
+            \item $\Party{1}$ chooses $\GuardianSetOf{1} = \{\Party{2}, \Party{3}, \Party{5}\}$.
+            \item Generates $(\PartialSecretKey{1}, \PartialPublicKey{1})$.
+            \item Shares $\PartialSecretKey{1}$ into $s_{1,2}, s_{1,3}, s_{1,5}$.
+            \item Encrypts shares to get $\mathbb{C}_1 = \{\EncryptedSharePartialSecretKey{1}{2}, \EncryptedSharePartialSecretKey{1}{3}, \EncryptedSharePartialSecretKey{1}{5}\}$.
+            \item Generates $\pi_{FDKG_1}$ and broadcasts. Others in $\SetOfFDKG$ do similarly.
         \end{itemize}
-    \item \textbf{Offline Reconstruction:} An observer collects all valid broadcasted secrets and shares.
+
+    \item \textbf{Round 1 Offline}
         \begin{itemize}
-            \item Recovers $\PartialSecretKey{1}$ directly.
-            \item For $\Party{5}$ (assuming $\Party{5} \notin \Tallies$ or didn't reveal $\PartialSecretKey{5}$): If $\Party{3}$ (in $\GuardianSetOf{5}$) revealed $s_{5,3}$ and $\Party{7}$ (in $\GuardianSetOf{5}$) revealed $s_{5,7}$ (both with valid proofs), the observer uses these two shares ($t=2$) to $\textrm{Reconstruct}(\{\Party{3}, \Party{7}\}, \{s_{5,3}, s_{5,7}\})$ yielding $\PartialSecretKey{5}'$. Verifies $G^{\PartialSecretKey{5}'} = \PartialPublicKey{5}$.
-            \item After recovering all $\PartialSecretKey{i}$ for $\Party{i} \in \SetOfFDKG$, compute $\SecretKey = \sum \PartialSecretKey{i}$.
+            \item Once broadcasts are received, everyone computes $\PublicKey = \prod_{\Party{i} \in \SetOfFDKG} \PartialPublicKey{i}$.
+        \end{itemize}
+
+    \item \textbf{Round 2 Online}
+        \begin{itemize}
+            \item Suppose $\Tallies = \{\Party{3}, \Party{5}, \Party{7}\}$.
+            \item $\Party{3}, \Party{5}, \Party{7}$ each broadcast their $(\text{secret}, \PartialSecretKey{\cdot}, \pi_{PS_{\cdot}})$.
+            \item As guardians, they also decrypt and broadcast the necessary shares for offline parties:
+                \begin{itemize}
+                    \item $\Party{3}$ and $\Party{5}$ (guardians for $\Party{1}$) broadcast $(\text{share}, \Party{1}, s_{1,3}, \pi_{SPS_{1,3}})$ and $(\text{share}, \Party{1}, s_{1,5}, \pi_{SPS_{1,5}})$ respectively.
+                    \item $\Party{5}$ and $\Party{7}$ (guardians for $\Party{9}$) broadcast $(\text{share}, \Party{9}, s_{9,5}, \pi_{SPS_{9,5}})$ and $(\text{share}, \Party{9}, s_{9,7}, \pi_{SPS_{9,7}})$ respectively.
+                \end{itemize}
+        \end{itemize}
+
+    \item \textbf{Round 2 Offline}
+        \begin{itemize}
+            \item Collect all valid broadcasts: direct secrets from $\Party{3}, \Party{5}, \Party{7}$ and guardian shares for $\Party{1}$ and $\Party{9}$.
+            \item Reconstruct offline parties using $t=2$ shares:
+                \begin{itemize}
+                    \item For $\Party{1}$: use $\{(\Party{3}, s_{1,3}), (\Party{5}, s_{1,5})\}$ to compute $\PartialSecretKey{1}' \leftarrow \textrm{Reconstruct}(\{\Party{3}, \Party{5}\}, \{s_{1,3}, s_{1,5}\})$ and verify $G^{\PartialSecretKey{1}'} = \PartialPublicKey{1}$.
+                    \item For $\Party{9}$: use $\{(\Party{5}, s_{9,5}), (\Party{7}, s_{9,7})\}$ to compute $\PartialSecretKey{9}' \leftarrow \textrm{Reconstruct}(\{\Party{5}, \Party{7}\}, \{s_{9,5}, s_{9,7}\})$ and verify $G^{\PartialSecretKey{9}'} = \PartialPublicKey{9}$.
+                \end{itemize}
+            \item With $\PartialSecretKey{3}, \PartialSecretKey{5}, \PartialSecretKey{7}$ revealed directly and $\PartialSecretKey{1}', \PartialSecretKey{9}'$ reconstructed, compute $\SecretKey = \sum_{\Party{i} \in \SetOfFDKG} \PartialSecretKey{i}$.
         \end{itemize}
 \end{itemize}
 
 \section{Security Analysis}
 \label{sec:security_analysis}
 
-In this section, we provide a formal security analysis of the Federated Distributed Key Generation (FDKG) protocol ($\Pi_{FDKG}$). We adopt the standard simulation-based security framework commonly used for Distributed Key Generation (DKG) and Multi-Party Computation (MPC) protocols \cite{katzOptimalFullySecure2023, bonehGraduateCourseApplied2020}, addressing the need for rigorous definitions and proofs aligned with cryptographic literature. This framework involves comparing the execution of the real protocol in the presence of an adversary with an ideal execution involving a simulator and an ideal functionality.
+This section analyzes the security of $\Pi_{FDKG}$ in two phases: \emph{Generation} (Round~1) and \emph{Reconstruction} (Round~2).
+We adopt the standard real/ideal paradigm~\cite{canettiUniversallyComposableSecurity2001, katzIntroductionModernCryptography2020}.
+A detailed ideal functionality $\mathcal{F}_{FDKG}$ appears in Appendix~\ref{app:ideal_functionality}.
 
-\subsection{Security Model}
-
-\begin{itemize}
-    \item \textbf{Parties and Participation:} We consider a set of $n$ \textbf{potential} parties $\Parties = \{\Party{1}, \dots, \Party{n}\}$. In the FDKG the key generation phase is optional. The set of \textbf{actual} participants, $\SetOfFDKG \subseteq \Parties$, is unknown \textit{a priori}, but emerges during the setup phase.
-    
-    \item \textbf{Communication Model:} Parties communicate via a secure broadcast channel (emulating a bulletin board where messages are public and authenticated). Communication occurs in synchronous rounds—there is a known upper bound on message delivery time for messages sent by honest parties
-
-    \item \textbf{Adversary Model:} We consider a \textbf{static, Byzantine} adversary $\mathcal{A}$ who corrupts a subset of parties $\mathcal{C} \subset \Parties$ at the beginning of the protocol execution. The adversary is \textbf{computationally bounded} (Probabilistic Polynomial-Time, PPT) but can make corrupted parties deviate from the protocol in any arbitrary manner. The adversary controls the corrupted parties entirely, receiving their inputs and determining their messages.
-    
-    \item \textbf{Setup Requirements:} The protocol requires a pre-existing Public Key Infrastructure (PKI) where each party $\Party{i}$ has published an authenticated public encryption key $\textrm{pk}_i$ (with corresponding secret key $\textrm{sk}_i$) for the private channel mechanism (Section~\ref{subsec:encrypted_channels}). Additionally, the use of NIZK (specifically Groth16 in our implementation) presupposes the existence of a Common Reference String (CRS), $\textrm{crs}$, generated via a trusted setup procedure or an equivalent setup mechanism.
-    
-    \item \textbf{Cryptographic Assumptions:} The security proofs rely on the standard cryptographic assumptions associated with the underlying primitives:
-        \begin{itemize}
-            \item \textbf{PKE Security:} The public-key encryption scheme $(\texttt{Enc}, \texttt{Dec})$ used for private channels must be IND-CPA secure.
-            \item \textbf{NIZK Security:} The NIZK system $(\textrm{Setup}, \textrm{Prove}, \textrm{Verify})$ must provide computational soundness and zero-knowledge.
-            \item Implicitly, security relies on the hardness of the Discrete Logarithm Problem (DLP) in the underlying elliptic curve group $\mathbb{G}$.
-        \end{itemize}
-    \item \textbf{Security Definition:} Security is defined using the Real/Ideal paradigm \cite{canettiUniversallyComposableSecurity2001, katzIntroductionModernCryptography2020}. We define an ideal functionality $\mathcal{F}_{FDKG}$ that captures the desired properties of FDKG (see Figure~\ref{fig:ideal_functionality_fdkg}). The real protocol $\Pi_{FDKG}$ securely realizes $\mathcal{F}_{FDKG}$ if for any PPT adversary $\mathcal{A}$ controlling a set $\mathcal{C}$ in the real world, there exists a PPT simulator $\mathcal{S}$ controlling $\mathcal{C}$ in the ideal world such that no PPT environment $\mathcal{Z}$ can distinguish between interacting with $\mathcal{A}$ and the real protocol, or with $\mathcal{S}$ and the ideal functionality $\mathcal{F}_{FDKG}$.
-\end{itemize}
-
-
-\subsection{Ideal Functionality $\mathcal{F}_{FDKG}$}
-
-The ideal functionality $\mathcal{F}_{FDKG}$ interacts with the parties $\Party{1}, \dots, \Party{n}$ and a simulator $\mathcal{S}$. It is parameterized by system parameters (group $\mathbb{G}$, generator $G$), FDKG parameters $(t, k)$, and dynamically tracks participation. Its formal description is provided in Figure~\ref{fig:ideal_functionality_fdkg}.
-
-\begin{figure*}[!ht] % Use figure* for two-column spanning if needed
-\hrule\medskip
-\centerline{\textbf{Ideal Functionality} $\mathcal{F}^{n,t,k}_{FDKG}$}
-\medskip\hrule
-\newcounter{fstep-fdkg-fig} % Use a unique counter name for the figure list
-\begin{list}{\arabic{fstep-fdkg-fig}.}{\usecounter{fstep-fdkg-fig}\leftmargin=1.5em\itemsep=2pt\labelwidth=1em\leftmargin=\labelwidth\labelsep=0.5em}
-    
-    \item \textbf{Initialization:}
-        \begin{itemize}
-            \item Waits to receive (Init, $\mathcal{C}$) from the simulator $\mathcal{S}$. Stores the set of corrupted parties $\mathcal{C}$. Let $\mathcal{H} = \Parties \setminus \mathcal{C}$.
-            \item Initializes an empty set of participants $\SetOfFDKG = \emptyset$.
-            \item Initializes empty storage for polynomials $f_i$ and guardian sets $\GuardianSetOf{i}$ for all $i \in \Parties$.
-            \item Initializes state flag `phase` = 'activation'.
-        \end{itemize}
-
-    \item \textbf{Honest Party Activation:} Upon receiving (ActivateHonest, $i, \GuardianSetOf{i}$) from the simulator $\mathcal{S}$ (indicating honest party $\Party{i} \in \mathcal{H}$ decides to participate):
-        \begin{itemize}
-            \item If `phase` is 'activation' and $\Party{i} \notin \SetOfFDKG$:
-                \begin{itemize}
-                    \item Add $\Party{i}$ to $\SetOfFDKG$. 
-                    \item Store the provided guardian set $\GuardianSetOf{i}$ (verify $|\GuardianSetOf{i}| = k$, $\Party{i} \notin \GuardianSetOf{i}$).
-                    \item Choose a random polynomial $f_i(X)$ of degree $t-1$ over $\mathbb{Z}_q$ and store it.
-                    \item Send (Activated, $i$) back to the simulator $\mathcal{S}$. % Confirmation to S
-                \end{itemize}
-        \end{itemize}
-        
-    \item \textbf{Corrupt Party Activation:} Upon receiving (ActivateCorrupt, $i, f_i, \GuardianSetOf{i}$) from the simulator $\mathcal{S}$ (on behalf of $\Party{i} \in \mathcal{C}$):
-        \begin{itemize}
-             \item If `phase` is 'activation' and $\Party{i} \notin \SetOfFDKG$:
-                 \begin{itemize}
-                     \item Add $\Party{i}$ to $\SetOfFDKG$. 
-                     \item Verify degree of $f_i$ is $t-1$, $|\GuardianSetOf{i}|=k$, $\Party{i} \notin \GuardianSetOf{i}$. Store valid $f_i$ and $\GuardianSetOf{i}$.
-                 \end{itemize}
-        \end{itemize}
-
-    \item \textbf{Key Computation Trigger:} Upon receiving (ComputeKeys) from the simulator $\mathcal{S}$\footnote{Note on Round Termination: For simplicity in the ideal functionality $\mathcal{F}_{FDKG}$, we model the transition from the activation phase to the key computation phase via this `(ComputeKeys)` trigger sent by the simulator. In a real-world deployment, particularly on a blockchain, the end of the distribution phase would typically be determined by external environmental factors like block height or a predetermined time duration, not controlled by the adversary. Participants submitting messages after this cutoff would be excluded. Our security analysis focuses on the correctness and privacy properties based on valid participation within the allowed timeframe, assuming the round termination mechanism itself is robust. The core security guarantees derived from the underlying cryptography (IND-CPA PKE, NIZK soundness/ZK) are not fundamentally affected by this modeling simplification.}:
-        \begin{itemize}
-            \item If `phase` is 'activation':
-                \begin{itemize}
-                    \item Set `phase` = 'computed'.
-                    \item If $\SetOfFDKG = \emptyset$: Send (KeysComputed, null, $\emptyset$, $\emptyset$, $\emptyset$, $\emptyset$) to $\mathcal{S}$ and stop this trigger processing.
-                    \item For each $\Party{k} \in \SetOfFDKG$: Define $\PartialSecretKey{k} := f_k(0)$ and $\PartialPublicKey{k} := G^{\PartialSecretKey{k}}$. Let $\mathbb{E} = \{\PartialPublicKey{k}\}_{k \in \SetOfFDKG}$.
-                    \item Compute global secret key $\SecretKey := \sum_{k \in \SetOfFDKG} \PartialSecretKey{k} \pmod{q}$ and global public key $\PublicKey := G^{\SecretKey}$.
-                    \item For each $k \in \SetOfFDKG$ and each $j$ s.t. $\Party{j} \in \GuardianSetOf{k}$: Compute share $\SharePartialSecretKey{k}{j} := f_k(j)$.
-                    \item Send (KeysComputed, $\PublicKey$, $\mathbb{E}$, $\{\GuardianSetOf{k}\}_{k \in \SetOfFDKG \cap \mathcal{H}}$, $\{(\PartialSecretKey{k}, f_k, \GuardianSetOf{k})\}_{k \in \SetOfFDKG \cap \mathcal{C}}$, $\{ \SharePartialSecretKey{k}{j} \mid k \in \SetOfFDKG, \Party{j} \in \GuardianSetOf{k} \cap \mathcal{C} \}$) to the simulator $\mathcal{S}$.
-                    \item For each honest participant $\Party{i} \in \SetOfFDKG \cap \mathcal{H}$: Send (Output, $\PublicKey$, $\mathbb{E}$, $\PartialSecretKey{i}$, $\GuardianSetOf{i}$, $\{ \SharePartialSecretKey{k}{i} \mid k \in \SetOfFDKG, \Party{i} \in \GuardianSetOf{k} \}$) to $\Party{i}$.
-                \end{itemize}
-        \end{itemize}
-
-\end{list}
-\medskip\hrule
-\caption{Ideal functionality for Federated Distributed Key Generation $\mathcal{F}^{n,t,k}_{FDKG}$.}
-\label{fig:ideal_functionality_fdkg} % Updated label
-\end{figure*}
-
-\subsection{Security of the FDKG Protocol}
-We claim that our FDKG protocol ($\Pi_{FDKG}$, described in Section~\ref{sec:fdkg}) securely realizes the ideal functionality $\mathcal{F}_{FDKG}$.
-
-\begin{theorem}[Security of FDKG Generation]
-\label{thm:security_fdkg_generation}
-Assume the public-key encryption scheme $(\texttt{Enc}, \texttt{Dec})$ used for the private channel is IND-CPA secure, and the NIZK $(\textrm{Setup}, \textrm{Prove}, \textrm{Verify})$ is zero-knowledge and computationally sound. Then, the protocol $\Pi_{FDKG}$ securely realizes the ideal functionality $\mathcal{F}_{FDKG}$ against static adversaries corrupting any set $\mathcal{C} \subset \Parties$.
-\end{theorem}
-
-\begin{proof}[Proof Sketch (Simulation Argument)]
-We demonstrate the security of $\Pi_{FDKG}$ by constructing a PPT simulator $\mathcal{S}$ that interacts with the ideal functionality $\mathcal{F}_{FDKG}$ (Figure~\ref{fig:ideal_functionality_fdkg}) and any PPT adversary $\mathcal{A}$ attacking the real protocol $\Pi_{FDKG}$. The goal is to show that the view of $\mathcal{A}$ when interacting with $\mathcal{S}$ in the ideal world is computationally indistinguishable from its view when interacting with honest parties running $\Pi_{FDKG}$ in the real world. This implies that $\Pi_{FDKG}$ securely realizes $\mathcal{F}_{FDKG}$.
-
-The simulator $\mathcal{S}$ internally simulates the execution environment for $\mathcal{A}$. It proceeds as follows:
-
+\subsection{Security Model and Assumptions}
+\label{subsec:security_model}
 
 \begin{enumerate}
-    \item \textbf{Setup:} $\mathcal{S}$ receives the corrupted set $\mathcal{C}$ from $\mathcal{A}$ and forwards it to $\mathcal{F}_{FDKG}$ via (Init, $\mathcal{C}$). $\mathcal{S}$ receives PKE public keys $\{\textrm{pk}_i\}_{i \in \mathcal{C}}$ from $\mathcal{A}$ and generates honest key pairs $(\textrm{pk}_i, \textrm{sk}_i)$ for $i \in \mathcal{H}$. $\mathcal{S}$ provides $\mathcal{A}$ with all public PKE keys $\{\textrm{pk}_i\}_{i \in \Parties}$.
+    \item \textbf{Parties and communication.} There are $n$ potential parties $\Parties=\{\Party{1},\ldots,\Party{n}\}$. Communication occurs over an authenticated public broadcast channel in \emph{synchronous} rounds.
+    \item \textbf{Adversary.} Unless stated otherwise, the adversary is \emph{static} probabilistic polynomial time (PPT) and corrupts a fixed subset $\Corrupted \subset \Parties$ before the protocol starts; corrupted parties are fully Byzantine. Let $\mathcal{H}=\Parties \setminus \Corrupted$ denote the honest set. Honest parties may be unavailable in Round~2 (crash/absence), which affects liveness. Section~\ref{subsec:adaptive_integrated} discusses adaptive adversaries and targeted attacks.
+    \item \textbf{Cryptographic assumptions.}
     
-    \item \textbf{Simulating Round 1 (Distribution Phase):}
-        \begin{itemize}
-            \item \textbf{Corrupt Party Actions:} When $\mathcal{A}$ decides a corrupt party $\Party{i} \in \mathcal{C}$ should participate and broadcasts its message $(\PartialPublicKey{i}, \{\EncryptedSharePartialSecretKey{i}{j}\}_{j \in \GuardianSetOf{i}}, \pi_{FDKG_i})$:
-                \begin{itemize}
-                    \item $\mathcal{S}$ verifies the proof $\pi_{FDKG_i}$ using the public parameters and statement components derived from the message. If invalid, $\mathcal{S}$ flags this internally.
-                    \item $\mathcal{S}$ extracts the claimed polynomial $f_i$ and guardian set $\GuardianSetOf{i}$ from $\mathcal{A}$'s internal state or message.
-                    \item $\mathcal{S}$ sends (ActivateCorrupt, $i, f_i, \GuardianSetOf{i}$) to $\mathcal{F}_{FDKG}$.
-                 \end{itemize}
-            
-            \item \textbf{Simulating Honest Party Actions:} $\mathcal{S}$ must decide which honest parties $\Party{i} \in \mathcal{H}$ participate in this round. This decision can be based on instructions from the environment or a default strategy (e.g., all honest parties participate). For each honest party $\Party{i}$ chosen to participate:
-                 \begin{itemize}
-                    \item $\mathcal{S}$ selects a guardian set $\GuardianSetOf{i}$ for $\Party{i}$ (consistent with honest behavior, e.g., randomly chosen from $\Parties \setminus \{\Party{i}\}$).
-                    \item $\mathcal{S}$ informs the ideal functionality by sending (Activate, $\GuardianSetOf{i}$) on behalf of $\Party{i}$. $\mathcal{S}$ subsequently receives confirmation (Activated, $i$) from $\mathcal{F}_{FDKG}$.
-                 \end{itemize}
-            
-            \item \textbf{Triggering Key Computation in Ideal World:} Once $\mathcal{S}$ determines that all parties wishing to participate (from $\mathcal{A}$'s perspective) have declared their intent (i.e., corrupt parties have sent messages, honest parties' participation decided by $\mathcal{S}$), $\mathcal{S}$ sends (ComputeKeys) to $\mathcal{F}_{FDKG}$.
-            
-            \item \textbf{Receiving Ideal Outputs:} $\mathcal{S}$ receives the message (KeysComputed, $\PublicKey$, $\{\PartialPublicKey{k}\}_{k \in \SetOfFDKG}$, $\{\GuardianSetOf{k}\}_{k \in \SetOfFDKG \cap \mathcal{H}}$, corrupt party details, $\{\SharePartialSecretKey{k}{j} \mid k \in \SetOfFDKG, \Party{j} \in \GuardianSetOf{k} \cap \mathcal{C}\}$) from $\mathcal{F}_{FDKG}$. This defines the set $\SetOfFDKG$ of valid participants whose contributions were accepted by the ideal functionality.
-            \item \textbf{Constructing and Delivering Simulated Broadcasts:} For each honest party $\Party{i} \in \SetOfFDKG \cap \mathcal{H}$, $\mathcal{S}$ constructs a simulated broadcast message $(\Party{i}, \PartialPublicKey{i}, \GuardianSetOf{i}, \{\EncryptedSharePartialSecretKey{i}{j}\}_{\Party{j} \in \GuardianSetOf{i}}, \pi_{FDKG_i}^{sim})$ where:
-                 \begin{itemize}
-                    \item $\PartialPublicKey{i}$ and $\GuardianSetOf{i}$ are taken from the information received from $\mathcal{F}_{FDKG}$.
-                    \item $\{\EncryptedSharePartialSecretKey{i}{j}\}_{\Party{j} \in \GuardianSetOf{i}}$ consists of ciphertexts encrypting dummy values (e.g., 0). For each $\Party{j} \in \GuardianSetOf{i}$, $\mathcal{S}$ samples  PKE randomness $\textrm{rand}_{i,j}$ and computes $\EncryptedSharePartialSecretKey{i}{j} \leftarrow \texttt{Enc}(\textrm{pk}_j,0, \textrm{rand}_{i,j})$.
-                    \item $\pi_{FDKG_i}^{sim}$ is a simulated NIZK proof generated using the NIZK simulator: $\pi_{FDKG_i}^{sim} \leftarrow \textrm{Sim}_{\textrm{NIZK}}(\textrm{crs}, (\PartialPublicKey{i}, \{\textrm{pk}_j\}_{\Party{j} \in \GuardianSetOf{i}}, \{\EncryptedSharePartialSecretKey{i}{j}\}_{\Party{j} \in \GuardianSetOf{i}}))$.
-                \end{itemize}
-            $\mathcal{S}$ then presents the complete set of broadcast messages (real ones from $\mathcal{A}$ for corrupt $i \in \SetOfFDKG \cap \mathcal{C}$, and simulated ones $M_i^{sim}$ for honest $i \in \SetOfFDKG \cap \mathcal{H}$) to $\mathcal{A}$.
-            
-        \end{itemize}
-    \item \textbf{Final Output:} $\mathcal{S}$ runs $\mathcal{A}$ until it terminates and outputs whatever $\mathcal{A}$ outputs.
+    \begin{itemize}
+        \item \textbf{PKE security.} The channel for encrypted shares $(\textrm{Enc}, \textrm{Dec})$ (Section~\ref{subsec:encrypted_channels}) is assumed \emph{IND-CPA} secure. In our implementation this is an ElGamal variant over the BabyJub subgroup. Security reduces to the \emph{DDH} assumption (and ultimately DLP hardness) in this group; ciphertext malleability is acceptable because correctness is enforced by NIZK soundness. Any alternative IND-CPA PKE could be substituted.
+
+        \item \textbf{NIZK security.} The proof system $(\textrm{Setup}, \textrm{Prove}, \textrm{Verify})$ (Section~\ref{subsec:nizk}) is assumed computationally sound and zero-knowledge in the CRS model. We instantiate Groth16 over the \emph{BN254} pairing curve (also known as \emph{bn128}, the default in \texttt{circom}/\texttt{snarkjs}); this uses a circuit-specific structured reference string (SRS) generated in a trusted setup. Soundness relies on standard pairing-group assumptions on BN254; zero-knowledge follows from the Groth16 simulator. Other systems (e.g., PLONK/Marlin with a universal updatable SRS~\cite{gabizonPLONKPermutationsLagrangebases2019,chiesaMarlinPreprocessingZkSNARKs2019}, or STARKs with transparent setup~\cite{ben-sassonScalableTransparentPostquantum2018}) are compatible at the level of assumptions used here, trading proof size/proving time for setup properties and security level.
+
+        \item \textbf{Discrete logarithm hardness.} We assume DLP hardness in (i) the BabyJub subgroup used for ElGamal and (ii) the pairing groups induced by the chosen SNARK curve, as applicable.
+    \end{itemize}
 \end{enumerate}
 
-\textbf{Indistinguishability Argument:}
-The core of the security proof is arguing that the view provided to $\mathcal{A}$ by $\mathcal{S}$ in the ideal world is computationally indistinguishable from $\mathcal{A}$'s view in the real world. This relies on the security properties of the underlying cryptographic primitives:
+\subsection{Security of the Generation Phase (Round 1)}
+\label{subsec:gen_security}
 
-\begin{itemize}
-    \item \textbf{Simulated vs. Real NIZK Proofs:} The proofs $\pi_{FDKG_i}$ generated by honest parties in the real world are replaced by simulated proofs $\pi_{FDKG_i}^{sim}$ generated by $\mathcal{S}$ using the NIZK simulator. The \textbf{zero-knowledge property} of the NIZK system guarantees that $\mathcal{A}$ cannot distinguish between real and simulated proofs.
+We prove Generation-phase security in the real/ideal paradigm using the ideal functionality $\mathcal{F}_{FDKG}$ (Appendix~\ref{app:ideal_functionality}).
+Informally, the simulator replaces honest encrypted shares by encryptions of $0$ and uses the NIZK simulator to generate proofs; IND-CPA and zero-knowledge imply indistinguishability, while NIZK soundness enforces well-formedness. The following theorem summarizes the resulting properties.
 
+\begin{theorem}[Generation: Correctness, Privacy, Robustness]
+\label{thm:security_fdkg_generation_formal}
+Assume the PKE is IND-CPA and the NIZK is zero-knowledge and computationally sound.
+For the set of valid participants $\SetOfFDKG$ determined by verification:
+\begin{enumerate}
+\item \textbf{Correctness.}
+For each $i\in\SetOfFDKG$, $\PartialPublicKey{i}=G^{\PartialSecretKey{i}}$ and
+\[
+\PublicKey \;=\; \prod_{i\in\SetOfFDKG}\PartialPublicKey{i}
+\;=\; G^{\sum_{i\in\SetOfFDKG}\PartialSecretKey{i}}.
+\]
+Moreover, every published $\EncryptedSharePartialSecretKey{i}{j}$ encrypts $f_i(j)$
+for a degree-$(t\!-\!1)$ polynomial $f_i$ with $f_i(0)=\PartialSecretKey{i}$.
 
-    \item \textbf{Simulated vs. Real Encrypted Shares:} Consider the ciphertexts $\{\EncryptedSharePartialSecretKey{i}{j}\}$ broadcast by an honest party $\Party{i}$. 
-        \begin{itemize}
-            \item If the recipient $\Party{j}$ is also honest ($\Party{j} \in \mathcal{H}$), $\mathcal{A}$ does not possess the secret key $\textrm{sk}_j$ required for decryption. In the real world, $\EncryptedSharePartialSecretKey{i}{j}$ encrypts the real share $s_{i,j}$. In the simulation, it encrypts a dummy value (e.g., 0). By the \textbf{IND-CPA security} of the PKE scheme, $\mathcal{A}$ cannot distinguish these ciphertexts.
-            \item If the recipient $\Party{j}$ is corrupt ($\Party{j} \in \mathcal{C}$), $\mathcal{A}$ possesses $\textrm{sk}_j$. In the real world, $\EncryptedSharePartialSecretKey{i}{j}$ encrypts the real share $s_{i,j}$. In the simulation, $\mathcal{F}_{FDKG}$ provides the actual share $s_{i,j}$ to $\mathcal{S}$. $\mathcal{S}$ can use this $s_{i,j}$ to compute the "correct" ciphertext $\EncryptedSharePartialSecretKey{i}{j}$ using fresh randomness and provide this to $\mathcal{A}$ in the simulated broadcast message $M_i^{sim}$. Alternatively, if $\mathcal{S}$ encrypts a dummy value, the indistinguishability relies on the combination of IND-CPA and the fact that the overall view remains consistent due to the later steps. The crucial aspect is that $\mathcal{S}$ can provide $\mathcal{A}$ with exactly the information it is entitled to (shares sent to corrupted parties).
-        \end{itemize}
-        
-    \item \textbf{Consistency of Public Keys:} The partial public keys $\PartialPublicKey{i}$ for honest participants are provided by $\mathcal{F}_{FDKG}$ based on its internal random polynomial choices. For corrupt participants, $\mathcal{A}$ provides $\PartialPublicKey{i}$ along with $\pi_{FDKG_i}$. The \textbf{computational soundness} of the NIZK ensures that $\mathcal{A}$ cannot produce a valid proof $\pi_{FDKG_i}$ for a pair $(\PartialPublicKey{i}, \mathbb{C}_i)$ that is inconsistent with some underlying polynomial $f_i(X)$ (up to negligible probability). Therefore, the set of partial keys $\{\PartialPublicKey{i}\}_{i \in \SetOfFDKG}$ and the derived global key $\PublicKey$ have computationally indistinguishable distributions in the real and ideal worlds.
+\item \textbf{Privacy (during Generation).}
+The adversary’s view leaks no information about
+$\{\PartialSecretKey{i}\}_{i\in \SetOfFDKG\cap(\Parties\setminus\Corrupted)}$
+beyond $(\PublicKey,\{\PartialPublicKey{i}\}_{i\in\SetOfFDKG})$ and the shares explicitly addressed to corrupted recipients
+$\{\SharePartialSecretKey{i}{j}\mid j\in\GuardianSetOf{i}\cap\Corrupted\}$.
 
-    \item \textbf{Participation and Guardian Sets:} The process by which the set of valid participants $\SetOfFDKG$ is determined (based on valid proofs) and how guardian sets $\GuardianSetOf{i}$ for honest parties are chosen and communicated is consistent between the simulation and the real protocol execution flow.
-\end{itemize}
-Combining these points, we conclude that any PPT adversary $\mathcal{A}$'s view in the simulation is computationally indistinguishable from its view in the real protocol execution, assuming the underlying PKE scheme is IND-CPA secure and the NIZK system is zero-knowledge and computationally sound. This completes the proof sketch.
+\item \textbf{Robustness (completion).}
+Malformed broadcasts (invalid proofs) are rejected; corrupted parties cannot force
+incorrect acceptance. Honest parties with valid broadcasts are included in
+$\SetOfFDKG$ and obtain their outputs as per $\mathcal{F}_{FDKG}$.
+\end{enumerate}
+\end{theorem}
+
+\begin{proof}[Proof sketch]
+Simulate honest parties by encrypting $0$ and using simulated NIZKs; IND-CPA and zero-knowledge yield indistinguishability. NIZK soundness binds each dealer’s ciphertexts to a single polynomial and $\PartialPublicKey{i}$, ensuring well-formedness. Verification excludes malformed data, implying robustness.
+\end{proof}
+
+\subsection{Security of the Reconstruction Phase (Round 2)}
+\label{subsec:recon_security}
+
+This subsection assumes the Generation phase completed successfully (Theorem~\ref{thm:security_fdkg_generation_formal}) and that the Round~2 NIZKs ($\pi_{PS_i}$, $\pi_{SPS_{i,j}}$) are computationally sound. We analyze \emph{Correctness}, \emph{Privacy (reconstruction)}, and \emph{Liveness}.
+
+\paragraph{Notation for Reconstruction}
+
+Define the family of reconstruction-capable sets
+\begin{equation}
+\label{eq:R}
+R \;:=\; \Bigl\{\, S \subseteq \Parties \ \Big|\ \forall i\in\SetOfFDKG:\ i\in S \ \ \lor\ \ |S\cap \GuardianSetOf{i}|\ge t \,\Bigr\}.
+\end{equation}
+
+Intuitively, $S\in R$ iff, for every participant $i$, $S$ contains either $i$ or at least $t$ of $i$’s guardians. Round~2 privacy and liveness depend on the guardian topology $\{\GuardianSetOf{i}\}$ via $R$ rather than on a single global corruption fraction, as in traditional uniform DKGs.
+
+\begin{theorem}[Reconstruction: Correctness]
+\label{thm:recon_correctness}
+If for every $i\in\SetOfFDKG$ either (i) there is a valid broadcast $(\Party{i},\text{secret},\PartialSecretKey{i},\pi_{PS_i})$, or (ii) there exist $t$ distinct guardians $j\in\GuardianSetOf{i}$ with valid broadcasts $(\Party{j},\text{share},\Party{i},s_{i,j},\pi_{SPS_{i,j}})$, then any observer reconstructs the unique
+\(
+\SecretKey=\sum_{i\in\SetOfFDKG}\PartialSecretKey{i}.
+\)
+Moreover, checking $G^{\PartialSecretKey{i}}=\PartialPublicKey{i}$ prevents substitution.
+\end{theorem}
+
+\begin{proof}[Proof sketch]
+By SSS, any $t$ correct shares interpolate $f_i(0)=\PartialSecretKey{i}$. Soundness of $\pi_{PS_i}$ and $\pi_{SPS_{i,j}}$ ensures that only values consistent with Round-1 commitments are accepted. Summing over $i$ yields $\SecretKey$.
+\end{proof}
+
+\begin{theorem}[Reconstruction: Privacy]
+\label{thm:recon_privacy}
+The adversary can reconstruct the global secret if and only if there exists a set $S\subseteq \Corrupted$ such that $S\in R$.
+Equivalently, \emph{reconstruction privacy holds} iff $\Corrupted\notin R$.
+
+\end{theorem}
+
+\begin{proof}[Proof sketch]
+If the adversary reconstructs, it must possess, for each $i$, either $i$’s partial secret (when $i\in\Corrupted$) or $t$ decryptable guardian shares (when $t$ guardians are corrupted). Collect those principals into $S$; then $S\subseteq\Corrupted$ and $S\in R$.
+
+Conversely, if $S\subseteq\Corrupted$ and $S\in R$, then for every $i$ the adversary controls either $i$ or $t$ guardians. In the first case it knows $\PartialSecretKey{i}$; in the second it decrypts $t$ shares and reconstructs $\PartialSecretKey{i}$. Summing yields $\SecretKey$.
 \end{proof}
 
 
-\subsection{FDKG Security Properties}
-
-The simulation-based security theorem (Theorem~\ref{thm:security_fdkg_generation}) implies the following essential security properties for the FDKG \textit{generation phase} (Round 1):
-
-\begin{itemize}
-    \item \textbf{Correctness:} For the set of valid participants $\SetOfFDKG$, the protocol outputs are correctly formed according to the protocol specification. That is, the computed global public key $\PublicKey$ corresponds to the sum of the implicit partial secret keys $\PublicKey = G^{\sum_{i \in \SetOfFDKG} \PartialSecretKey{i}}$, each partial public key relates correctly to its partial secret key $\PartialPublicKey{i} = G^{\PartialSecretKey{i}}$, and the encrypted shares $\EncryptedSharePartialSecretKey{i}{j}$ correspond to the correct evaluations $f_i(j)$ of the underlying polynomial $f_i(X)$ defining $\PartialSecretKey{i} = f_i(0)$. This is guaranteed by the definition of $\mathcal{F}_{FDKG}$ in the ideal world and by the computational soundness of the NIZK proofs $\pi_{FDKG_i}$ in the real world.
-
-    \item \textbf{Privacy:} The adversary $\mathcal{A}$ (controlling the set $\mathcal{C}$) learns no information about the partial secret keys $\PartialSecretKey{i}$ of honest participants ($i \in \mathcal{H} \cap \SetOfFDKG$) or the final global secret key $\SecretKey$, beyond what can be inferred from the public information ($\PublicKey$, $\{\PartialPublicKey{i}\}_{i \in \SetOfFDKG}$) and the shares explicitly sent to corrupted parties ($\{\SharePartialSecretKey{i}{j} \mid \Party{j} \in \GuardianSetOf{i} \cap \mathcal{C}\}$). This follows from the indistinguishability argument in the proof sketch: the simulator $\mathcal{S}$ constructs $\mathcal{A}$'s view without access to honest parties' secrets, relying on the IND-CPA security of the PKE and the zero-knowledge property of the NIZK system.
-
-    \item \textbf{Robustness (During Generation):} Honest participating parties ($\mathcal{H} \cap \SetOfFDKG$) successfully complete the key generation phase and obtain their outputs (their partial secret $\PartialSecretKey{i}$, the global public key $\PublicKey$, etc.) as defined by the ideal functionality $\mathcal{F}_{FDKG}$, irrespective of the (mis)behavior of corrupted parties. Malicious parties $\Party{j} \in \mathcal{C}$ cannot prevent protocol completion for honest parties other than by failing to participate or by broadcasting messages with invalid proofs $\pi_{FDKG_j}$, which are simply ignored by observers (as reflected in the Post-Round 1 processing).
-\end{itemize}
-
-\subsection{Liveness of Key Reconstruction}
-\label{subsec:liveness_reconstruction}
-
-Distinct from the security properties of the generation phase, \textbf{Liveness} addresses the success of the \textit{reconstruction phase} (Round 2). It guarantees that the global secret key $\SecretKey$ can be recovered if enough participants and their guardians are available and behave honestly during this second phase. This property assumes the generation phase successfully realized $\mathcal{F}_{FDKG}$.
-
-\begin{definition}[Liveness of Reconstruction]
-\label{def:liveness}
-The FDKG protocol achieves \textbf{Liveness of Reconstruction} if, for every participant $\Party{i} \in \SetOfFDKG$ whose contribution $\PartialSecretKey{i}$ is required for an application using the key, at least one of the following conditions holds during the reconstruction phase:
-\begin{itemize}
-    \item $\Party{i}$ is honest and available, and successfully broadcasts $(\Party{i}, \text{secret}, \PartialSecretKey{i}, \pi_{PS_i})$ where $\pi_{PS_i}$ is valid.
-    \item At least $t$ distinct parties $\{\Party{j_1}, \dots, \Party{j_t}\} \subseteq \GuardianSetOf{i}$ are honest and available, and each successfully broadcasts $(\Party{j_r}, \text{share}, \Party{i}, s_{i,j_r}, \pi_{SPS_{i,j_r}})$ where $\pi_{SPS_{i,j_r}}$ is valid.
-\end{itemize}
-\end{definition}
-
-Liveness fails for a specific $\PartialSecretKey{i}$ if the adversary controls $\Party{i}$ (preventing the first condition) \textit{and} controls at least $k - t + 1$ parties in $\GuardianSetOf{i}$ (preventing the second condition) during the reconstruction phase.
-
-\begin{theorem}[Liveness of Reconstruction]
-\label{thm:liveness_reconstruction}
-Assume the FDKG generation phase completed successfully (realizing $\mathcal{F}_{FDKG}$). Assume the NIZK proofs used in the reconstruction phase ($\pi_{PS_i}$, $\pi_{SPS_{j,i}}$) are computationally sound. The FDKG protocol achieves Liveness of Reconstruction if, for every participant $\Party{i} \in \SetOfFDKG$, the adversary does not control both $\Party{i}$ and $k - t + 1$ guardians in $\GuardianSetOf{i}$ during the reconstruction phase.
+\begin{theorem}[Reconstruction: Liveness]
+\label{thm:recon_liveness}
+The adversary cannot prevent reconstruction if and only if there exists a set $S\in R$ such that $S\subseteq U\setminus \Corrupted$.
+Equivalently,
+\[
+\forall i\in\SetOfFDKG:\ \bigl(i\notin \Corrupted\bigr)\ \ \lor\ \ \bigl(|\Corrupted\cap \GuardianSetOf{i}| \le k-t\bigr).
+\]
 \end{theorem}
 
-\begin{proof}[Proof Sketch]
-The proof relies on the properties of SSS and the soundness of the NIZK proofs $\pi_{PS_i}$ and $\pi_{SPS_{j,i}}$. For any $\Party{i} \in \SetOfFDKG$:
-\begin{enumerate}
-    \item If $\Party{i}$ is honest/available in Round 2, it broadcasts $\PartialSecretKey{i}$ and $\pi_{PS_i}$. Soundness ensures $\pi_{PS_i}$ only verifies if $\PartialSecretKey{i}$ corresponds to $\PartialPublicKey{i}$.
-    \item If $\Party{i}$ is corrupt/unavailable, reconstruction depends on its guardians $\GuardianSetOf{i}$. If the adversary controls fewer than $k-t+1$ guardians in $\GuardianSetOf{i}$, then at least $t$ guardians are honest/available. Each such honest guardian $\Party{j} \in \GuardianSetOf{i}$ will decrypt $\EncryptedSharePartialSecretKey{i}{j}$ to get $s_{i,j}$ using $\textrm{sk}_j$, and broadcast $s_{i,j}$ with $\pi_{SPS_{i,j}}$. Soundness ensures $\pi_{SPS_{i,j}}$ only verifies if $s_{i,j}$ is the correct decryption of $\EncryptedSharePartialSecretKey{i}{j}$ using $\textrm{sk}_j$. Correctness of Round 1 (guaranteed by soundness of $\pi_{FDKG_i}$) ensures $\EncryptedSharePartialSecretKey{i}{j}$ encrypted $f_i(j)$. Thus, the observer obtains at least $t$ valid shares $\{s_{i,j} = f_i(j)\}$. By SSS properties, these $t$ shares allow reconstruction of $\PartialSecretKey{i} = f_i(0)$.
-\end{enumerate}
-The theorem's condition ensures that at least one of these two recovery methods is available for each $\PartialSecretKey{i}$, thus guaranteeing $\SecretKey = \sum \PartialSecretKey{i}$ can be computed.
+\begin{proof}[Proof sketch]
+If such $S$ exists, then $S$ contains, for each $i$, either $i$ or $t$ honest guardians; reconstruction proceeds as in Theorem~\ref{thm:recon_correctness}. 
+
+Conversely, if no such $S$ exists, then for some $i$ the adversary controls $i$ and at least $k-t+1$ of $\GuardianSetOf{i}$, preventing both direct revelation and a $t$-guardian reconstruction path; hence liveness fails.
 \end{proof}
+
+\paragraph*{Potential attacks and mitigations}
+\emph{Share withholding / selective opening} in Round~2 is captured by Theorem~\ref{thm:recon_liveness}: liveness fails for $i$ only if the adversary both corrupts $i$ and at least $k{-}t{+}1$ of $\GuardianSetOf{i}$. \emph{Forgery or equivocation} is ruled out by soundness of $\pi_{PS_i}$ and $\pi_{SPS_{i,j}}$. \emph{Guardian concentration attacks} (attracting many delegations to a small set of guardians) increase redundancy under random churn but reduce privacy thresholds under adaptivity (Theorem~\ref{thm:recon_privacy}); deployers can mitigate by (i) capping per-guardian incoming delegations, (ii) diversifying recommendation lists, (iii) sampling a fraction of guardians via a verifiable random function (VRF), and (iv) rate-limiting or staking for high-degree guardians. Finally, \emph{Sybil guardians} are out of scope of our PKI model but can be addressed operationally via admission controls (identity or stake).
+
+\paragraph*{On topology dependence}
+Two extreme cases illustrate the role of overlap:
+\begin{itemize}
+\item \emph{Disjoint guardians.} If $\GuardianSetOf{i}\cap \GuardianSetOf{i'}=\varnothing$ for $i\neq i'$, then making a fixed $i$ unrecoverable requires at least $1+(k-t+1)$ targeted corruptions (participant $i$ and $k-t+1$ distinct guardians).
+\item \emph{Full overlap.} If $\GuardianSetOf{i}=\GuardianSetOf{}$ for all $i$, then corrupting $k-t+1$ parties in $\GuardianSetOf{}$ makes every corrupted participant $i$ unrecoverable. Thus, the fraction of corruptions needed to break liveness or privacy depends on $\{\GuardianSetOf{i}\}$.
+\end{itemize}
+Next section empirically studies overlap policies (Random vs.\ Barabási–Albert) and their impact on success rates.
 
 
 \section{Liveness Simulations}
 \label{sec:liveness_simulations}
 
-To evaluate FDKG's resilience under realistic deployment conditions, we conducted simulations exploring its performance under various parameter settings, comparing its liveness properties against expectations from traditional DKG under similar failure models. Our analysis focuses on three aspects: 1) parameter sensitivity, 2) scalability across network sizes, and 3) topology-dependent performance characteristics. The primary objective was to determine which configurations optimize liveness under varying conditions, thereby offering insights for practical deployment.
+This section empirically evaluates \emph{liveness} under non-adversarial (random) churn. The goal is to estimate, for a configuration $(n,p,r,k,t)$ and a guardian-selection policy, the probability that the Round~2 reconstruction predicate induced by~\eqref{eq:R} is satisfied. These experiments complement the conditions in Theorems~\ref{thm:recon_liveness} and~\ref{thm:recon_privacy}: they do not constitute a cryptographic proof, but quantify the operational regimes where reconstruction is likely to succeed in the presence of availability failures.
 
-\subsection{Simulation Methodology}
-\label{subsec:methodology}
+\paragraph*{Evaluation predicate}
+Let $\SetOfFDKG$ be the set of valid Round~1 participants and $\Tallies\subseteq\Parties$ be the Round~2 actors that are present. A trial is a \emph{success} iff
+\begin{equation}
+\label{eq:liveness_predicate}
+\forall i \in \SetOfFDKG:\quad \bigl(i \in \Tallies\bigr)\ \ \lor\ \ \bigl(\bigl|\Tallies \cap \GuardianSetOf{i}\bigr| \ge t\bigr),
+\end{equation}
+i.e., iff $\Tallies\in R$ with $R$ as in~(\ref{eq:R}); see Theorem~\ref{thm:recon_liveness}.
 
-We developed a simulation framework implementing both FDKG and standard DKG dynamics across two network topologies. Each simulation involves the following steps:
 
-\begin{enumerate}
-    \item \textbf{Network Generation:} We considered two network topologies to represent different communication patterns:
-    \begin{itemize}
-        \item \textbf{Barabási-Albert (BA):} A scale-free model designed to simulate scenarios where nodes exhibit preferential attachment, creating highly connected hubs.
-        \item \textbf{Random Graph:} A uniform model representing scenarios where nodes interact uniformly, with no highly connected hubs.
-    \end{itemize}
-    Networks were initialized with a specified number of nodes ($n$). Guardian sets of size $k$ were then selected for participating nodes based on the specific topology rules (preferential attachment for BA, uniform for Random Graph).
-    
-    \item \textbf{Participant Selection:} For each simulation run, subsets of nodes were selected to participate in the protocol phases:
-    \begin{itemize}
-        \item \textbf{Distribution Participants:} A fraction $p$ of nodes were selected to participate, using either uniform random sampling (for the Random Graph model) or degree-weighted sampling (for the Barabási-Albert model). Let this set be $\SetOfFDKG$.
+\subsection{Experimental Design and Rationale}
+\label{subsec:design_rationale}
 
-        \item \textbf{Reconstruction Participants:} A fraction $r$ of the initial Distribution Participants (from $\SetOfFDKG$) were randomly selected to be available for the Reconstruction Phase, representing the retention rate. Let this set be $\Tallies$.
+\paragraph*{Topology policies (guardian selection)}
+We study two canonical policies that bracket real deployments:
 
-    \end{itemize}
-    
-    \item \textbf{Liveness Check:} For each simulation run, the protocol checked whether the set of available reconstruction participants ($\Tallies$) could successfully meet the conditions required for reconstructing the secret, respecting the FDKG rules. Success was defined as achieving \emph{Liveness of Reconstruction} (Definition~\ref{def:liveness}) despite node failures or absences modelled by the selection process above. Specifically, for each $\Party{i} \in \SetOfFDKG$, we checked if either $\Party{i} \in \Tallies$ or if at least $t$ guardians from $\GuardianSetOf{i}$ were present in $\Tallies$. If this condition held for all $i \in \SetOfFDKG$, the run was marked as successful.
-\end{enumerate}
+\begin{itemize}
+  \item \textbf{Random (Erdős–Rényi, ER):} guardians are chosen uniformly; this models hub-free environments (uniform lists, randomized assignment).
+  \item \textbf{Barabási–Albert (BA):} guardians are chosen with preferential attachment; this models environments with socially/operationally prominent ``hubs'' (recognizable, responsive, institutionally visible parties).
+\end{itemize}
 
-The web simulator is available at: \url{https://fdkg.stan.bar}, source code is available at \url{https://github.com/stanbar/fdkg}. Figure~\ref{fig:network_examples} presents a snapshot of two different network topologies for the same setting.
+Both policies enforce $|\GuardianSetOf{i}| = k$ with local threshold $t\le k$. ER provides a neutral baseline without hubs; BA captures heavy-tailed guardian popularity, which concentrates redundancy around hubs and (under random churn) tends to increase the number of disjoint reconstruction paths.
+
+\paragraph*{Parameters and sampling}
+We explore
+$n\in\{50,100,200,\dots,1000\}$,
+$p\in\{0.1,0.2,\dots,1.0\}$,
+$r\in\{0.1,0.2,\dots,1.0\}$,
+$k\in\{1,3,\dots,n-1\}$,
+and $t\in\{1,\dots,k\}$.
+Round~1 participation draws $\SetOfFDKG$ with $|\SetOfFDKG|\approx p\,n$. Round~2 availability draws $\Tallies$ with expected size $\approx r\,|\Parties|$. Unless stated otherwise, we run 100 independent, identically distributed (i.i.d.) trials per configuration and report the \emph{success rate} (fraction of trials satisfying~\eqref{eq:liveness_predicate}).
+
+\paragraph*{DKG vs FDKG}
+Classical $(t,n)$-DKG is the special case of FDKG with full participation and maximal guardians:
+\[
+\text{DKG}(t,n) \equiv \text{FDKG}\bigl(p{=}1,\ t,\ k{=}n{-}1\bigr).
+\]
+Therefore, any comparison at identical parameters is tautological. In figures we include a \emph{reference line} labelled ``DKG'' defined as the FDKG curve at $(p{=}1,\ k{=}n{-}1)$; all other curves are FDKG with $(p\le1,\ k\le n{-}1)$. This makes explicit that differences arise from configuration, not from different protocols.
+
+\paragraph*{Implementation and artifacts}
+We use the public simulator at \url{https://fdkg.stan.bar} (source: \url{https://github.com/stanbar/fdkg}). Figure~\ref{fig:network_examples} illustrates ER vs.\ BA for the same $(n,p,r,k,t)$.
 
 \begin{figure}[h]
     \centering
     \begin{minipage}{0.24\textwidth}
         \centering
         \includegraphics[width=\textwidth]{Random_100nodes_30p_90r_3_of_5.png}
-        \label{fig:random_100_30_90_3_5}
     \end{minipage}
     \hfill
     \begin{minipage}{0.24\textwidth}
         \centering
         \includegraphics[width=\textwidth]{BA_100nodes_30p_90r_3_of_5.png}
-        \label{fig:example_ba_network}
     \end{minipage}
-    
-    \caption{Comparison of Random (left) and Barabási-Albert (right) guardian set selection policies for $n = 100, p=0.3, r=0.9, k=5, t=3$. Gray nodes indicate the absence of the node, green nodes represent those that were present in both the distribution and reconstruction phases, blue nodes were present only in the first (distribution) phase, and orange nodes only in the second (reconstruction) phase.}
+    \caption{ER (left) vs.\ BA (right) guardian-selection examples for $n=100, p=0.3, r=0.9, k=5, t=3$.
+    Gray: absent; green: present in both rounds; blue: Round~1 only; orange: Round~2 only.}
     \label{fig:network_examples}
 \end{figure}
 
-\subsection{Parameter Space and Simulation Workflow}
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.5\textwidth]{parameters_significance_participation_axis.png}
+    \includegraphics[width=0.5\textwidth]{parameters_significance_retention_axis.png}
+    \caption{Success vs.\ participation $p$ (top) and retention $r$ (bottom) at $n=100$ with $t=k/4$. Line styles encode the other axis; colors encode $k$.}
+    \label{fig:parameters_significance_participation}
+\end{figure}
 
-We explored a comprehensive range of parameters to capture diverse deployment scenarios:
-\begin{itemize}
-    \item \textbf{Number of Participants ($n$)}: 
-    $\{50, 100,200,\dots,1000\}$.
-    \item \textbf{Participation Rate ($p$)}: $\{0,1, 0.2, \dots, 0.9, 1.0\}$.
-    \item \textbf{Retention Rate ($r$)}: $\{0.1,0.2,\dots,1.0\}$.
-    \item \textbf{Number of Guardians ($k$)}: $\{1,3,\dots,n-1\}$.
-    \item \textbf{Threshold ($t$)}: Takes values from $1$ up to $k$.
-\end{itemize}
-
-For each unique combination of parameters, 100 independent simulations were executed, resulting in over 100 million total runs.
-
-Figure~\ref{fig:network_model} shows the scalability comparison between network models with fixed $p=1.0$, and $r=0.7$. The Y axis (success rate) is a mean value among all the $(k,t)$ configurations. Standard DKG corresponds to the FDKG case where $p=1.0$ and $k=n-1$ (all other nodes are guardians), thus its performance represents an upper bound on the mean success rate for a given $r$. In standard DKG each node connects to every other node, creating a complete graph, so there is no difference between BA and Random guardian selection policies. The BA policy (solid lines) generally outperforms the random policy (dashed lines) due to hub resilience, especially at smaller $n$.
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.48\textwidth]{guardian_set_configuration_n100_p0.8_r0.5.png}
+    \includegraphics[width=0.48\textwidth]{guardian_set_configuration_n100_p0.8_r0.9.png}
+    \caption{Success over $(k,t)$ for $n=100$, $p=0.8$, with $r=0.5$ (top) and $r=0.9$ (bottom). Darker indicates higher success. Higher $r$ expands the feasible region (larger $t$ at fixed $k$).}
+    \label{fig:guardian_configs}
+\end{figure}
 
 \begin{figure}[htbp]
     \centering
     \includegraphics[width=0.5\textwidth]{network_model_comparison.png}
-        \caption{Scalability comparison between average guardian set size and different policy selection with fixed $p=1.0, r=0.7$. The blue line represents the standard DKG scheme ($k=n-1$).}
+    \caption{Scalability vs.\ guardian policy for $p=1.0,\ r=0.7$. The DKG line is the FDKG configuration $(p{=}1,\ k{=}n{-}1)$ (classical $(t,n)$-DKG). BA (solid) generally exceeds ER (dashed) under random churn; the gap narrows with larger $n$.}
     \label{fig:network_model}
 \end{figure}
 
-We then break down the mean values to see how each parameter influences the success rate. To focus on the impact of $p, r, k, t$, we subsequently use only the results from the BA policy selection.
+\subsection{Results and Interpretation}
+\label{subsec:results}
 
-Figure~\ref{fig:guardian_configs} shows success rates for each of the $(k,t)$ configurations for fixed $n=100$, $p=0.8$. Figure~\ref{fig:guardian_configs}(a) uses $r=0.5$, while Figure~\ref{fig:guardian_configs}(b) uses $r=0.9$, highlighting the critical significance of the retention parameter $r$. 
-% Note: Assuming the second figure (b) correctly corresponds to r=0.9 as per caption.
-\begin{figure}[htbp]
+\paragraph*{Retention dominates}
+Retention $r$ is the primary driver of liveness. With $r\approx0.8$, high success is attainable even for modest $k$ at partial participation. For instance, for $n=100$, $p=0.7$, $k=10$ achieves high success. Increasng $k=40$ yields near-certainty even at $p=0.5$ (Figure~\ref{fig:parameters_significance_participation}).
+
+With $r\approx0.5$, approaching certainty requires both higher $p$ and larger $k$ (e.g., for $n=100$, $p\gtrsim0.7$ and $k\gtrsim40$) (Figure~\ref{fig:parameters_significance_participation}).
+
+\paragraph*{Threshold vs.\ redundancy}
+For fixed $(n,p,r,k)$, success decreases as $t/k$ increases. Empirically, for $n=100$, $p=0.8$, $r=0.9$, liveness remains robust up to roughly $t \lesssim 0.7k$; with $r=0.5$ robustness holds up to roughly $t \lesssim 0.4k$ (Figure~\ref{fig:guardian_configs}).
+
+\paragraph*{Topology under random churn}
+BA generally outperforms ER for small/medium $n$ because preferential attachment concentrates redundancy around hubs, creating multiple disjoint reconstruction paths. As $n$ grows, the gap narrows (Figure~\ref{fig:network_model}).
+This advantage pertains to \emph{random} availability failures and does not imply robustness to targeted hub failures.
+
+\paragraph*{Scaling envelope}
+Across $n$, the DKG line (FDKG at $p{=}1$, $k{=}n{-}1$) acts as an upper envelope at a given $r$. FDKG approaches this envelope as $k$ increases; for smaller $k$, it trades communication cost for liveness probability in a topology- and $r$-dependent manner.
+
+\subsection{Adaptive Adversaries}
+\label{subsec:adaptive_integrated}
+
+The security analysis (Section~\ref{sec:security_analysis}) characterizes reconstruction privacy via $R$ (Theorem~\ref{thm:recon_privacy}) and liveness via the existence of an honest $S\in R$ (Theorem~\ref{thm:recon_liveness}). Under \emph{adaptive} corruption at Round~2, two objectives diverge:
+
+\paragraph*{Targeting liveness}
+% For any participant $i$ with guardian set $G_i$ (size $k$, threshold $t$), liveness for $i$ is blocked iff the adversary corrupts $i$ \emph{and} at least $k{-}t{+}1$ of $G_i$:
+% \[
+% \exists i:\quad i\in\Corrupted\ \ \wedge\ \ |\,\Corrupted\cap G_i\,| \ge k{-}t{+}1.
+% \]
+
+To falsify~(\ref{eq:liveness_predicate}) for $i$, one must simultaneously prevent direct revelation (corrupt $i$) and reduce the remaining honest guardians below $t$ (thus corrupt $\ge k{-}t{+}1$ guardians).
+
+\paragraph*{Targeting privacy}
+Privacy fails iff the corrupted set contains a reconstruction-capable set for all participants' guardian requirements (Theorem~\ref{thm:recon_privacy}), i.e., there exists $S\subseteq \Corrupted$ with $S\in R$. 
+The attacker needs to control enough guardians to reconstruct every participant's partial secret (unless that participant is directly corrupted). How many corruptions are needed depends mainly on how guardian sets overlap:
+\begin{itemize}
+  \item \emph{Full overlap} ($G_i=G$ for all $i$): corrupt any $t$ in $G$ to reconstruct \emph{all} partial secrets (recovers the classical DKG threshold).
+  \item \emph{Disjoint guardians} ($G_i\cap G_j=\varnothing$): the adversary must, for each $i$, either corrupt $i$ or $t$ members of $G_i$, so the optimum scales with the number of participants unless many $i$ are directly corrupted.
+\end{itemize}
+
+Thus, diverse guardian choices improve availability under random churn (Section~\ref{subsec:results}), but privacy under targeted attacks depends on guardian-set overlaps. Operationally, implementations should provide UIs that encourage honest parties to choose diverse guardian sets to avoid over-concentration.
+
+% \subsection{Limitations and Threats to Validity}
+% \label{subsec:limitations}
+
+% The simulator assumes synchrony and crash-only faults (presence/absence). It does not model partitions, DoS/censorship, or scheduler jitter, which can prevent liveness even if~(\ref{eq:liveness_predicate}) holds. Participation/retention are sampled i.i.d.\ and independent of degree, geography, and time zone; real uptime often correlates with social centrality or role, which can amplify or attenuate BA's advantage. Beyond absence, guardian misbehavior (selective opening, bogus shares) is not simulated and is instead handled by proof soundness in the protocol (Section~\ref{subsec:recon_security}). We do not simulate targeted hub removals; BA's advantage under random churn may shrink under targeted failures. ER and BA are stylized bounding cases; community-structured or small-world graphs may alter local thresholds. Finally, cost (latency/bandwidth) is not co-optimized here (see Section~\ref{sec:performance_evaluation}); and 100 trials per configuration are used for stable heatmaps and trends, with confidence intervals omitted for readability.
+
+% \paragraph*{Operational guidance}
+% Increase retention $r$ (scheduling/incentives) before increasing $k$; choose $t$ as a fraction of $k$ that reflects expected $r$; prefer BA-like ``suggested guardians'' UIs to improve robustness under random churn, while rate-limiting per-guardian load and diversifying suggestions to mitigate hub fragility.
+
+
+% \section{Liveness Simulations}
+% \label{sec:old_liveness_simulations}
+
+% To evaluate FDKG's resilience under realistic deployment conditions, we conducted simulations exploring its performance under various parameter settings, comparing its liveness properties against expectations from traditional DKG under similar failure models. Our analysis focuses on three aspects: 1) parameter sensitivity, 2) scalability across network sizes, and 3) topology-dependent performance characteristics. The primary objective was to determine which configurations optimize liveness under varying conditions, thereby offering insights for practical deployment.
+
+% \subsection{Simulation Methodology}
+% \label{subsec:methodology}
+
+% We developed a simulation framework implementing both FDKG and standard DKG dynamics across two network topologies. Each simulation involves the following steps:
+
+% \begin{enumerate}
+%     \item \textbf{Network Generation:} We considered two network topologies to represent different communication patterns:
+%     \begin{itemize}
+%         \item \textbf{Barabási-Albert (BA):} A scale-free model designed to simulate scenarios where nodes exhibit preferential attachment, creating highly connected hubs.
+%         \item \textbf{Random Graph:} A uniform model representing scenarios where nodes interact uniformly, with no highly connected hubs.
+%     \end{itemize}
+%     Networks were initialized with a specified number of nodes ($n$). Guardian sets of size $k$ were then selected for participating nodes based on the specific topology rules (preferential attachment for BA, uniform for Random Graph).
     
-        \centering
-        \includegraphics[width=0.48\textwidth]{guardian_set_configuration_n100_p0.8_r0.5.png}
-        \includegraphics[width=0.48\textwidth]{guardian_set_configuration_n100_p0.8_r0.9.png}
-        \label{fig:guardian_set_config_09}
+%     \item \textbf{Participant Selection:} For each simulation run, subsets of nodes were selected to participate in the protocol phases:
+%     \begin{itemize}
+%         \item \textbf{Distribution Participants:} A fraction $p$ of nodes were selected to participate, using either uniform random sampling (for the Random Graph model) or degree-weighted sampling (for the Barabási-Albert model). Let this set be $\SetOfFDKG$.
 
-    \caption{Heatmaps of success rates by guardian configuration for fixed $n=100$, $p=0.8$, $r=0.5$ (top) and $r=0.9$ (bottom). Color intensity represents success probability from 0 (yellow) to 1 (dark blue).}
-    % TODO: update the captions
-    \label{fig:guardian_configs}
-\end{figure}
+%         \item \textbf{Reconstruction Participants:} A fraction $r$ of the initial Distribution Participants (from $\SetOfFDKG$) were randomly selected to be available for the Reconstruction Phase, representing the retention rate. Let this set be $\Tallies$.
 
-Figure~\ref{fig:parameters_significance_participation} reveals three critical relationships through our multivariate analysis. A higher retention rate ($r=0.9$) guarantees a high success rate even for a smaller number of guardians ($k=10$) at a partial participation rate ($p=0.75$). A lower retention rate ($r=0.5$) may require a higher participation rate ($\geq0.6$) and a higher number of guardians ($k\geq40$) to achieve a perfect success rate. Lower retention rates ($\leq0.5$) combined with a low number of guardians ($k \le 10$) may not guarantee high success rates even at perfect participation ($p=1.0$).
+%     \end{itemize}
+    
+%     \item \textbf{Liveness Check:} For each simulation run, the protocol checked whether the set of available reconstruction participants ($\Tallies$) could successfully meet the conditions required for reconstructing the secret, respecting the FDKG rules. Success was defined as achieving \emph{Liveness of Reconstruction} (Definition~\ref{def:liveness}) despite node failures or absences modelled by the selection process above. Specifically, for each $\Party{i} \in \SetOfFDKG$, we checked if either $\Party{i} \in \Tallies$ or if at least $t$ guardians from $\GuardianSetOf{i}$ were present in $\Tallies$. If this condition held for all $i \in \SetOfFDKG$, the run was marked as successful.
+% \end{enumerate}
+
+% The web simulator is available at: \url{https://fdkg.stan.bar}, source code is available at \url{https://github.com/stanbar/fdkg}. Figure~\ref{fig:network_examples} presents a snapshot of two different network topologies for the same setting.
+
+% \begin{figure}[h]
+%     \centering
+%     \begin{minipage}{0.24\textwidth}
+%         \centering
+%         \includegraphics[width=\textwidth]{Random_100nodes_30p_90r_3_of_5.png}
+%         \label{fig:random_100_30_90_3_5}
+%     \end{minipage}
+%     \hfill
+%     \begin{minipage}{0.24\textwidth}
+%         \centering
+%         \includegraphics[width=\textwidth]{BA_100nodes_30p_90r_3_of_5.png}
+%         \label{fig:example_ba_network}
+%     \end{minipage}
+    
+%     \caption{Comparison of Random (left) and Barabási-Albert (right) guardian set selection policies for $n = 100, p=0.3, r=0.9, k=5, t=3$. Gray nodes indicate the absence of the node, green nodes represent those that were present in both the distribution and reconstruction phases, blue nodes were present only in the first (distribution) phase, and orange nodes only in the second (reconstruction) phase.}
+%     \label{fig:network_examples}
+% \end{figure}
+
+% \subsection{Parameter Space and Simulation Workflow}
+
+% We explored a comprehensive range of parameters to capture diverse deployment scenarios:
+% \begin{itemize}
+%     \item \textbf{Number of Participants ($n$)}: 
+%     $\{50, 100,200,\dots,1000\}$.
+%     \item \textbf{Participation Rate ($p$)}: $\{0,1, 0.2, \dots, 0.9, 1.0\}$.
+%     \item \textbf{Retention Rate ($r$)}: $\{0.1,0.2,\dots,1.0\}$.
+%     \item \textbf{Number of Guardians ($k$)}: $\{1,3,\dots,n-1\}$.
+%     \item \textbf{Threshold ($t$)}: Takes values from $1$ up to $k$.
+% \end{itemize}
+
+% For each unique combination of parameters, 100 independent simulations were executed, resulting in over 100 million total runs.
+
+% Figure~\ref{fig:network_model} shows the scalability comparison between network models with fixed $p=1.0$, and $r=0.7$. The Y axis (success rate) is a mean value among all the $(k,t)$ configurations. Standard DKG corresponds to the FDKG case where $p=1.0$ and $k=n-1$ (all other nodes are guardians), thus its performance represents an upper bound on the mean success rate for a given $r$. In standard DKG each node connects to every other node, creating a complete graph, so there is no difference between BA and Random guardian selection policies. The BA policy (solid lines) generally outperforms the random policy (dashed lines) due to hub resilience, especially at smaller $n$.
+
+% \begin{figure}[htbp]
+%     \centering
+%     \includegraphics[width=0.5\textwidth]{network_model_comparison.png}
+%         \caption{Scalability comparison between average guardian set size and different policy selection with fixed $p=1.0, r=0.7$. The blue line represents the standard DKG scheme ($k=n-1$).}
+%     \label{fig:network_model}
+% \end{figure}
+
+% We then break down the mean values to see how each parameter influences the success rate. To focus on the impact of $p, r, k, t$, we subsequently use only the results from the BA policy selection.
+
+% Figure~\ref{fig:guardian_configs} shows success rates for each of the $(k,t)$ configurations for fixed $n=100$, $p=0.8$. Figure~\ref{fig:guardian_configs}(a) uses $r=0.5$, while Figure~\ref{fig:guardian_configs}(b) uses $r=0.9$, highlighting the critical significance of the retention parameter $r$. 
+% % Note: Assuming the second figure (b) correctly corresponds to r=0.9 as per caption.
+% \begin{figure}[htbp]
+    
+%         \centering
+%         \includegraphics[width=0.48\textwidth]{guardian_set_configuration_n100_p0.8_r0.5.png}
+%         \includegraphics[width=0.48\textwidth]{guardian_set_configuration_n100_p0.8_r0.9.png}
+%         \label{fig:guardian_set_config_09}
+
+%     \caption{Heatmaps of success rates by guardian configuration for fixed $n=100$, $p=0.8$, $r=0.5$ (top) and $r=0.9$ (bottom). Color intensity represents success probability from 0 (yellow) to 1 (dark blue).}
+%     % TODO: update the captions
+%     \label{fig:guardian_configs}
+% \end{figure}
+
+% Figure~\ref{fig:parameters_significance_participation} reveals three critical relationships through our multivariate analysis. A higher retention rate ($r=0.9$) guarantees a high success rate even for a smaller number of guardians ($k=10$) at a partial participation rate ($p=0.75$). A lower retention rate ($r=0.5$) may require a higher participation rate ($\geq0.6$) and a higher number of guardians ($k\geq40$) to achieve a perfect success rate. Lower retention rates ($\leq0.5$) combined with a low number of guardians ($k \le 10$) may not guarantee high success rates even at perfect participation ($p=1.0$).
 
 
-\begin{figure}[htbp]
-        \centering
-        \includegraphics[width=0.5\textwidth]{parameters_significance_participation_axis.png}
-        \includegraphics[width=0.5\textwidth]{parameters_significance_retention_axis.png}
-        \caption{Success rate vs participation rate (top) and retention rate (bottom) for varying $k$, and $p$, or $r$ combinations, with fixed $n=100$ and $t=k/4$. Line styles represent retention or participation rates, colors indicate guardian set sizes.}
-    \label{fig:parameters_significance_participation}
-\end{figure}
+% \begin{figure}[htbp]
+%         \centering
+%         \includegraphics[width=0.5\textwidth]{parameters_significance_participation_axis.png}
+%         \includegraphics[width=0.5\textwidth]{parameters_significance_retention_axis.png}
+%         \caption{Success rate vs participation rate (top) and retention rate (bottom) for varying $k$, and $p$, or $r$ combinations, with fixed $n=100$ and $t=k/4$. Line styles represent retention or participation rates, colors indicate guardian set sizes.}
+%     \label{fig:parameters_significance_participation}
+% \end{figure}
 
-\subsection{Results}
+% \subsection{Results}
 
-The results reveal clear trends in the factors influencing the success rate (liveness probability). The participation rate ($p$) has a significant impact, with higher participation rates consistently improving success rates. This is because more nodes actively contributing in Round 1 increases the likelihood that enough participants or their guardians are available for reconstruction.
+% The results reveal clear trends in the factors influencing the success rate (liveness probability). The participation rate ($p$) has a significant impact, with higher participation rates consistently improving success rates. This is because more nodes actively contributing in Round 1 increases the likelihood that enough participants or their guardians are available for reconstruction.
 
-Retention rate ($r$) also plays a crucial role. Higher retention rates both reduce the reliance on guardians and increase the chances of meeting the threshold during reconstruction phase. For instance, when $r = 1.0$, the protocol always achieves Liveness even with very low participation $p$ and guardians $k$, it is because the party who contributed to the first phase always reconstruct the share in the second phase. However, such scenarios were excluded from the analysis since they do not represent the challenges of FDKG systems.
+% Retention rate ($r$) also plays a crucial role. Higher retention rates both reduce the reliance on guardians and increase the chances of meeting the threshold during reconstruction phase. For instance, when $r = 1.0$, the protocol always achieves Liveness even with very low participation $p$ and guardians $k$, it is because the party who contributed to the first phase always reconstruct the share in the second phase. However, such scenarios were excluded from the analysis since they do not represent the challenges of FDKG systems.
 
-The number of guardians ($k$) contributes to the robustness of the system, especially in scenarios with a larger total number of nodes. Larger guardian sets provide greater redundancy, mitigating the impact of absent nodes during reconstruction. This becomes increasingly important as the system scales, where the probability of absences rises proportionally with the total number of participants.
+% The number of guardians ($k$) contributes to the robustness of the system, especially in scenarios with a larger total number of nodes. Larger guardian sets provide greater redundancy, mitigating the impact of absent nodes during reconstruction. This becomes increasingly important as the system scales, where the probability of absences rises proportionally with the total number of participants.
 
-Threshold values ($t$) directly affect liveness. Lower thresholds (requiring fewer available guardians) are naturally more likely to succeed. However, higher thresholds can still succeed if combined with sufficiently large guardian sets ($k$), high participation ($p$), and high retention ($r$).
+% Threshold values ($t$) directly affect liveness. Lower thresholds (requiring fewer available guardians) are naturally more likely to succeed. However, higher thresholds can still succeed if combined with sufficiently large guardian sets ($k$), high participation ($p$), and high retention ($r$).
 
-The results highlight also the impact of guardians selection policy on liveness, particularly the advantage of the Barabási-Albert model over the Random model. The superior performance of the Barabási-Albert model is primarily due to its weighted selection policy. In this policy, nodes with higher connectivity (hubs) are more likely to be selected as participants in both the Distribution and Reconstruction phases. This approach mirrors real-world social structures where highly connected individuals or entities play a more central role in communication and collaboration. Consequently, these hubs are not only more resilient to failures, but are also more likely to engage in critical democratic processes, such as voting or key reconstruction. However, the results show that with the higher network sizes the difference between those models diminishes.
+% The results highlight also the impact of guardians selection policy on liveness, particularly the advantage of the Barabási-Albert model over the Random model. The superior performance of the Barabási-Albert model is primarily due to its weighted selection policy. In this policy, nodes with higher connectivity (hubs) are more likely to be selected as participants in both the Distribution and Reconstruction phases. This approach mirrors real-world social structures where highly connected individuals or entities play a more central role in communication and collaboration. Consequently, these hubs are not only more resilient to failures, but are also more likely to engage in critical democratic processes, such as voting or key reconstruction. However, the results show that with the higher network sizes the difference between those models diminishes.
 
-To assess FDKG’s practical performance under realistic deployment conditions---such as node unavailability, varying participation rates, and network churn---we conducted simulations. These simulations complement the formal security guarantees provided in Section~\ref{sec:security_analysis}, which ensure resilience against adversarial attacks under cryptographic assumptions. Importantly, the simulations do not aim to prove security; rather, they illustrate how protocol parameters like participation rate (\(p\)), retention rate (\(r\)), guardian set size (\(k\)), and threshold (\(t\)) impact the likelihood of successful key reconstruction in scenarios with non-adversarial failures (e.g., honest node crashes or dropouts). The results offer practical insights for parameter selection in real-world deployments, where both adversarial and non-adversarial challenges must be considered.
+% To assess FDKG’s practical performance under realistic deployment conditions---such as node unavailability, varying participation rates, and network churn---we conducted simulations. These simulations complement the formal security guarantees provided in Section~\ref{sec:security_analysis}, which ensure resilience against adversarial attacks under cryptographic assumptions. Importantly, the simulations do not aim to prove security; rather, they illustrate how protocol parameters like participation rate (\(p\)), retention rate (\(r\)), guardian set size (\(k\)), and threshold (\(t\)) impact the likelihood of successful key reconstruction in scenarios with non-adversarial failures (e.g., honest node crashes or dropouts). The results offer practical insights for parameter selection in real-world deployments, where both adversarial and non-adversarial challenges must be considered.
 
 \section{Application: FDKG-Enhanced Voting Protocol}
 \label{sec:voting_scheme}
@@ -988,7 +988,7 @@ A subset of parties $\Tallies \subseteq \Parties$ participate. For each party $\
         
     \item \textbf{Provide Decrypted Shares:} For each encrypted share $\EncryptedSharePartialSecretKey{j}{i}$ received in Round 1 (where $\Party{j} \in \SetOfFDKG$ and $\Party{i} \in \GuardianSetOf{j}$):
         \begin{itemize}
-            \item Decrypt the share: $s_{j,i} = \texttt{Dec}_{\PartySecretKey{i}}(\EncryptedSharePartialSecretKey{j}{i})$.
+            \item Decrypt the share: $s_{j,i} = \textrm{Dec}_{\PartySecretKey{i}}(\EncryptedSharePartialSecretKey{j}{i})$.
             \item Compute the share's contribution to decryption: $\SharePartialDecryptionFromTo{j}{i} = (\TotalA)^{s_{j,i}}$.
             \item Generate a NIZK proof $\pi_{PDS_{j,i}}$ proving correct decryption of $\EncryptedSharePartialSecretKey{j}{i}$ to $s_{j,i}$ and correct exponentiation of $\TotalA$ by $s_{j,i}$. (See Appendix~\ref{app:proof-pds}).
             \item Broadcast $(\Party{i}, \text{pdecryptshare}, \Party{j}, \SharePartialDecryptionFromTo{j}{i}, \pi_{PDS_{j,i}})$.
@@ -1030,7 +1030,7 @@ Performable by any observer using publicly available data.
 
 This section presents a performance analysis of the FDKG-enhanced voting protocol described in Section~\ref{sec:voting_scheme}. We evaluated computational costs (NIZK proof generation times and offline tally time) and communication costs (total broadcast message sizes). All NIZK evaluations use Groth16 \cite{grothSizePairingBasedNoninteractive2016} as the NIZK proof system, assuming a proof size of 256 bytes (uncompressed). We briefly investigated using the PLONK \cite{gabizonPLONKPermutationsLagrangebases2019} proof system as an alternative potentially avoiding a trusted setup, but found it computationally infeasible for our circuits; for instance, generating a $\pi_{FDKG_i}$ proof with parameters $(t=3, k=10)$ took over 8 minutes with PLONK, and larger configurations exceeded available memory resources. Therefore, we proceeded with Groth16.
 
-\subsection{Computational and Communication Costs per Message Type}
+\paragraph{Computational and Communication Costs per Message Type}
 Table~\ref{table:perf_summary} summarizes the core performance metrics for the different messages broadcast during the online phases of the protocol. It includes the time to generate the required NIZK proof and the total message size, which comprises the cryptographic payload plus the 256-byte Groth16 proof.
 
 % User Note: Keep the updated Table~\ref{table:perf_summary} here.
@@ -1040,7 +1040,7 @@ Table~\ref{table:perf_summary} summarizes the core performance metrics for the d
     \label{table:perf_summary} % Keep label consistent
     \begin{tabular}{|l|c|c|c|c|c|c|}
     \hline
-        \multirow{2}{*}{\textbf{\shortstack{Measurement}}} & \multicolumn{3}{c|}{\textbf{FDKG Distribution}}  & \multirow{2}{*}{\textbf{\shortstack{Ballot \\ Broadcast}}} & \multirow{2}{*}{\textbf{\shortstack{Partial Dec. \\ Broadcast}}} & \multirow{2}{*}{\textbf{\shortstack{Part. Dec. Share \\ Broadcast}}} \\ 
+        \multirow{2}{*}{\textbf{\shortstack{Measurement}}} & \multicolumn{3}{c|}{\textbf{FDKG Generation}}  & \multirow{2}{*}{\textbf{\shortstack{Ballot \\ Broadcast}}} & \multirow{2}{*}{\textbf{\shortstack{Partial Dec. \\ Broadcast}}} & \multirow{2}{*}{\textbf{\shortstack{Part. Dec. Share \\ Broadcast}}} \\ 
         \cline{2-4}
         % Clarify FDKG parameters in header
         & \textbf{(t=3, k=10)} & \textbf{(t=10, k=30)} & \textbf{(t=30, k=100)} & & & \\ 
@@ -1055,9 +1055,9 @@ Table~\ref{table:perf_summary} summarizes the core performance metrics for the d
     \end{tabular}
 \end{table*}
 
-The online computational cost is dominated by the generation of the $\pi_{FDKG_i}$ proof, especially as $t$ and $k$ increase. The communication cost for the FDKG distribution phase is primarily driven by $k$. Messages related to voting and tallying are significantly smaller individually, but the total communication cost of tallying depends heavily on how many secrets and shares need to be revealed publicly.
+The online computational cost is dominated by the generation of the $\pi_{FDKG_i}$ proof, especially as $t$ and $k$ increase. The communication cost for the FDKG Generation phase is primarily driven by $k$. Messages related to voting and tallying are significantly smaller individually, but the total communication cost of tallying depends heavily on how many secrets and shares need to be revealed publicly.
 
-\subsection{Offline Tally: Vote Extraction Cost}
+\paragraph{Offline Tally: Vote Extraction Cost}
 \label{subsec:offline_tally_cost}
 The final step of the Offline Tally phase (Section~\ref{sec:voting_scheme}, Offline Tally, Step 5) involves extracting the individual vote counts $\{x_k\}$ from the aggregated result $M = G^{\sum x_k 2^{(k-1)m}}$. This requires solving a Discrete Logarithm Problem (DLP) where the exponent has a specific known structure. Since the maximum value of the exponent is bounded by the total number of valid votes $|\Voters|$, standard algorithms like Baby-Step Giant-Step or Pollard's Rho can be used.
 
@@ -1073,13 +1073,13 @@ This indicates that while the FDKG and online tallying phases scale well, the vo
     \label{fig:dlog-search}
 \end{figure}
 
-\subsection{Example Scenario Calculation}
+\paragraph{Example Scenario Calculation}
 \label{subsec:example_scenario} 
 
 Let's estimate the total broadcast communication size for a specific scenario:
 \begin{itemize}
     \item $n=100$ potential participants.
-    \item $|\SetOfFDKG|=50$ valid participants in Round 1 (FDKG Distribution).
+    \item $|\SetOfFDKG|=50$ valid participants in Round 1 (FDKG Generation).
     \item Each participant uses $k=40$ guardians.
     \item $|\Voters|=50$ valid ballots cast in Round 2.
     \item In Round 3 (Online Tally), assume $|\Tallies \cap \SetOfFDKG| = 40$ participants reveal their secrets directly.
@@ -1100,6 +1100,25 @@ Using the "Total Message Size (Bytes)" figures from Table~\ref{table:perf_summar
 \end{enumerate}
 The offline tally time for this scenario (50 voters) would be milliseconds for 2-4 candidates, but could increase to several minutes for 5 or more candidates, as indicated by Figure~\ref{fig:dlog-search}.
 
+\paragraph*{Large-scale scenario ($n=5000$)}
+Assume $|\SetOfFDKG|=2500$, $k=40$, $|\Voters|=2500$, $|\Tallies\cap\SetOfFDKG|=2000$, and $40$ shares revealed per tallier ($80{,}000$ shares total). Using Table~\ref{table:perf_summary} sizes:
+\[
+\begin{aligned}
+\text{FDKG Dist.} & = 2500\times 6720 = 16{,}800{,}000~\text{B}~(16.8~\text{MB}),\\
+\text{Voting} & = 2500\times 384 = \phantom{0}960{,}000~\text{B}~(0.96~\text{MB}),\\
+\text{Tally (secrets)} & = 2000\times 320 = \phantom{0}640{,}000~\text{B}~(0.64~\text{MB}),\\
+\text{Tally (shares)} & = 80{,}000\times 320 = 25{,}600{,}000~\text{B}~(25.6~\text{MB}),\\
+\textbf{Total} & = 44{,}000{,}000~\text{B}~(\textbf{44.0~MB}).
+\end{aligned}
+\]
+Communication is dominated by share revelations; for fixed $k$ and average shares per tallier, growth is near-linear in $|\SetOfFDKG|$.
+
+
+\paragraph{Scalability and load balance}
+FDKG uses one broadcast round in Generation and one in Reconstruction. End-to-end latency is dominated by (i) local proving time for $\pi_{FDKG_i}$ and (ii) network propagation per round; Reconstruction latency additionally depends on the number of shares each online guardian reveals and proves. Load is uneven by design: some guardians receive more delegations and therefore handle more decryption-share work. Let $c_g$ denote the number of parties that selected guardian $g$ (guardian “popularity”). A simple way to summarize skew is to report $\max_g c_g$, the median of $\{c_g\}$, and the ratio $\max_g c_g / \mathrm{median}(\{c_g\})$. In our experiments, this ratio is larger under BA than ER (reflecting hubs). Operators can bound peak load by capping per-guardian assignments, randomizing a fraction of guardian picks, or recommending diversified guardian sets.
+
+The Generation broadcast cost scales as $\mathcal{O}(n\cdot k)$ elements (Section~\ref{sec:fdkg}); with fixed $k$ the total cost is linear in $n$. Reconstruction can reach $\mathcal{O}(n^2)$ in worst-case guardian topologies (some parties chosen by all other participants), but in practice remains near $\mathcal{O}(n\cdot k)$ when overlap is moderate. Hierarchical deployments (partitioning parties into domains, then aggregating domain-level partial keys) can reduce the maximum number of counterparties any single party must send to or serve during Generation/Reconstruction, while preserving heterogeneous trust.
+
 \section{Deployments}
 \label{sec:deployments}
 The FDKG protocol (and FDKG-based voting application), requiring only a shared communication space (message board) where participants can publicly post and read messages, is adaptable to various deployment environments. We consider three illustrative scenarios:
@@ -1119,7 +1138,6 @@ Figure~\ref{fig:stack-bc} visually depicts these potential deployment architectu
     \label{fig:stack-bc}
 \end{figure}
 
-
 \section{Limitations and Future Work}
 \label{sec:limitations-and-future}
 While FDKG offers enhanced flexibility and resilience to dynamic participation, our analysis and implementation highlight areas for further improvement and research.
@@ -1128,36 +1146,208 @@ While FDKG offers enhanced flexibility and resilience to dynamic participation, 
 
 \textbf{Offline Tallying Scalability:} As discussed in Section~\ref{sec:performance_evaluation}, the offline tallying step in our FDKG-enhanced voting example, specifically the brute-force decoding of the final aggregated vote via DLP solution, exhibits exponential scaling with the number of candidates. Developing more efficient multi-candidate vote encoding schemes or advanced number-theoretic techniques for vote extraction remains an important open research challenge for such applications.
 
-\textbf{Guardian Set Selection:} Our liveness simulations (Section~\ref{sec:liveness_simulations}) explored heuristics like Barabási-Albert for guardian selection, which showed promise. However, a deeper investigation into context-aware guardian selection strategies could further bolster FDKG's practical reliability. This might involve incorporating social trust metrics, node reputation systems, or application-specific criteria to optimize for liveness and security against targeted attacks.
+\textbf{Usability and guardian selection:}
+Non-experts may find manual guardian selection burdensome. In practice, UIs can (i) offer curated recommendations that blend centrality (availability) with diversity (to avoid over-concentration), (ii) enforce soft caps on per-guardian assignments, (iii) set $(k,t)$ defaults from observed retention (e.g., $t\approx 0.3$–$0.5$ of $k$ for moderate $r$), and (iv) warn about privacy risks under highly overlapping guardian choices. These controls preserve FDKG’s heterogeneous trust while reducing user burden.
 
 \textbf{Trusted Setup for NIZKs:} Our current NIZK instantiation (Groth16) requires a trusted setup for its Common Reference String (CRS). While this is a one-time cost per circuit, it represents a potential point of centralization or trust. Future work could explore integrating FDKG with NIZK systems that have transparent or universal setups (e.g., STARKs, or SNARKs like PLONK with a universal updatable SRS) to mitigate this dependency, although this may involve performance trade-offs.
 
+\textbf{Resharing and forward secrecy:} FDKG, as presented, is a bootstrapping primitive. Enabling long-lived deployments with proactive defense against key accumulation requires a dynamic resharing protocol that (i) changes guardian sets $G_i$ and/or shares without re-running Generation, and (ii) provides forward secrecy against state compromise. Integrating proactive secret sharing (DPSS) with heterogeneous guardian sets while preserving public verifiability and succinct proofs is an open direction.
+
+\textbf{Adaptive and targeted adversaries:}
+So far the analysis assumes static corruption and random churn. Future work might study \emph{adaptive/rushing} behavior and \emph{targeted removals} against the guardian topology \(\{G_i\}\).
+The goal is to quantify how privacy and liveness degrade when the attacker selects corruptions after seeing Round~1 transcripts, and to assess practical mitigations: mild commit--reveal or public randomness to limit key bias, plus topology-aware defenses.
+Using the same reconstruction predicate \(R\), one could report topology-sensitive lower bounds on the effort needed to break privacy or liveness and identify when targeted strategies matter in practice.
+
+\textbf{Topology and load control:}
+Hotspots and concentration risks can be reduced by combining local diversity constraints (soft/hard caps per guardian, randomly sampled guardians, overlap-distance limits, reputation that discounts hubs) with a hierarchical FDKG where domains run local FDKG and a second tier aggregates domain keys.
+Future work might measure how these knobs reshape \(\{G_i\}\): lowering \(\max_g c_g / \mathrm{median}(c_g)\), bounding worst-case reconstruction traffic, and increasing the minimal reconstruction-capable set for targeted breaks---while preserving heterogeneous trust and near \(O(nk)\) per tier.
+
+
 \textbf{Broader Applications:} Although this paper focuses on an i-voting application, the FDKG concept is a general cryptographic primitive. Its applicability extends to any setting requiring robust, threshold-based secret reconstruction where global membership is uncertain or dynamic. Potential areas include collaborative data encryption/decryption in ad-hoc networks, decentralized credential management systems, and key management for emergent governance structures like Decentralized Autonomous Organizations (DAOs). Exploring these diverse applications and tailoring FDKG to their specific needs presents a rich avenue for future work.
 
-Overall, these points highlight opportunities for optimizing cryptographic components, enhancing theoretical models (e.g., for adaptive adversaries in the FDKG context), and broadening the practical deployment of FDKG.
 
 \section{Discussion and Conclusions}
 \label{sec:discussion-conclusion}
 
 This paper introduced Federated Distributed Key Generation (FDKG), a novel protocol that enhances the flexibility and resilience of distributed key establishment in dynamic environments. Unlike standard DKG protocols that assume a fixed set of participants and a global threshold, FDKG empowers individual participants to select their own "guardian sets" of size $k$ for share recovery, accommodating scenarios with unknown or fluctuating network membership. Our security analysis (Section~\ref{sec:security_analysis}) demonstrates that FDKG achieves correctness and privacy for the key generation phase, and liveness for key reconstruction, provided an adversary does not control both a participant and $k-t+1$ of its chosen guardians during reconstruction.
 
-FDKG generalizes traditional DKG by integrating principles of federated trust, reminiscent of Federated Byzantine Agreement (FBA) systems like the Stellar Consensus Protocol. This allows for dynamic trust delegation at the participant level. By achieving its core functionality in two communication rounds (distribution and reconstruction), FDKG is suitable for systems involving human interaction, such as the i-voting application presented. The reliance on NIZK proofs (e.g., zk-SNARKs) for verifiability ensures protocol integrity but introduces computational overhead and, in the case of Groth16, a trusted setup requirement, which are important considerations for deployment. Future work could explore NIZKs with transparent setups (e.g., STARKs or Bulletproofs, though the latter might impact succinctness) to alleviate this.
+FDKG generalizes traditional DKG by integrating principles of federated trust, reminiscent of Federated Byzantine Agreement (FBA) systems like the Stellar Consensus Protocol. This allows for dynamic trust delegation at the participant level. By achieving its core functionality in two communication rounds (generation and reconstruction), FDKG is suitable for systems involving human interaction, such as the i-voting application presented. The reliance on NIZK proofs (e.g., zk-SNARKs) for verifiability ensures protocol integrity but introduces computational overhead and, in the case of Groth16, a trusted setup requirement, which are important considerations for deployment. Future work could explore NIZKs with transparent setups (e.g., STARKs or Bulletproofs, though the latter might impact succinctness) to alleviate this.
 
 Our simulations (Section~\ref{sec:liveness_simulations}) provided practical insights into FDKG's operational robustness. Liveness was shown to be heavily influenced by participant engagement (participation rate $p$) and continued availability (retention rate $r$). For example, in a network of $n=100$ parties with $p=0.8$ and $r=0.9$, FDKG consistently achieved liveness for thresholds $t < 0.7k$. However, with a lower retention of $r=0.5$, perfect liveness was only achieved for smaller thresholds $t \le 0.4k$ (Figure~\ref{fig:guardian_configs}). The choice of guardian selection topology also matters, with Barabási-Albert (BA) providing a slight resilience advantage over random selection in smaller networks due to its hub-centric nature (Figure~\ref{fig:network_model}), although this advantage diminishes for $n > 1000$.
 
-Performance evaluations (Section~\ref{sec:performance_evaluation}) quantified the computational and communication costs. For $n=100$ participants with $k=40$ guardians, the FDKG distribution phase incurred approximately 336 kB of broadcast data per participant. NIZK proof generation, while enabling verifiability, is the main computational bottleneck, with $\pi_{FDKG_i}$ proving times ranging from $3.36$s (for $k=10$) to $14.79$s (for $k=100$) in our experiments (Table~\ref{table:perf_summary}). These figures highlight the trade-off between the flexibility offered by larger guardian sets and the associated costs, underscoring the need for careful parameter tuning based on specific application constraints: smaller $(k,t)$ values may be preferable for latency-sensitive systems, while larger values enhance resilience in more adversarial settings. A critical aspect of FDKG is balancing guardian set size ($k$) against security; while smaller sets reduce overhead, they concentrate trust, making individual guardians more critical for liveness if the original participant is unavailable or malicious.
+Performance evaluations (Section~\ref{sec:performance_evaluation}) quantified the computational and communication costs. For $n=100$ participants with $k=40$ guardians, the FDKG Generation phase incurred approximately 336 kB of broadcast data per participant. NIZK proof generation, while enabling verifiability, is the main computational bottleneck, with $\pi_{FDKG_i}$ proving times ranging from $3.36$s (for $k=10$) to $14.79$s (for $k=100$) in our experiments (Table~\ref{table:perf_summary}). These figures highlight the trade-off between the flexibility offered by larger guardian sets and the associated costs, underscoring the need for careful parameter tuning based on specific application constraints: smaller $(k,t)$ values may be preferable for latency-sensitive systems, while larger values enhance resilience in more adversarial settings. A critical aspect of FDKG is balancing guardian set size ($k$) against security; while smaller sets reduce overhead, they concentrate trust, making individual guardians more critical for liveness if the original participant is unavailable or malicious.
 
-We envision FDKG as a versatile cryptographic primitive for multi-party systems that require robust and verifiable key distribution but must operate under conditions of incomplete or dynamic participation. Future research directions include optimizing NIZK proofs for FDKG-specific relations, refining vote decoding mechanisms for FDKG-based voting schemes, and developing more sophisticated, context-aware guardian selection strategies to further enhance FDKG's practical usability and security. By embracing a decentralized and adaptive ethos, FDKG offers a pathway to building scalable and secure distributed systems for diverse collaborative environments.
+We envision FDKG as a versatile cryptographic primitive for multi-party systems that require robust and verifiable key generation but must operate under conditions of incomplete or dynamic participation. Future research directions include optimizing NIZK proofs for FDKG-specific relations, refining vote decoding mechanisms for FDKG-based voting schemes, and developing more sophisticated, context-aware guardian selection strategies to further enhance FDKG's practical usability and security. By embracing a decentralized and adaptive ethos, FDKG offers a pathway to building scalable and secure distributed systems for diverse collaborative environments.
 
 \section*{Reproducible Research}
-To ensure the reproducibility of our findings, all source code, datasets, and scripts used to generate results are publicly available. The repository is hosted at \url{https://github.com/stanbar/fdkg}.
+To ensure the reproducibility of our research, all source code, datasets, and scripts used to generate results are publicly available. The repository is hosted at \url{https://github.com/stanbar/fdkg}.
 
-\section*{Acknowledgment}
-We thank Lev Soukhanov for his early contributions to the FDKG concept and mechanics, and Maya Dotan, Jonathan Katz, Oskar Goldhahn, and Thomas Haines for their insightful reviews, enhancing the paper’s structure and cryptographic rigor.
+\section*{Acknowledgments}
+We thank Lev Soukhanov, %for his early contributions to the FDKG concept and mechanics, and 
+Maya Dotan, Jonathan Katz, Oskar Goldhahn, and Thomas Haines for their insightful comments, enhancing the paper’s structure and cryptographic rigor.
+
+The research was supported partially by the
+project “Cloud Artificial Intelligence Service Engineering (CAISE)
+platform to create universal and smart services for various application areas”, No. KPOD.05.10-IW.10-0005/24, as part of the European
+IPCEI-CIS program, financed by NRRP (National Recovery and
+Resilience Plan).
+
 
 % \printbibliography
 \bibliography{main}
 \appendix
+
+\section{Ideal Functionality and Proof Sketch}
+\label{app:ideal_functionality}
+
+\subsection{Ideal Functionality $\mathcal{F}_{FDKG}$}
+
+The ideal functionality $\mathcal{F}_{FDKG}$ interacts with the parties $\Party{1}, \dots, \Party{n}$ and a simulator $\mathcal{S}$. It is parameterized by system parameters (group $\mathbb{G}$, generator $G$), FDKG parameters $(t, k)$, and dynamically tracks participation. Its formal description is provided in Figure~\ref{fig:ideal_functionality_fdkg}.
+
+\begin{figure*}[!ht] % Use figure* for two-column spanning if needed
+\hrule\medskip
+\centerline{\textbf{Ideal Functionality} $\mathcal{F}^{n,t,k}_{FDKG}$}
+\medskip\hrule
+\newcounter{fstep-fdkg-fig} % Use a unique counter name for the figure list
+\begin{list}{\arabic{fstep-fdkg-fig}.}{\usecounter{fstep-fdkg-fig}\leftmargin=1.5em\itemsep=2pt\labelwidth=1em\leftmargin=\labelwidth\labelsep=0.5em}
+    
+    \item \textbf{Initialization:}
+        \begin{itemize}
+            \item Waits to receive (Init, $\mathcal{C}$) from the simulator $\mathcal{S}$. Stores the set of corrupted parties $\mathcal{C}$. Let $\mathcal{H} = \Parties \setminus \mathcal{C}$.
+            \item Initializes an empty set of participants $\SetOfFDKG = \emptyset$.
+            \item Initializes empty storage for polynomials $f_i$ and guardian sets $\GuardianSetOf{i}$ for all $i \in \Parties$.
+            \item Initializes state flag `phase` = 'activation'.
+        \end{itemize}
+
+    \item \textbf{Honest Party Activation:} Upon receiving (ActivateHonest, $i, \GuardianSetOf{i}$) from the simulator $\mathcal{S}$ (indicating honest party $\Party{i} \in \mathcal{H}$ decides to participate):
+        \begin{itemize}
+            \item If `phase` is 'activation' and $\Party{i} \notin \SetOfFDKG$:
+                \begin{itemize}
+                    \item Add $\Party{i}$ to $\SetOfFDKG$. 
+                    \item Store the provided guardian set $\GuardianSetOf{i}$ (verify $|\GuardianSetOf{i}| = k$, $\Party{i} \notin \GuardianSetOf{i}$).
+                    \item Choose a random polynomial $f_i(X)$ of degree $t-1$ over $\mathbb{Z}_q$ and store it.
+                    \item Send (Activated, $i$) back to the simulator $\mathcal{S}$. % Confirmation to S
+                \end{itemize}
+        \end{itemize}
+        
+    \item \textbf{Corrupt Party Activation:} Upon receiving (ActivateCorrupt, $i, f_i, \GuardianSetOf{i}$) from the simulator $\mathcal{S}$ (on behalf of $\Party{i} \in \mathcal{C}$):
+        \begin{itemize}
+             \item If `phase` is 'activation' and $\Party{i} \notin \SetOfFDKG$:
+                 \begin{itemize}
+                     \item Add $\Party{i}$ to $\SetOfFDKG$. 
+                     \item Verify degree of $f_i$ is $t-1$, $|\GuardianSetOf{i}|=k$, $\Party{i} \notin \GuardianSetOf{i}$. Store valid $f_i$ and $\GuardianSetOf{i}$.
+                 \end{itemize}
+        \end{itemize}
+
+    \item \textbf{Key Computation Trigger:} Upon receiving (ComputeKeys) from the simulator $\mathcal{S}$\footnote{Note on Round Termination: For simplicity in the ideal functionality $\mathcal{F}_{FDKG}$, we model the transition from the activation phase to the key computation phase via this `(ComputeKeys)` trigger sent by the simulator. In a real-world deployment, particularly on a blockchain, the end of the Generation phase would typically be determined by external environmental factors like block height or a predetermined time duration, not controlled by the adversary. Participants submitting messages after this cutoff would be excluded. Our security analysis focuses on the correctness and privacy properties based on valid participation within the allowed timeframe, assuming the round termination mechanism itself is robust. The core security guarantees derived from the underlying cryptography (IND-CPA PKE, NIZK soundness/ZK) are not fundamentally affected by this modeling simplification.}:
+        \begin{itemize}
+            \item If `phase` is 'activation':
+                \begin{itemize}
+                    \item Set `phase` = 'computed'.
+                    \item If $\SetOfFDKG = \emptyset$: Send (KeysComputed, null, $\emptyset$, $\emptyset$, $\emptyset$, $\emptyset$) to $\mathcal{S}$ and stop this trigger processing.
+                    \item For each $\Party{k} \in \SetOfFDKG$: Define $\PartialSecretKey{k} := f_k(0)$ and $\PartialPublicKey{k} := G^{\PartialSecretKey{k}}$. Let $\mathbb{E} = \{\PartialPublicKey{k}\}_{k \in \SetOfFDKG}$.
+                    \item Compute global secret key $\SecretKey := \sum_{k \in \SetOfFDKG} \PartialSecretKey{k} \pmod{q}$ and global public key $\PublicKey := G^{\SecretKey}$.
+                    \item For each $k \in \SetOfFDKG$ and each $j$ s.t. $\Party{j} \in \GuardianSetOf{k}$: Compute share $\SharePartialSecretKey{k}{j} := f_k(j)$.
+                    \item Send (KeysComputed, $\PublicKey$, $\mathbb{E}$, $\{\GuardianSetOf{k}\}_{k \in \SetOfFDKG \cap \mathcal{H}}$, $\{(\PartialSecretKey{k}, f_k, \GuardianSetOf{k})\}_{k \in \SetOfFDKG \cap \mathcal{C}}$, $\{ \SharePartialSecretKey{k}{j} \mid k \in \SetOfFDKG, \Party{j} \in \GuardianSetOf{k} \cap \mathcal{C} \}$) to the simulator $\mathcal{S}$.
+                    \item For each honest participant $\Party{i} \in \SetOfFDKG \cap \mathcal{H}$: Send (Output, $\PublicKey$, $\mathbb{E}$, $\PartialSecretKey{i}$, $\GuardianSetOf{i}$, $\{ \SharePartialSecretKey{k}{i} \mid k \in \SetOfFDKG, \Party{i} \in \GuardianSetOf{k} \}$) to $\Party{i}$.
+                \end{itemize}
+        \end{itemize}
+
+\end{list}
+\medskip\hrule
+\caption{Ideal functionality for Federated Distributed Key Generation $\mathcal{F}^{n,t,k}_{FDKG}$.}
+\label{fig:ideal_functionality_fdkg} % Updated label
+\end{figure*}
+
+
+\subsection{Proof Sketch for Theorem~\ref{thm:security_fdkg_generation_formal}}
+\label{app:proof_sketch}
+
+We show that $\Pi_{FDKG}$ securely realizes $\mathcal{F}_{FDKG}$ against any PPT
+adversary $\mathcal{A}$ corrupting a static set $\Corrupted$. The proof proceeds
+by a sequence of hybrids changing the honest parties' Round~1 messages.
+
+\paragraph{Notation}
+Write $\mathsf{View}_r$ for $\mathcal{A}$'s view in world $r$. All probabilities
+are over the joint coin tosses of honest parties, the adversary, and the NIZK/PKE.
+
+\medskip
+\noindent\textbf{Hybrid H$_0$ (Real world).}
+Honest parties follow $\Pi_{FDKG}$: they publish $(\PartialPublicKey{i},
+\GuardianSetOf{i}, \{\EncryptedSharePartialSecretKey{i}{j}\}_{j\in \GuardianSetOf{i}}, \pi_{FDKG_i})$
+where each $\EncryptedSharePartialSecretKey{i}{j}$ encrypts the \emph{real} share
+$f_i(j)$ and $\pi_{FDKG_i}$ is a real proof.
+
+\noindent\textbf{Hybrid H$_1$ (Simulated NIZKs).}
+Same as H$_0$, except every honest $\pi_{FDKG_i}$ is replaced by a simulated proof
+produced by the NIZK simulator for the same public statement.
+
+\begin{lemma}[Zero-knowledge step]
+\label{lem:zk}
+$\mathsf{View}_{\text{H}_0} \approx_c \mathsf{View}_{\text{H}_1}$ under NIZK
+zero-knowledge.
+\end{lemma}
+
+\noindent\textbf{Hybrid H$_2$ (IND-CPA switch for honest recipients).}
+Same as H$_1$, except that for every honest dealer $i$ and honest recipient
+$j\notin\Corrupted$, the ciphertext $\EncryptedSharePartialSecretKey{i}{j}$
+is changed from an encryption of $f_i(j)$ to an encryption of $0$ under
+$\textrm{pk}_j$. For corrupted recipients $j\in\Corrupted$, honest dealers still
+encrypt the \emph{actual} share $f_i(j)$.
+
+\begin{lemma}[IND-CPA step]
+\label{lem:indcpa}
+$\mathsf{View}_{\text{H}_1} \approx_c \mathsf{View}_{\text{H}_2}$ under PKE IND-CPA.
+\end{lemma}
+
+\noindent\textbf{Hybrid H$_3$ (Ideal world distribution).}
+This is the ideal execution with simulator $\mathcal{S}$ interacting with
+$\mathcal{F}_{FDKG}$:
+\begin{itemize}
+  \item For corrupt dealers, the simulator relays their real broadcasts.
+  \item For each honest dealer $i$, the simulator uses the public $\PartialPublicKey{i}$
+        and $\GuardianSetOf{i}$ supplied by $\mathcal{F}_{FDKG}$, encrypts $0$ for
+        honest recipients, and encrypts the \emph{actual} shares $f_i(j)$ (obtained
+        from $\mathcal{F}_{FDKG}$) for corrupted recipients $j\in\Corrupted$.
+        Proofs are simulated.
+\end{itemize}
+By construction, $\mathsf{View}_{\text{H}_2}$ and $\mathsf{View}_{\text{H}_3}$
+are \emph{identical}.
+
+\begin{lemma}[Identity step]
+\label{lem:identity}
+$\mathsf{View}_{\text{H}_2} \equiv \mathsf{View}_{\text{H}_3}$.
+\end{lemma}
+
+\paragraph{Indistinguishability conclusion}
+By Lemmas~\ref{lem:zk}–\ref{lem:identity} and a triangle inequality,
+$\mathsf{View}_{\text{H}_0} \approx_c \mathsf{View}_{\text{H}_3}$, so the real
+execution is computationally indistinguishable from the ideal one.
+
+\paragraph{Correctness and Robustness from soundness}
+In any world where honest broadcasts are \emph{accepted}, NIZK \emph{soundness}
+implies that each accepted tuple of an (honest or corrupt) dealer $i$ is
+consistent with a single degree-$(t-1)$ polynomial $f_i$ and with
+$\PartialPublicKey{i}=G^{f_i(0)}$; otherwise the proof would be rejected except
+with negligible probability. Hence each accepted ciphertext encrypts $f_i(j)$,
+and the published $\PartialPublicKey{i}$ equals $G^{\PartialSecretKey{i}}$ with
+$\PartialSecretKey{i}=f_i(0)$, yielding
+$\PublicKey=\prod_{i\in\SetOfFDKG}\PartialPublicKey{i}=G^{\sum_{i\in\SetOfFDKG}\PartialSecretKey{i}}$.
+Moreover, verification rejects malformed or equivocal broadcasts, so corrupted
+parties cannot force acceptance of inconsistent data; their only effect is to
+omit or abort. This establishes \emph{Correctness} and \emph{Robustness} of
+Generation as stated in Theorem~\ref{thm:security_fdkg_generation_formal}.
+
+\paragraph{Privacy of Generation}
+In H$_2$ (hence in H$_3$), the adversary’s view on honest-to-honest ciphertexts
+is distributed as encryptions of $0$; by Lemma~\ref{lem:indcpa}, this is
+indistinguishable from encryptions of the true shares. Ciphertexts to corrupted
+recipients contain the \emph{real} shares, matching the ideal leakage
+$\{\SharePartialSecretKey{i}{j}\mid j\in\GuardianSetOf{i}\cap\Corrupted\}$.
+Simulated proofs are indistinguishable by Lemma~\ref{lem:zk}. Therefore the view
+leaks no additional information about honest $\{\PartialSecretKey{i}\}$ beyond
+public values and the intended shares to corrupted recipients, establishing
+\emph{Privacy} for Generation.
 
 \section{zkSNARK Constructions}
 \label{app:proofs}
@@ -1168,7 +1358,7 @@ The detailed Circom circuit implementations for these proofs are publicly availa
 
 \subsection{FDKG Proof ($\pi_{FDKG_i}$)}
 \label{app:proof-fdkg}
-Proves correct generation and encryption of shares by participant $\Party{i}$ during the distribution phase.
+Proves correct generation and encryption of shares by participant $\Party{i}$ during the Generation phase.
 \begin{itemize}
     \item \textbf{Statement ($x_i$):} Consists of the party's partial public key $\PartialPublicKey{i}$, the set of PKE public keys $\{\textrm{pk}_j\}_{\Party{j} \in \GuardianSetOf{i}}$ for its guardians, and the set of corresponding encrypted shares $\mathbb{C}_i = \{\EncryptedSharePartialSecretKey{i}{j}\}_{\Party{j} \in \GuardianSetOf{i}}$.
     \item \textbf{Witness ($w_i$):} Consists of the coefficients $\{a_0, \dots, a_{t-1}\}$ of $\Party{i}$'s secret polynomial $f_i(X)$ (where $\PartialSecretKey{i} = a_0 = f_i(0)$), and the PKE randomness $\{(k_{i,j}, r_{i,j})\}_{\Party{j} \in \GuardianSetOf{i}}$ used to produce each ciphertext in $\mathbb{C}_i$.
@@ -1241,7 +1431,7 @@ Proves correct decryption of an SSS share $s_{j,i}$ (originally from $\Party{j}$
 \begin{itemize}
     \item \textbf{Statement ($x_{PDS_{j,i}}$):} The aggregated ElGamal component $\TotalA$, the computed share of partial decryption $\SharePartialDecryptionFromTo{j}{i}$, the encrypted SSS share $\EncryptedSharePartialSecretKey{j}{i}=(C_1, C_2, \Delta)$, and the decrypting guardian $\Party{i}$'s PKE public key $\textrm{pk}_i$.
     \item \textbf{Witness ($w_{PDS_{j,i}}$):} The decrypting guardian $\Party{i}$'s PKE secret key $\textrm{sk}_i$.
-    \item \textbf{Relation $\mathcal{R}_{PDS}$ ($((x_{PDS_{j,i}}), w_{PDS_{j,i}}) \in \mathcal{R}_{PDS}$):} The circuit (partial\_decryption\_share.circom) first internally computes the plaintext SSS share $s_{j,i} = \texttt{Dec}_{\textrm{sk}_i}(\EncryptedSharePartialSecretKey{j}{i})$ (verifying the decryption step) and then checks that $\SharePartialDecryptionFromTo{j}{i} = (\TotalA)^{s_{j,i}}$.
+    \item \textbf{Relation $\mathcal{R}_{PDS}$ ($((x_{PDS_{j,i}}), w_{PDS_{j,i}}) \in \mathcal{R}_{PDS}$):} The circuit (partial\_decryption\_share.circom) first internally computes the plaintext SSS share $s_{j,i} = \textrm{Dec}_{\textrm{sk}_i}(\EncryptedSharePartialSecretKey{j}{i})$ (verifying the decryption step) and then checks that $\SharePartialDecryptionFromTo{j}{i} = (\TotalA)^{s_{j,i}}$.
     \item \textbf{Circuit Implementation:} \url{https://github.com/stanbar/FDKG/blob/main/circuits/circuits/partial_decryption_share.circom}
 \end{itemize}
 

@@ -2400,3 +2400,397 @@
   annotation = {Publication info: A major revision of an IACR publication in EUROCRYPT 2020},
   file = {/Users/stanbar/Zotero/storage/LRMAGY49/Chiesa et al. - 2019 - Marlin Preprocessing zkSNARKs with Universal and .pdf}
 }
+
+@online{huDyCAPSAsynchronousDynamiccommittee2022,
+  title = {{{DyCAPS}}: {{Asynchronous Dynamic-committee Proactive Secret Sharing}}},
+  shorttitle = {{{DyCAPS}}},
+  author = {Hu, Bin and Zhang, Zongyang and Chen, Han and Zhou, You and Jiang, Huazu and Liu, Jianwei},
+  date = {2022},
+  number = {2022/1169},
+  url = {https://eprint.iacr.org/2022/1169},
+  urldate = {2025-09-05},
+  pubstate = {prepublished},
+  keywords = {Asynchronous,BFT,dynamic committee,Proactive secret sharing},
+  annotation = {Publication info: Preprint.}
+}
+
+@online{maramCHURPDynamicCommitteeProactive2019,
+  title = {{{CHURP}}: {{Dynamic-Committee Proactive Secret Sharing}}},
+  shorttitle = {{{CHURP}}},
+  author = {Maram, Sai Krishna Deepak and Zhang, Fan and Wang, Lun and Low, Andrew and Zhang, Yupeng and Juels, Ari and Song, Dawn},
+  date = {2019},
+  number = {2019/017},
+  url = {https://eprint.iacr.org/2019/017},
+  urldate = {2025-09-05},
+  pubstate = {prepublished},
+  keywords = {blockchains,secret sharing,threshold cryptography},
+  annotation = {Publication info: Published elsewhere. ACM CCS'19}
+}
+
+@online{bachoSoKDlogbasedDistributed2025,
+  title = {{{SoK}}: {{Dlog-based Distributed Key Generation}}},
+  shorttitle = {{{SoK}}},
+  author = {Bacho, Renas and Kavousi, Alireza},
+  date = {2025},
+  number = {2025/819},
+  url = {https://eprint.iacr.org/2025/819},
+  urldate = {2025-09-10},
+  pubstate = {prepublished},
+  keywords = {Distributed Computing,Distributed Key Generation,Systematization of Knowledge,Threshold Cryptography},
+  annotation = {Publication info: Published elsewhere. Minor revision. IEEE S\&P 2025},
+  file = {/Users/stanbar/Zotero/storage/X9KCBMNC/Bacho and Kavousi - 2025 - SoK Dlog-based Distributed Key Generation.pdf}
+}
+
+@inproceedings{pedersenThresholdCryptosystemTrusted1991,
+  title = {A {{Threshold Cryptosystem}} without a {{Trusted Party}}},
+  booktitle = {Advances in {{Cryptology}} — {{EUROCRYPT}} ’91},
+  author = {Pedersen, Torben Pryds},
+  editor = {Davies, Donald W.},
+  date = {1991},
+  pages = {522--526},
+  publisher = {Springer},
+  location = {Berlin, Heidelberg},
+  doi = {10.1007/3-540-46416-6_47},
+  isbn = {978-3-540-46416-7},
+  langid = {english}
+}
+
+@online{bachoAdaptivelySecureAggregatable2023,
+  title = {Adaptively {{Secure}} ({{Aggregatable}}) {{PVSS}} and {{Application}} to {{Distributed Randomness Beacons}}},
+  author = {Bacho, Renas and Loss, Julian},
+  date = {2023},
+  number = {2023/1348},
+  url = {https://eprint.iacr.org/2023/1348},
+  urldate = {2025-09-22},
+  abstract = {Publicly Verifiable Secret Sharing (PVSS) is a fundamental primitive that allows to share a secret S among n parties via a publicly verifiable transcript T. Existing (efficient) PVSS are only proven secure against static adversaries who must choose who to corrupt ahead of a protocol execution. As a result, any protocol (e.g., a distributed randomness beacon) that builds on top of such a PVSS scheme inherits this limitation. To overcome this barrier, we revisit the security of PVSS under adaptive corruptions and show that, surprisingly, many protocols from the literature already achieve it in a meaningful way: - We propose a new security definition for aggregatable PVSS, i.e., schemes that allow to homomorphically combine multiple transcripts into one compact aggregate transcript AT that shares the sum of their individual secrets. Our notion captures that if the secret shared by AT contains at least one contribution from an honestly generated transcript, it should not be predictable. We then prove that several existing schemes satisfy this notion against adaptive corruptions in the algebraic group model. - To motivate our new notion, we show that it implies the adaptive security of two recent random beacon protocols, SPURT (S\&P '22) and OptRand (NDSS '23), who build on top of aggregatable PVSS schemes satisfying our notion of unpredictability. For a security parameter λ, our result improves the communication complexity of the best known adaptively secure random beacon protocols to O(λn2) for synchronous networks with t},
+  pubstate = {prepublished},
+  keywords = {Adaptive Security,Aggregatable PVSS,Pairing-Based Cryptography,Randomness Beacon},
+  annotation = {Publication info: Published elsewhere. Major revision. ACM CCS 2023},
+  file = {/Users/stanbar/Zotero/storage/DRTPICKT/Bacho and Loss - 2023 - Adaptively Secure (Aggregatable) PVSS and Application to Distributed Randomness Beacons.pdf}
+}
+
+@online{bachoGRandLineAdaptivelySecure2023,
+  title = {{{GRandLine}}: {{Adaptively Secure DKG}} and {{Randomness Beacon}} with ({{Log-}}){{Quadratic Communication Complexity}}},
+  shorttitle = {{{GRandLine}}},
+  author = {Bacho, Renas and Lenzen, Christoph and Loss, Julian and Ochsenreither, Simon and Papachristoudis, Dimitrios},
+  date = {2023},
+  number = {2023/1887},
+  url = {https://eprint.iacr.org/2023/1887},
+  urldate = {2025-09-23},
+  abstract = {A randomness beacon is a source of continuous and publicly verifiable randomness which is of crucial importance for many applications. Existing works on randomness beacons suffer from at least one of the following drawbacks: (i) security only against static (i.e., non-adaptive) adversaries, (ii) each epoch takes many rounds of communication, or (iii) computationally expensive tools such as proof-of-work (PoW) or verifiable delay functions (VDF). In this work, we introduce GRandLine, the first adaptively secure randomness beacon protocol that overcomes all these limitations while preserving simplicity and optimal resilience in the synchronous network setting. We achieve our result in two steps. First, we design a novel distributed key generation (DKG) protocol GRand that runs in O(λn2log⁡n) bits of communication but, unlike most conventional DKG protocols, outputs both secret and public keys as group elements. Here, λ denotes the security parameter. Second, following termination of GRand, parties can use their keys to derive a sequence of randomness beacon values, where each random value costs only a single asynchronous round and O(λn2) bits of communication. We implement GRandLine and evaluate it using a network of up to 64 parties running in geographically distributed AWS instances. Our evaluation shows that GRandLine can produce about 2 beacon outputs per second in a network of 64 parties. We compare our protocol to the state-of-the-art randomness beacon protocols OptRand (NDSS '23), BRandPiper (CCS '21), and Drand, in the same setting and observe that it vastly outperforms them.},
+  pubstate = {prepublished},
+  keywords = {Adaptive Security,Distributed Key Generation,Pairing-Based Cryptography,PVSS,Randomness Beacon,Transparent Setup},
+  annotation = {Publication info: Published elsewhere. Major revision. ACM CCS 2024},
+  file = {/Users/stanbar/Zotero/storage/LQUSJSJ7/Bacho et al. - 2023 - GRandLine Adaptively Secure DKG and Randomness Beacon with (Log-)Quadratic Communication Complexity.pdf}
+}
+
+@online{cascudoPubliclyVerifiableSecret2023,
+  title = {Publicly {{Verifiable Secret Sharing}} over {{Class Groups}} and {{Applications}} to {{DKG}} and {{YOSO}}},
+  author = {Cascudo, Ignacio and David, Bernardo},
+  date = {2023},
+  number = {2023/1651},
+  url = {https://eprint.iacr.org/2023/1651},
+  urldate = {2025-09-23},
+  abstract = {Publicly Verifiable Secret Sharing (PVSS) allows a dealer to publish encrypted shares of a secret so that parties holding the corresponding decryption keys may later reconstruct it. Both dealing and reconstruction are non-interactive and any verifier can check their validity. PVSS finds applications in randomness beacons, distributed key generation (DKG) and in YOSO MPC (Gentry et al. CRYPTO'21), when endowed with suitable publicly verifiable re-sharing as in YOLO YOSO (Cascudo et al. ASIACRYPT'22). We introduce a PVSS scheme over class groups that achieves similar efficiency to state-of-the art schemes that only allow for reconstructing a function of the secret, while our scheme allows the reconstruction of the original secret. Our construction generalizes the DDH-based scheme of YOLO YOSO to operate over class groups, which poses technical challenges in adapting the necessary NIZKs in face of the unknown group order and the fact that efficient NIZKs of knowledge are not as simple to construct in this setting. Building on our PVSS scheme's ability to recover the original secret, we propose two DKG protocols for discrete logarithm key pairs: a biasable 1-round protocol, which improves on the concrete communication/computational complexities of previous works; and a 2-round unbiasable protocol, which improves on the round complexity of previous works. We also add publicly verifiable resharing towards anonymous committees to our PVSS, so that it can be used to efficiently transfer state among committees in the YOSO setting. Together with a recent construction of MPC in the YOSO model based on class groups (Braun et al. CRYPTO'23), this results in the most efficient full realization (i.e without assuming receiver anonymous channels) of YOSO MPC based on the CDN framework with transparent setup.},
+  pubstate = {prepublished},
+  keywords = {Class Groups,Distributed Key Generation,Multiparty Computation,Publicly verifiable secret sharing,YOSO model},
+  annotation = {Publication info: A major revision of an IACR publication in EUROCRYPT 2024},
+  file = {/Users/stanbar/Zotero/storage/VG63G3PC/Cascudo and David - 2023 - Publicly Verifiable Secret Sharing over Class Groups and Applications to DKG and YOSO.pdf}
+}
+
+@online{fengDragonDecentralizationCost2024,
+  title = {Dragon: {{Decentralization}} at the Cost of {{Representation}} after {{Arbitrary Grouping}} and {{Its Applications}} to {{Sub-cubic DKG}} and {{Interactive Consistency}}},
+  shorttitle = {Dragon},
+  author = {Feng, Hanwen and Lu, Zhenliang and Tang, Qiang},
+  date = {2024},
+  number = {2024/168},
+  url = {https://eprint.iacr.org/2024/168},
+  urldate = {2025-09-23},
+  abstract = {Several distributed protocols, including distributed key generation (DKG) and interactive consistency (IC), depend on O(n) instances of Byzantine Broadcast or Byzantine Agreement among n nodes, resulting in Θ(n3) communication overhead.  In this paper, we provide a new methodology of realizing such broadcasts we call DRAGON: Decentralization at the cost of Representation after Arbitrary GrOupiNg. At the core of it, we arbitrarily group nodes into small ``shards'' and paired with multiple new primitives we call consortium-sender (dealer) broadcast (and secret sharing). The new tools enable a shard of nodes to jointly broadcast (or securely contribute a secret) to the whole population only at the cost of one dealer (\{\textbackslash em as if\} there is a representative).   With our new Dragon method, we construct the first two DKG protocols, both achieving optimal resilience, with sub-cubic total communication and computation. The first DKG generates a secret key within an Elliptic Curve group, incurring O\textasciitilde (n2.5λ) total communication and computation. The second DKG, while slightly increasing communication and computation by a factor of the statistical security parameter, generates a secret key as a field element, which makes it directly compatible with various off-the-shelf DLog-based threshold cryptographic systems. We also construct a first deterministic IC with sub-cubic communication. Along the way, we also formalize simulation-based security and proved it for publicly verifiable secret sharing (PVSS), making it possible for a modular analysis, which might be of independent interest.},
+  pubstate = {prepublished},
+  keywords = {Distributed Common Randomness,Distributed Key Generation,Interactive Consistency},
+  annotation = {Publication info: Published elsewhere. Major revision. ACM PODC 2024},
+  file = {/Users/stanbar/Zotero/storage/RWHLHX26/Feng et al. - 2024 - Dragon Decentralization at the cost of Representation after Arbitrary Grouping and Its Applications.pdf}
+}
+
+@online{fengScalableAdaptivelySecure2023,
+  title = {Scalable and {{Adaptively Secure Any-Trust Distributed Key Generation}} and {{All-hands Checkpointing}}},
+  author = {Feng, Hanwen and Mai, Tiancheng and Tang, Qiang},
+  date = {2023},
+  number = {2023/1773},
+  url = {https://eprint.iacr.org/2023/1773},
+  urldate = {2025-09-23},
+  abstract = {The classical distributed key generation protocols (DKG) are resurging due to their widespread applications in blockchain. While efforts have been made to improve DKG communication, practical large-scale deployments are still yet to come due to various challenges, including the heavy computation and communication (particularly broadcast) overhead in their adversarial cases. In this paper, we propose a practical DKG for DLog-based cryptosystems, which achieves (quasi-)linear computation and communication per-node cost with the help of a common coin, even in the face of the maximal amount of Byzantine nodes. Moreover, our protocol is secure against adaptive adversaries, which can corrupt less than half of all nodes. The key to our improvements lies in delegating the most costly operations to an Any-Trust group together with a set of techniques for adaptive security. This group is randomly sampled and consists of a small number of individuals. The population only trusts that at least one member in the group is honest, without knowing which one. Moreover, we present a generic transformer that enables us to efficiently deploy a conventional distributed protocol like our DKG, even when the participants have different weights. Additionally, we introduce an extended broadcast channel based on a blockchain and data dispersal network (such as IPFS), enabling reliable broadcasting of arbitrary-size messages at the cost of constant-size blockchain storage.  Our DKG leads to a fully practical instantiation of Filecoin's checkpointing mechanism, in which all validators of a Proof-of-Stake (PoS) blockchain periodically run DKG and threshold signing to create checkpoints on Bitcoin, to enhance the security of the PoS chain. In comparison with the recent checkpointing approach of Babylon (Oakland, 2023), ours enjoys a significantly smaller cost of Bitcoin transaction fees. For 212 validators, our cost is merely 0.4\textbackslash\% of that incurred by Babylon's approach.},
+  pubstate = {prepublished},
+  keywords = {Bitcoin Checkpointing,Distributed Key Generation,Long-range Attacks,Threshold Cryptography},
+  annotation = {Publication info: Published elsewhere. Major revision. ACM CCS 2024},
+  file = {/Users/stanbar/Zotero/storage/TGEJN8FJ/Feng et al. - 2023 - Scalable and Adaptively Secure Any-Trust Distributed Key Generation and All-hands Checkpointing.pdf}
+}
+
+@incollection{fouqueOneThresholdDiscreteLog2001,
+  title = {One {{Round Threshold Discrete-Log Key Generation}} without {{Private Channels}}},
+  booktitle = {Public {{Key Cryptography}}},
+  author = {Fouque, Pierre-Alain and Stern, Jacques},
+  editor = {Kim, Kwangjo},
+  date = {2001},
+  volume = {1992},
+  pages = {300--316},
+  publisher = {Springer Berlin Heidelberg},
+  location = {Berlin, Heidelberg},
+  doi = {10.1007/3-540-44586-2_22},
+  url = {http://link.springer.com/10.1007/3-540-44586-2_22},
+  urldate = {2025-09-22},
+  isbn = {978-3-540-41658-6 978-3-540-44586-9},
+  langid = {english},
+  file = {/Users/stanbar/Zotero/storage/MKWM527X/Fouque and Stern - 2001 - One Round Threshold Discrete-Log Key Generation without Private Channels.pdf}
+}
+
+@online{gurkanAggregatableDistributedKey2021,
+  title = {Aggregatable {{Distributed Key Generation}}},
+  author = {Gurkan, Kobi and Jovanovic, Philipp and Maller, Mary and Meiklejohn, Sarah and Stern, Gilad and Tomescu, Alin},
+  date = {2021},
+  number = {2021/005},
+  url = {https://eprint.iacr.org/2021/005},
+  urldate = {2025-09-22},
+  abstract = {In this paper, we introduce a distributed key generation (DKG) protocol with aggregatable and publicly-verifiable transcripts. Compared with prior publicly-verifiable approaches, our DKG reduces the size of the final transcript and the time to verify it from O(n2) to O(nlog(n)), where n denotes the number of parties. As compared with prior non-publicly-verifiable approaches, our DKG leverages gossip rather than all-to-all communication to reduce verification and communication complexity. We also revisit existing DKG security definitions, which are quite strong, and propose new and natural relaxations. As a result, we can prove the security of our aggregatable DKG as well as that of several existing DKGs, including the popular Pedersen variant. We show that, under these new definitions, these existing DKGs can be used to yield secure threshold variants of popular cryptosystems such as El-Gamal encryption and BLS signatures. We also prove that our DKG can be securely combined with a new efficient verifiable unpredictable function (VUF), whose security we prove in the random oracle model. \% Finally, we experimentally evaluate our DKG and show that the per-party overheads scale linearly and are practical. For 64 parties, it takes 71ms to share and 359ms to verify the overall transcript, while for 8192 parties, it takes 8s and 42.2s respectively.},
+  pubstate = {prepublished},
+  keywords = {distributed key generation},
+  annotation = {Publication info: Preprint. MINOR revision.},
+  file = {/Users/stanbar/Zotero/storage/IH2W7IQS/Gurkan et al. - 2021 - Aggregatable Distributed Key Generation.pdf}
+}
+
+@online{kateNoninteractiveVSSUsing2023,
+  title = {Non-Interactive {{VSS}} Using {{Class Groups}} and {{Application}} to {{DKG}}},
+  author = {Kate, Aniket and Mangipudi, Easwar Vivek and Mukherjee, Pratyay and Saleem, Hamza and Thyagarajan, Sri Aravinda Krishnan},
+  date = {2023},
+  number = {2023/451},
+  url = {https://eprint.iacr.org/2023/451},
+  urldate = {2025-09-23},
+  abstract = {We put forward a non-interactive verifiable secret sharing (NI-VSS) scheme using class groups – we call it cgVSS. Our construction follows the standard framework of encrypting the shares to a set of recipients and generating a non-interactive proof of correct sharing. However, as opposed to prior works, such as Groth’s [Eprint 2021], or Gentry et al.’s [Eurocrypt 2022], we do not require any range proof - this is possible due to the unique structure of class groups, that enables efficient encryption/decryption of large field elements in the exponent of an ElGamal-style encryption scheme. Importantly, this is possible without destroying the additive holomorphic structure, which is required to make the proof-of-correctness highly efficient. This approach not only substantially simplifies the NI-VSS process, but also outperforms the state-of-art schemes significantly. For example, our implementation shows that for a 150 node system cgVSS outperforms (a simplified implementation of) Groth’s protocol in overall communication complexity by 5.6x, about 9.3 − 9.7x in the dealer time and 2.4 − 2.7x in the receiver time per node. Additionally, we formalize the notion of public verifiability, which enables anyone, possibly outside the participants, to verify the correctness of the dealing. In fact, we re-interpret the notion of public verifiability and extend it to the setting when potentially all recipients may be corrupt and yet can not defy public verifiability – to distinguish from state-of-art, we call this strong public verifiability. Our formalization uses the universal composability framework. Finally, through a generic transformation, we obtain a non-interactive distributed key generation (NI-DKG) scheme for threshold systems, where the secret key is the discrete log of the public key. Our security analysis in the VSS-hybrid model uses a formalization that considers a (strong) public verifiability notion for DKG, even when more than threshold parties are corrupt. Instantiating with cgVSS we obtain a NI-DKG scheme from class groups – we call it cgDKG.},
+  pubstate = {prepublished},
+  keywords = {Class Groups,Non-interactive VSS,Verifiable secret sharing},
+  annotation = {Publication info: Published elsewhere. Major revision. ACM CCS 2024},
+  file = {/Users/stanbar/Zotero/storage/9BY432V4/Kate et al. - 2023 - Non-interactive VSS using Class Groups and Application to DKG.pdf}
+}
+
+@incollection{stadlerPubliclyVerifiableSecret1996a,
+  title = {Publicly {{Verifiable Secret Sharing}}},
+  booktitle = {Advances in {{Cryptology}} — {{EUROCRYPT}} ’96},
+  author = {Stadler, Markus},
+  editor = {Maurer, Ueli},
+  editora = {Goos, Gerhard and Hartmanis, Juris and Van Leeuwen, Jan},
+  editoratype = {redactor},
+  date = {1996},
+  volume = {1070},
+  pages = {190--199},
+  publisher = {Springer Berlin Heidelberg},
+  location = {Berlin, Heidelberg},
+  doi = {10.1007/3-540-68339-9_17},
+  url = {http://link.springer.com/10.1007/3-540-68339-9_17},
+  urldate = {2025-09-22},
+  isbn = {978-3-540-61186-8 978-3-540-68339-1},
+  file = {/Users/stanbar/Zotero/storage/8ZYQS85C/Stadler - 1996 - Publicly Verifiable Secret Sharing.pdf}
+}
+
+@inproceedings{kateConstantSizeCommitmentsPolynomials2010,
+  title = {Constant-{{Size Commitments}} to {{Polynomials}} and {{Their Applications}}},
+  booktitle = {Advances in {{Cryptology}} - {{ASIACRYPT}} 2010},
+  author = {Kate, Aniket and Zaverucha, Gregory M. and Goldberg, Ian},
+  editor = {Abe, Masayuki},
+  date = {2010},
+  series = {Lecture {{Notes}} in {{Computer Science}}},
+  pages = {177--194},
+  publisher = {Springer},
+  location = {Berlin, Heidelberg},
+  doi = {10.1007/978-3-642-17373-8_11},
+  abstract = {We introduce and formally define polynomial commitment schemes, and provide two efficient constructions. A polynomial commitment scheme allows a committer to commit to a polynomial with a short string that can be used by a verifier to confirm claimed evaluations of the committed polynomial. Although the homomorphic commitment schemes in the literature can be used to achieve this goal, the sizes of their commitments are linear in the degree of the committed polynomial. On the other hand, polynomial commitments in our schemes are of constant size (single elements). The overhead of opening a commitment is also constant; even opening multiple evaluations requires only a constant amount of communication overhead. Therefore, our schemes are useful tools to reduce the communication cost in cryptographic protocols. On that front, we apply our polynomial commitment schemes to four problems in cryptography: verifiable secret sharing, zero-knowledge sets, credentials and content extraction signatures.},
+  isbn = {978-3-642-17373-8},
+  langid = {english},
+  keywords = {Credentials,Polynomial Commitments,Verifiable Secret Sharing,Zero-Knowledge Sets},
+  file = {/Users/stanbar/Zotero/storage/GT3X2IHI/Kate et al. - 2010 - Constant-Size Commitments to Polynomials and Their.pdf}
+}
+
+@inproceedings{boldyrevaThresholdSignaturesMultisignatures2002,
+  title = {Threshold {{Signatures}}, {{Multisignatures}} and {{Blind Signatures Based}} on the {{Gap-Diffie-Hellman-Group Signature Scheme}}},
+  booktitle = {Public {{Key Cryptography}} — {{PKC}} 2003},
+  author = {Boldyreva, Alexandra},
+  editor = {Desmedt, Yvo G.},
+  date = {2002},
+  pages = {31--46},
+  publisher = {Springer},
+  location = {Berlin, Heidelberg},
+  doi = {10.1007/3-540-36288-6_3},
+  abstract = {We propose a robust proactive threshold signature scheme, a multisignature scheme and a blind signature scheme which work in any Gap Diffie-Hellman (GDH) group (where the Computational Diffie- Hellman problem is hard but the Decisional Diffie-Hellman problem is easy). Our constructions are based on the recently proposed GDH signature scheme of Boneh et al. [8]. Due to the instrumental structure of GDH groups and of the base scheme, it turns out that most of our constructions are simpler, more efficient and have more useful properties than similar existing constructions. We support all the proposed schemes with proofs under the appropriate computational assumptions, using the corresponding notions of security.},
+  isbn = {978-3-540-36288-3},
+  langid = {english},
+  keywords = {Blind Signature,Blind Signature Scheme,Random Oracle Model,Secret Sharing,Signature Scheme},
+  file = {/Users/stanbar/Zotero/storage/YJKKG6GM/Boldyreva - 2002 - Threshold Signatures, Multisignatures and Blind Signatures Based on the Gap-Diffie-Hellman-Group Sig.pdf}
+}
+
+@online{cachinRandomOraclesConstantinople2000,
+  title = {Random {{Oracles}} in {{Constantinople}}: {{Practical Asynchronous Byzantine Agreement}} Using {{Cryptography}}},
+  shorttitle = {Random {{Oracles}} in {{Constantinople}}},
+  author = {Cachin, Christian and Kursawe, Klaus and Shoup, Victor},
+  date = {2000},
+  number = {2000/034},
+  url = {https://eprint.iacr.org/2000/034},
+  urldate = {2025-09-27},
+  abstract = {Byzantine agreement requires a set of parties in a distributed system to agree on a value even if some parties are corrupted. A new protocol for Byzantine agreement in a completely asynchronous network is presented that makes use of cryptography, specifically of threshold signatures and coin-tossing protocols. These cryptographic protocols have practical and provably secure implementations in the ``random oracle'' model. In particular, a coin-tossing protocol based on the Diffie-Hellman problem is presented and analyzed. The resulting asynchronous Byzantine agreement protocol is both practical and theoretically nearly optimal because it tolerates the maximum number of corrupted parties, runs in constant expected time, has message and communication complexity close to the optimum, and uses a trusted dealer only in a setup phase, after which it can process a virtually unlimited number of transactions. The protocol is formulated as a transaction processing service in a cryptographic security model, which differs from the standard information-theoretic formalization and may be of independent interest.},
+  pubstate = {prepublished},
+  keywords = {Byzantine faults,common coin,consensus,dual-threshold schemes,threshold signatures},
+  annotation = {Publication info: Published elsewhere. Extended abstract appears in Proc. PODC 2000},
+  file = {/Users/stanbar/Zotero/storage/JIT2W46Z/Cachin et al. - 2000 - Random Oracles in Constantinople Practical Asynchronous Byzantine Agreement using Cryptography.pdf}
+}
+
+@online{choiSoKDistributedRandomness2023,
+  title = {{{SoK}}: {{Distributed Randomness Beacons}}},
+  shorttitle = {{{SoK}}},
+  author = {Choi, Kevin and Manoj, Aathira and Bonneau, Joseph},
+  date = {2023},
+  number = {2023/728},
+  url = {https://eprint.iacr.org/2023/728},
+  urldate = {2025-09-27},
+  abstract = {Motivated and inspired by the emergence of blockchains, many new protocols have recently been proposed for generating publicly verifiable randomness in a distributed yet secure fashion. These protocols work under different setups and assumptions, use various cryptographic tools, and entail unique trade-offs and characteristics. In this paper, we systematize the design of distributed randomness beacons (DRBs) as well as the cryptographic building blocks they rely on. We evaluate protocols on two key security properties, unbiasability and unpredictability, and discuss common attack vectors for predicting or biasing the beacon output and the countermeasures employed by protocols. We also compare protocols by communication and computational efficiency. Finally, we provide insights on the applicability of different protocols in various deployment scenarios and highlight possible directions for further research.},
+  pubstate = {prepublished},
+  keywords = {distributed randomness,public randomness,randomness beacon},
+  annotation = {Publication info: Published elsewhere. IEEE Symposium on Security and Privacy 2023},
+  file = {/Users/stanbar/Zotero/storage/SUKPXYMD/Choi et al. - 2023 - SoK Distributed Randomness Beacons.pdf}
+}
+
+@online{dasDistributedRandomnessUsing2024,
+  title = {Distributed {{Randomness}} Using {{Weighted VUFs}}},
+  author = {Das, Sourav and Pinkas, Benny and Tomescu, Alin and Xiang, Zhuolun},
+  date = {2024},
+  number = {2024/198},
+  url = {https://eprint.iacr.org/2024/198},
+  urldate = {2025-09-27},
+  abstract = {Shared randomness in blockchain can expand its support for randomized applications and can also help strengthen its security. Many existing blockchains rely on external randomness beacons for shared randomness, but this approach reduces fault tolerance, increases latency, and complicates application development. An alternate approach is to let the blockchain validators generate fresh shared randomness themselves once for every block. We refer to such a design as the \textbackslash emph\{on-chain\} randomness.  In this paper, we design an efficient on-chain randomness protocol for Byzantine fault-tolerance based Proof-of-Stake blockchains with weighted validators. A key component of our protocol is a weighted verifiable unpredictable function (VUF). The notable feature of our weighted VUF is that the computation and communication costs of parties are independent of their weight. This is crucial for scalability of on-chain randomness where we repeatedly evaluate the weighted VUF in quick succession. We also design a new scalable publicly verifiable secret sharing\textasciitilde (PVSS) scheme with aggregatable transcript and use it to design a distributed key generation\textasciitilde (DKG) protocol for our VUF. We implemented our schemes on top of Aptos, a proof-of-stake blockchain deployed in production, conducted an end-to-end evaluation with 112 validators and a total weight of up to 4053. In this setup, our on-chain randomness protocol adds only 133 milliseconds of latency compared to a protocol without randomness. We also demonstrate the performance improvements of our design through rigorous comparison with baseline methods.},
+  pubstate = {prepublished},
+  keywords = {publicly verifiable secret sharing,PVSS,Threshold cryptography,verifiable random function,VRF,VUF},
+  annotation = {Publication info: Preprint.},
+  file = {/Users/stanbar/Zotero/storage/NTX3WVGP/Das et al. - 2024 - Distributed Randomness using Weighted VUFs.pdf}
+}
+
+@online{kavousiSoKPublicRandomness2023,
+  title = {{{SoK}}: {{Public Randomness}}},
+  shorttitle = {{{SoK}}},
+  author = {Kavousi, Alireza and Wang, Zhipeng and Jovanovic, Philipp},
+  date = {2023},
+  number = {2023/1121},
+  url = {https://eprint.iacr.org/2023/1121},
+  urldate = {2025-09-27},
+  abstract = {Public randomness is a fundamental component in many cryptographic protocols and distributed systems and often plays a crucial role in ensuring their security, fairness, and transparency properties. Driven by the surge of interest in blockchain and cryptocurrency platforms and the usefulness of such a building block in those areas, designing secure protocols to generate public randomness in a distributed manner has received considerable attention in recent years. This paper presents a systematization of knowledge on the topic of public randomness with a focus on cryptographic tools providing public verifiability and key themes underlying these systems. We provide concrete insights on how state-of-the-art protocols achieve this task efficiently in an adversarial setting and present various research gaps that may be of interest for future research.},
+  pubstate = {prepublished},
+  keywords = {distributed randomness beacon,Public randomness,random beacon},
+  annotation = {Publication info: Published elsewhere. IEEE European Symposium on Security and Privacy (EuroS\&P 2024)},
+  file = {/Users/stanbar/Zotero/storage/7LTQ5UFR/Kavousi et al. - 2023 - SoK Public Randomness.pdf}
+}
+
+@online{kokoris-kogiasCALYPSOPrivateData2018,
+  title = {{{CALYPSO}}: {{Private Data Management}} for {{Decentralized Ledgers}}},
+  shorttitle = {{{CALYPSO}}},
+  author = {Kokoris-Kogias, Eleftherios and Alp, Enis Ceyhun and Gasser, Linus and Jovanovic, Philipp and Syta, Ewa and Ford, Bryan},
+  date = {2018},
+  number = {2018/209},
+  url = {https://eprint.iacr.org/2018/209},
+  urldate = {2025-09-27},
+  abstract = {Distributed ledger technologies provide high availability and integrity, making them a key enabler for practical and secure computation of distributed workloads among mutually distrustful parties. However, many practical applications also require confidentiality, the third pillar of the CIA triad. In this work, we enhance permissioned and permissionless blockchains with the ability to manage confidential data without forfeiting availability or decentralization. More specifically, CALYPSO sets out to achieve two orthogonal goals that challenge modern distributed ledgers: (a) enable blockchains to auditably manage secrets and (b) protect distributed computations against arbitrage attacks when their results depend on the ordering and secrecy of inputs. To this end, CALYPSO proposes on-chain secrets, a novel abstraction that enforces atomic deposition of an auditable trace whenever users access confidential data. Furthermore, CALYPSO provides user-controlled consent management that ensures revocation atomicity and accountable anonymity. Finally, to enable the permissionless deployment of CALYPSO, we introduce an incentive scheme and provide users with the option to select their preferred trustees. We evaluated our CALYPSO prototype with a confidential document sharing application and a decentralized lottery. Our benchmarks show that the latency of processing transactions increases linearly to the added security (in number of trustees) and is in the range of 0.2 to 8 seconds for 16 to 128 trustees.},
+  pubstate = {prepublished},
+  keywords = {access control,blockchain,decentralisation,fair-exchange,key management,threshold cryptography},
+  annotation = {Publication info: Published elsewhere. Major revision. VLDB 2021},
+  file = {/Users/stanbar/Zotero/storage/S3MIJCR3/Kokoris-Kogias et al. - 2018 - CALYPSO Private Data Management for Decentralized Ledgers.pdf}
+}
+
+@inproceedings{shoupSecuringThresholdCryptosystems1998,
+  title = {Securing Threshold Cryptosystems against Chosen Ciphertext Attack},
+  booktitle = {Advances in {{Cryptology}} — {{EUROCRYPT}}'98},
+  author = {Shoup, Victor and Gennaro, Rosario},
+  editor = {Nyberg, Kaisa},
+  date = {1998},
+  pages = {1--16},
+  publisher = {Springer},
+  location = {Berlin, Heidelberg},
+  doi = {10.1007/BFb0054113},
+  abstract = {For the most compelling applications of threshold cryptosystems, security against chosen ciphertext attack seems to be a requirement. However, there appear to be no practical threshold cryptosystems in the literature that are provably chosen-ciphertext secure, even in the idealized random hash function model. The contribution of this paper is to present two very practical threshold cryptosystems, and to prove that they are secure against chosen ciphertext attack in the random hash function model.},
+  isbn = {978-3-540-69795-4},
+  langid = {english},
+  keywords = {Choose Ciphertext Attack,Encryption Oracle,Hash Function,Nonnegligible Probability,Recovery Algorithm},
+  file = {/Users/stanbar/Zotero/storage/2J9UIMY4/Shoup and Gennaro - 1998 - Securing threshold cryptosystems against chosen ciphertext attack.pdf}
+}
+
+@online{brakerskiThresholdFHEEfficient2025,
+  title = {Threshold {{FHE}} with {{Efficient Asynchronous Decryption}}},
+  author = {Brakerski, Zvika and Friedman, Offir and Marmor, Avichai and Mutzari, Dolev and Spiizer, Yuval and Trieu, Ni},
+  date = {2025},
+  number = {2025/712},
+  url = {https://eprint.iacr.org/2025/712},
+  urldate = {2025-09-27},
+  abstract = {A Threshold Fully Homomorphic Encryption (ThFHE) scheme enables the generation of a global public key and secret key shares for multiple parties, allowing any threshold of these parties to collaboratively decrypt a ciphertext without revealing their individual secret keys. By leveraging the homomorphic properties of FHE, this scheme supports the distributed computation of arbitrary functions across multiple parties. As distributed execution of cryptographic tasks becomes popular, the demand for ThFHE schemes grows accordingly. We identify three major challenges with existing solutions. (i) They often take unrealistic assumptions with regards to the network model, assuming the threshold of parties to participate in decryption is known a-priori, available throughout multiple communication rounds, and is consistent between parties. (ii) They incur a super-linear overhead on the underlying FHE public parameters. Both issues pose challenges on scaling with the number of parties. (iii) The require heavyweight Zero-Knowledge Proofs (ZKPs) during decryption, thereby introducing a significant computational overhead in order to tolerate malicious behavior. In this work, we introduce a \textbackslash thfhe scheme that faces the above three challenges simultaneously, and is designed to scale with the number of parties N. Our scheme operates within the well-established asynchronous communication model. At the same time, upon decryption, the ciphertext only incurs a linear 3/4N + t additive overhead on the ciphertext modulus size. Additionally, when allowed to rely on none Post Quantum (PQ)-secure additively homomorphic encryption schemes, we provide a method with an O(1) overhead, independent of N. Lastly, we propose a preprocessing technique, that allows the parties to batch and preprocess all necessary ZKPs in an offline phase, before the encrypted inputs and evaluation circuit are determined. In turn, this enables the system to effectively manage traffic spikes, by exploiting idle periods to preform the ZKPs. We build on a ring-based FHE scheme, specifically using the BGV scheme for clarity and concreteness. Nonetheless, the techniques also apply to BFV, CKKS, and TFHE schemes.},
+  pubstate = {prepublished},
+  keywords = {Decentralized Applications,Threshold FHE},
+  annotation = {Publication info: Preprint.},
+  file = {/Users/stanbar/Zotero/storage/F6MADQSA/Brakerski et al. - 2025 - Threshold FHE with Efficient Asynchronous Decryption.pdf}
+}
+
+
+@online{cramerMultipartyComputationThreshold2000,
+  title = {Multiparty {{Computation}} from {{Threshold Homomorphic Encryption}}},
+  author = {Cramer, Ronald and Damgård, Ivan and Nielsen, Jesper Buus},
+  date = {2000},
+  number = {2000/055},
+  url = {https://eprint.iacr.org/2000/055},
+  urldate = {2025-09-27},
+  pubstate = {prepublished},
+  keywords = {threshold cryptography},
+  annotation = {Publication info: Published elsewhere. Unknown where it was published},
+  file = {/Users/stanbar/Zotero/storage/H9VBJZCG/Cramer et al. - 2000 - Multiparty Computation from Threshold Homomorphic Encryption.pdf}
+}
+
+@inproceedings{damgardUniversallyComposableEfficient2003,
+  title = {Universally {{Composable Efficient Multiparty Computation}} from {{Threshold Homomorphic Encryption}}},
+  booktitle = {Advances in {{Cryptology}} - {{CRYPTO}} 2003},
+  author = {Damgård, Ivan and Nielsen, Jesper Buus},
+  editor = {Boneh, Dan},
+  date = {2003},
+  pages = {247--264},
+  publisher = {Springer},
+  location = {Berlin, Heidelberg},
+  doi = {10.1007/978-3-540-45146-4_15},
+  isbn = {978-3-540-45146-4},
+  langid = {english},
+  keywords = {Commitment Scheme,Corrupted Party,Honest Party,Ideal Functionality,Probabilistic Polynomial Time},
+  file = {/Users/stanbar/Zotero/storage/DHVQLT4E/Damgård and Nielsen - 2003 - Universally Composable Efficient Multiparty Computation from Threshold Homomorphic Encryption.pdf}
+}
+
+@online{gennaroThresholdoptimalDSAECDSA2016,
+  title = {Threshold-Optimal {{DSA}}/{{ECDSA}} Signatures and an Application to {{Bitcoin}} Wallet Security},
+  author = {Gennaro, Rosario and Goldfeder, Steven and Narayanan, Arvind},
+  date = {2016},
+  number = {2016/013},
+  url = {https://eprint.iacr.org/2016/013},
+  urldate = {2025-09-27},
+  pubstate = {prepublished},
+  keywords = {Bitcoin,DSA,ECDSA,threshold cryptography,threshold signatures},
+  annotation = {Publication info: Preprint. MINOR revision.},
+  file = {/Users/stanbar/Zotero/storage/IHZY3WFX/Gennaro et al. - 2016 - Threshold-optimal DSAECDSA signatures and an application to Bitcoin wallet security.pdf}
+}
+
+@online{LitProtocol,
+  title = {Lit {{Protocol}}},
+  url = {https://litprotocol.com},
+  urldate = {2025-09-27},
+  abstract = {Lit is a key management network for decentralized signing and encryption. Create apps and wallets that use secrets without single points of failure.},
+  langid = {english},
+  organization = {Lit Protocol},
+  file = {/Users/stanbar/Zotero/storage/M7PPXMX5/litprotocol.com.html}
+}
+
+@software{LITProtocolWhitepaper2024,
+  title = {{{LIT-Protocol}}/Whitepaper},
+  date = {2024-05-22T09:27:29Z},
+  origdate = {2024-02-11T00:41:02Z},
+  url = {https://github.com/LIT-Protocol/whitepaper},
+  urldate = {2025-09-27},
+  abstract = {Lit Protocol Whitepaper v1},
+  organization = {Lit Protocol}
+}
