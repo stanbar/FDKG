@@ -60,7 +60,7 @@ This repository contains the implementation and evaluation of the Federated Dist
    ```
 
 ### References
-
+- **Article**: https://doi.org/10.1016/j.future.2025.108226
 - **Paper:** [Federated Distributed Key Generation](https://stan.bar/slides/2023-10-22-A-Voter-to-Voter-voting-protocol.pdf)
 - **Related Work:** Refer to the `paper/main.tex` and `paper/bibliography.bib` for detailed discussions and references on related cryptographic protocols and research.
 
