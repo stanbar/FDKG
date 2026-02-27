@@ -1,0 +1,41 @@
+name: Deploy poc/webapp to Cloudflare Pages
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "poc/**"
+      - "shared-crypto/**"
+      - ".github/workflows/deploy-poc-webapp.yml"
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      deployments: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: poc/webapp/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+        working-directory: poc/webapp
+
+      - name: Build
+        run: npm run build
+        working-directory: poc/webapp
+
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy out --project-name fdkg-vote --commit-dirty=true
+          workingDirectory: poc/webapp

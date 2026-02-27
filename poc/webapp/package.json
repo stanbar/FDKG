@@ -1,0 +1,31 @@
+{
+  "name": "fdkg-vote-webapp",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "e2e": "npx tsx scripts/e2e.ts",
+    "deploy": "next build && wrangler pages deploy out --project-name fdkg-vote --commit-dirty=true"
+  },
+  "dependencies": {
+    "crypto-browserify": "^3.12.1",
+    "next": "14.2.5",
+    "react": "^18",
+    "react-dom": "^18",
+    "shared-crypto": "file:../../shared-crypto",
+    "viem": "^2.17.0",
+    "vis-data": "^8.0.3",
+    "vis-network": "^10.0.2"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "@types/react": "^18",
+    "@types/react-dom": "^18",
+    "tsx": "^4.19.2",
+    "typescript": "^5",
+    "wrangler": "^4.47.0"
+  }
+}

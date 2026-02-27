@@ -1,0 +1,14 @@
+# ── Foundry build artifacts ───────────────────────────────────────────────────
+out/
+cache/
+
+# Foundry broadcast logs for local chains (chain 31337 = Anvil).
+# Keep mainnet/testnet broadcast records (remove this line if you want those).
+broadcast/
+
+# ── Next.js / webapp ──────────────────────────────────────────────────────────
+webapp/node_modules/
+webapp/.next/
+webapp/out/
+webapp/.env.local
+webapp/.wrangler/
