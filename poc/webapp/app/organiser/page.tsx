@@ -11,16 +11,16 @@ import {
   toHex,
 } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
-import { foundry } from "viem/chains";
+import { baseSepolia } from "viem/chains";
 import { FDKG_ABI, getContractAddress } from "@/lib/contract";
 
-const RPC = process.env.NEXT_PUBLIC_RPC_URL || "http://localhost:8545";
+const RPC = process.env.NEXT_PUBLIC_RPC_URL || "https://sepolia.base.org";
 
 function getClients(privKey: Hex) {
   const account = privateKeyToAccount(privKey);
   const transport = http(RPC);
-  const wallet = createWalletClient({ chain: foundry, transport, account });
-  const pub = createPublicClient({ chain: foundry, transport });
+  const wallet = createWalletClient({ chain: baseSepolia, transport, account });
+  const pub = createPublicClient({ chain: baseSepolia, transport });
   return { wallet, pub, account };
 }
 
@@ -61,7 +61,7 @@ export default function OrganiserPage() {
         functionName: "pinParams",
         args: [electionId, tOpen, tClose, Number(tRec), "0x0000000000000000000000000000000000000000000000000000000000000000" as Hex],
         account: wallet.account!,
-        chain: foundry,
+        chain: baseSepolia,
       });
       await pub.waitForTransactionReceipt({ hash });
       append(`✅ pinParams tx: ${hash}`);
@@ -89,7 +89,7 @@ export default function OrganiserPage() {
         functionName: "addEligible",
         args: [eid, voters],
         account: wallet.account!,
-        chain: foundry,
+        chain: baseSepolia,
       });
       await pub.waitForTransactionReceipt({ hash });
       append(`✅ addEligible tx: ${hash}`);
@@ -104,16 +104,16 @@ export default function OrganiserPage() {
       <p>Pin election parameters and configure eligible voters.</p>
 
       <section>
-        <h2>1. Private key (Anvil test key)</h2>
+        <h2>1. Private key</h2>
         <input
           type="password"
-          placeholder="0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
+          placeholder="0x…"
           value={privKey}
           onChange={(e) => setPrivKey(e.target.value)}
           style={{ width: "100%", fontFamily: "monospace" }}
         />
         <p style={{ fontSize: "0.8rem", color: "#888" }}>
-          Anvil default key #0: 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
+          Use any funded wallet on Base Sepolia. MetaMask → Base Sepolia → export key.
         </p>
       </section>
 

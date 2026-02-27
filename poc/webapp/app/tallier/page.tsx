@@ -9,7 +9,7 @@ import {
   type Hex,
 } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
-import { foundry } from "viem/chains";
+import { baseSepolia } from "viem/chains";
 import { FDKG_ABI, getContractAddress, readBallots, readEncShares } from "@/lib/contract";
 import {
   generateTallierKeypair,
@@ -20,13 +20,13 @@ import {
 } from "@/lib/crypto";
 import type { EncShare, Point } from "@/lib/types";
 
-const RPC = process.env.NEXT_PUBLIC_RPC_URL || "http://localhost:8545";
+const RPC = process.env.NEXT_PUBLIC_RPC_URL || "https://sepolia.base.org";
 
 function getClients(privKey: Hex) {
   const account = privateKeyToAccount(privKey);
   const transport = http(RPC);
-  const wallet = createWalletClient({ chain: foundry, transport, account });
-  const pub = createPublicClient({ chain: foundry, transport });
+  const wallet = createWalletClient({ chain: baseSepolia, transport, account });
+  const pub = createPublicClient({ chain: baseSepolia, transport });
   return { wallet, pub, account };
 }
 
@@ -98,7 +98,7 @@ export default function TallierPage() {
         functionName: "postFDKGGen",
         args: [eid as Hex, result.Ei, guards, result.encShares, result.proof],
         account: wallet.account!,
-        chain: foundry,
+        chain: baseSepolia,
       });
       await pub.waitForTransactionReceipt({ hash });
       append(`✅ postFDKGGen tx: ${hash}`);
@@ -114,7 +114,7 @@ export default function TallierPage() {
     if (!savedPrivKey) { append("ERROR: run postFDKGGen first (to have partial secret key)"); return; }
     try {
       const { wallet, pub, account } = getClients(privKey as Hex);
-      const pub2 = createPublicClient({ chain: foundry, transport: http(RPC) });
+      const pub2 = createPublicClient({ chain: baseSepolia, transport: http(RPC) });
       const addr = getContractAddress();
 
       append("Reading ballots…");
@@ -134,7 +134,7 @@ export default function TallierPage() {
         functionName: "postDecShare",
         args: [eid as Hex, pd, "0x"],
         account: wallet.account!,
-        chain: foundry,
+        chain: baseSepolia,
       });
       await pub.waitForTransactionReceipt({ hash });
       append(`✅ postDecShare tx: ${hash}`);
@@ -149,7 +149,7 @@ export default function TallierPage() {
     if (!offlineTallier.startsWith("0x")) { append("ERROR: need offline tallier address"); return; }
     try {
       const { wallet, pub, account } = getClients(guardianPrivKey as Hex);
-      const pub2 = createPublicClient({ chain: foundry, transport: http(RPC) });
+      const pub2 = createPublicClient({ chain: baseSepolia, transport: http(RPC) });
       const addr = getContractAddress();
 
       append(`Reading encrypted shares for tallier ${offlineTallier}…`);
@@ -173,7 +173,7 @@ export default function TallierPage() {
         functionName: "postReconShare",
         args: [eid as Hex, offlineTallier as Address, BigInt(shareX), shareY, "0x"],
         account: wallet.account!,
-        chain: foundry,
+        chain: baseSepolia,
       });
       await pub.waitForTransactionReceipt({ hash });
       append(`✅ postReconShare tx: ${hash}`);

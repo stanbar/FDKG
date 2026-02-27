@@ -1,12 +1,18 @@
 "use client";
 
+const CONTRACT = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS;
+const EXPLORER = CONTRACT
+  ? `https://sepolia.basescan.org/address/${CONTRACT}`
+  : null;
+
 export default function HomePage() {
   return (
     <div>
-      <h1>FDKG-Vote-BC — Proof of Concept</h1>
+      <h1>Voter-to-Voter Internet Voting</h1>
       <p>
-        This demo implements the <strong>FDKG-Vote-BC</strong> protocol:
-        a fully on-chain, threshold-encrypted election using Federated DKG.
+        A fully on-chain, threshold-encrypted election protocol.
+        Voters encrypt their choices under a distributed key held jointly by a set of talliers —
+        no single party can decrypt, and no trusted authority is required.
       </p>
 
       <h2>Protocol Phases</h2>
@@ -34,9 +40,9 @@ export default function HomePage() {
         </li>
       </ol>
 
-      <h2>Mocked pieces (PoC)</h2>
+      <h2>Current limitations</h2>
       <ul>
-        <li>ZK proofs — contract accepts empty bytes; see README for replacement hooks.</li>
+        <li>ZK proofs — contract accepts empty bytes; full verifiers are replaceable drop-ins.</li>
         <li>Eligibility — on-chain allowlist instead of Merkle ZK proof.</li>
         <li>Tally — off-chain computation submitted on-chain without re-verification.</li>
       </ul>
@@ -50,9 +56,16 @@ export default function HomePage() {
       </ul>
 
       <p style={{ marginTop: "2rem", color: "#888", fontSize: "0.85rem" }}>
-        Contract: <code>{process.env.NEXT_PUBLIC_CONTRACT_ADDRESS || "(not configured)"}</code>
-        &nbsp;·&nbsp;
-        RPC: <code>{process.env.NEXT_PUBLIC_RPC_URL || "http://localhost:8545"}</code>
+        Contract:{" "}
+        {CONTRACT && EXPLORER ? (
+          <a href={EXPLORER} target="_blank" rel="noopener noreferrer">
+            <code>{CONTRACT}</code>
+          </a>
+        ) : (
+          <code>(not configured)</code>
+        )}
+        {" · "}
+        Base Sepolia
       </p>
     </div>
   );

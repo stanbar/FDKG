@@ -8,17 +8,17 @@ import {
   type Hex,
 } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
-import { foundry } from "viem/chains";
+import { baseSepolia } from "viem/chains";
 import { FDKG_ABI, getContractAddress, readElection } from "@/lib/contract";
 import { deriveVoterKeypair, encryptVote, computeNullifier } from "@/lib/crypto";
 
-const RPC = process.env.NEXT_PUBLIC_RPC_URL || "http://localhost:8545";
+const RPC = process.env.NEXT_PUBLIC_RPC_URL || "https://sepolia.base.org";
 
 function getClients(privKey: Hex) {
   const account = privateKeyToAccount(privKey);
   const transport = http(RPC);
-  const wallet = createWalletClient({ chain: foundry, transport, account });
-  const pub = createPublicClient({ chain: foundry, transport });
+  const wallet = createWalletClient({ chain: baseSepolia, transport, account });
+  const pub = createPublicClient({ chain: baseSepolia, transport });
   return { wallet, pub, account };
 }
 
@@ -37,7 +37,7 @@ export default function VoterPage() {
     if (!eid.startsWith("0x")) { append("ERROR: need election id"); return; }
     try {
       const { wallet, pub } = getClients(privKey as Hex);
-      const pub2 = createPublicClient({ chain: foundry, transport: http(RPC) });
+      const pub2 = createPublicClient({ chain: baseSepolia, transport: http(RPC) });
       const addr = getContractAddress();
 
       // Fetch election public key from contract
@@ -71,7 +71,7 @@ export default function VoterPage() {
         functionName: "castBallot",
         args: [eid as Hex, c1, c2, nf, "0x"],
         account: wallet.account!,
-        chain: foundry,
+        chain: baseSepolia,
       });
       await pub.waitForTransactionReceipt({ hash });
       append(`✅ castBallot tx: ${hash}`);
@@ -88,7 +88,7 @@ export default function VoterPage() {
       <section>
         <h2>Settings</h2>
         <label>
-          Private key (Ethereum / Anvil):{" "}
+          Private key (Ethereum):{" "}
           <input
             type="password"
             placeholder="0x…"

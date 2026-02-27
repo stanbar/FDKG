@@ -9,7 +9,7 @@ import {
   type Address,
 } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
-import { foundry } from "viem/chains";
+import { baseSepolia } from "viem/chains";
 import {
   FDKG_ABI,
   getContractAddress,
@@ -27,13 +27,13 @@ import {
 } from "@/lib/crypto";
 import type { DecryptionMaterial, ReconShare } from "@/lib/types";
 
-const RPC = process.env.NEXT_PUBLIC_RPC_URL || "http://localhost:8545";
+const RPC = process.env.NEXT_PUBLIC_RPC_URL || "https://sepolia.base.org";
 
 function getClients(privKey: Hex) {
   const account = privateKeyToAccount(privKey);
   const transport = http(RPC);
-  const wallet = createWalletClient({ chain: foundry, transport, account });
-  const pub = createPublicClient({ chain: foundry, transport });
+  const wallet = createWalletClient({ chain: baseSepolia, transport, account });
+  const pub = createPublicClient({ chain: baseSepolia, transport });
   return { wallet, pub, account };
 }
 
@@ -47,7 +47,7 @@ export default function ResultsPage() {
   const [tally, setTally] = useState<bigint[] | null>(null);
 
   const append = (msg: string) => setLog((l) => [...l, msg]);
-  const pub2 = () => createPublicClient({ chain: foundry, transport: http(RPC) });
+  const pub2 = () => createPublicClient({ chain: baseSepolia, transport: http(RPC) });
 
   const handleRefresh = async () => {
     if (!eid.startsWith("0x")) { append("ERROR: need election id"); return; }
@@ -128,7 +128,7 @@ export default function ResultsPage() {
         functionName: "finalizeTally",
         args: [eid as Hex, result],
         account: wallet.account!,
-        chain: foundry,
+        chain: baseSepolia,
       });
       await pub.waitForTransactionReceipt({ hash });
       append(`✅ finalizeTally tx: ${hash}`);
