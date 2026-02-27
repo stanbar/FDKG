@@ -53,6 +53,8 @@ export default function HomePage() {
         <li><a href="/tallier">Tallier — register FDKG key, post dec share</a></li>
         <li><a href="/voter">Voter — cast encrypted ballot</a></li>
         <li><a href="/results">Results — view tally</a></li>
+        <li><a href="https://doi.org/10.1016/j.future.2025.108226" target="_blank" rel="noopener noreferrer">Research paper — Future Generation Computer Systems (2025)</a></li>
+        <li><a href="https://github.com/stanbar/FDKG" target="_blank" rel="noopener noreferrer">Source code — github.com/stanbar/FDKG</a></li>
       </ul>
 
       <p style={{ marginTop: "2rem", color: "#888", fontSize: "0.85rem" }}>

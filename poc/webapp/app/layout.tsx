@@ -32,6 +32,10 @@ export default function RootLayout({
         <footer style={{ marginTop: "3rem", borderTop: "1px solid #ccc", paddingTop: "1rem", fontSize: "0.8rem", color: "#888" }}>
           <a href="/sim">FDKG Network Simulator</a>
           {" · "}
+          <a href="https://doi.org/10.1016/j.future.2025.108226" target="_blank" rel="noopener noreferrer">Paper</a>
+          {" · "}
+          <a href="https://github.com/stanbar/FDKG" target="_blank" rel="noopener noreferrer">GitHub</a>
+          {" · "}
           V2V · Voter-to-Voter Internet Voting
         </footer>
       </body>
