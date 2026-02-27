@@ -16,7 +16,7 @@ import {
   type PublicClient,
   type WalletClient,
 } from "viem";
-import { foundry } from "viem/chains";
+import { baseSepolia } from "viem/chains";
 import type {
   Ballot,
   DecShare,
@@ -29,14 +29,13 @@ import type {
 // ─── Chain / transport config ─────────────────────────────────────────────────
 
 const RPC_URL =
-  (typeof window !== "undefined" && process.env.NEXT_PUBLIC_RPC_URL) ||
-  "http://localhost:8545";
+  process.env.NEXT_PUBLIC_RPC_URL || "https://sepolia.base.org";
 
 export function getPublicClient(): PublicClient {
   return createPublicClient({
-    chain: foundry,
+    chain: baseSepolia,
     transport: http(RPC_URL),
-  });
+  }) as unknown as PublicClient;
 }
 
 export function getWalletClient(account: Address): WalletClient {
@@ -47,7 +46,7 @@ export function getWalletClient(account: Address): WalletClient {
       : http(RPC_URL);
 
   return createWalletClient({
-    chain: foundry,
+    chain: baseSepolia,
     transport,
     account,
   });
@@ -557,7 +556,7 @@ export async function writePinParams(
     functionName: "pinParams",
     args: [eid, tOpen, tClose, tRec, merkleRoot],
     account: wallet.account!,
-    chain: foundry,
+    chain: baseSepolia,
   });
 }
 
@@ -571,7 +570,7 @@ export async function writeAddEligible(
     functionName: "addEligible",
     args: [eid, voters],
     account: wallet.account!,
-    chain: foundry,
+    chain: baseSepolia,
   });
 }
 
@@ -588,7 +587,7 @@ export async function writePostFDKGGen(
     functionName: "postFDKGGen",
     args: [eid, Ei, guardianSet, shares, proof],
     account: wallet.account!,
-    chain: foundry,
+    chain: baseSepolia,
   });
 }
 
@@ -605,7 +604,7 @@ export async function writeCastBallot(
     functionName: "castBallot",
     args: [eid, c1, c2, nullifier, proof],
     account: wallet.account!,
-    chain: foundry,
+    chain: baseSepolia,
   });
 }
 
@@ -620,7 +619,7 @@ export async function writePostDecShare(
     functionName: "postDecShare",
     args: [eid, share, proof],
     account: wallet.account!,
-    chain: foundry,
+    chain: baseSepolia,
   });
 }
 
@@ -637,7 +636,7 @@ export async function writePostReconShare(
     functionName: "postReconShare",
     args: [eid, tallier, shareX, shareY, proof],
     account: wallet.account!,
-    chain: foundry,
+    chain: baseSepolia,
   });
 }
 
@@ -651,6 +650,6 @@ export async function writeFinalizeTally(
     functionName: "finalizeTally",
     args: [eid, tallyResult],
     account: wallet.account!,
-    chain: foundry,
+    chain: baseSepolia,
   });
 }
